@@ -121,7 +121,7 @@ const deployModelLayer = () => {
     });
     enabledProviderModels().forEach((m) => { out[m.slot] = m.id; });
     out.seedReasoner = out.reasoner;
-    if (out.claudeSonnet) out.reasoner = out.claudeSonnet;
+    if (out.claudeOpus) out.reasoner = out.claudeOpus;
   }
   return out;
 };

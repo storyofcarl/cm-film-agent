@@ -15,7 +15,7 @@
 
 ## Additional model providers
 
-- Claude Sonnet 5 is the default writing/planning model, with Claude Opus 5 and
+- Claude Opus 5 is the default writing/planning model, with Claude Sonnet 5 and
   the configured Seed reasoner selectable. Claude supports private image references;
   video review uses six sampled frames and explicitly excludes audio analysis.
 - MiniMax H3 and H3 Max run through fal. Both include native audio and 5–15 second
