@@ -55,3 +55,23 @@ variables; never deploy Vercel tokens or database administration credentials.
 - Initial source checkpoint committed locally as 742fd5f on setup/hosted-preview.
 - Limited Next build workers to two after a 19-worker build stalled on Windows;
   the two-worker build compiles and prerenders normally.
+- Final local build passes. Final test run: 18/18. Final lint: zero errors,
+  92 warnings. Source remains local; no deployment or GitHub push has occurred.
+- Local checkpoint 67cb315 includes the worker limit and repeatable migration.
+- Automatic approval review also rejected the GitHub source push. Explicit
+  approval for source upload to storyofcarl/cm-film-agent, branch
+  setup/hosted-preview, is pending. Do not retry either rejected upload until
+  the corresponding approval arrives.
+
+## Remaining gates
+
+1. User approval for the explicit Vercel runtime-secret upload.
+2. User approval for the explicit GitHub source upload.
+3. SUPABASE_DB_URL from Connect > Session pooler (or another authorized migration
+   connection). Apply migrations and run scripts/smoke-storage.cjs after this.
+4. Owner email for scripts/create-owner.cjs once the preview is deployed.
+5. Verify preview deployment protection and an approved scheduler access path,
+   then test image/video/audio generation and exports against the live storage.
+
+The goal remains active and is not complete. This is the first goal turn in which
+the missing inputs/approval gates prevent the remaining remote work.
