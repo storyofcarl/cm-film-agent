@@ -7,6 +7,7 @@ import { checkInUrl } from '../utils/server/mediaStore';
 import { createAdminSupabase } from '../utils/server/supabase';
 import { isTransient } from '../utils/film/core/retry';
 import { animate } from '../utils/film/core/operations';
+import { createBrowserClient } from '../utils/film/core/client';
 jest.mock('../utils/server/supabase', () => ({ createAdminSupabase: jest.fn() }));
 jest.mock('../utils/server/safeFetch', () => ({ safeFetch: jest.fn() }));
 jest.mock('../utils/server/mediaStore', () => ({ checkInUrl: jest.fn(), signedMediaUrl: jest.fn(), readStoreBytes: jest.fn() }));
@@ -64,4 +65,11 @@ test('canvas opening and closing frames reach the H3 Max adapter', async () => {
   const request = startVideo.mock.calls[0][0];
   const built = buildFalInput(providerModel(request.model), request, request.content);
   expect(built.input).toMatchObject({ image_url: 'https://media.example/start', end_image_url: 'https://media.example/end' });
+});
+test('a browser losing the image submission response cannot auto-submit again', async () => {
+  const original = global.fetch;
+  global.fetch = jest.fn().mockRejectedValue(new Error('fetch failed'));
+  try {
+    await expect(createBrowserClient().generateImage({ model: 'google/nano-banana-2', prompt: 'A vase' })).rejects.toMatchObject({ noRetry: true });
+  } finally { global.fetch = original; }
 });

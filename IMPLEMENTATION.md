@@ -27,7 +27,7 @@
 - Live tests completed for all five image models, both video models, Nano Banana 2
   editing, both Claude models, Claude image understanding, and sampled-frame video
   review. Authenticated output retrieval passed for every generated asset.
-- 36 regression tests pass; lint has no errors. Production build passes.
+- 37 regression tests pass; lint has no errors. Production build passes.
 
 ## Implemented
 

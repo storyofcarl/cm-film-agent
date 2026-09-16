@@ -24,6 +24,7 @@ export const errMsg = (data, fallback) => {
 };
 
 import { awaitImage } from '../awaitImage';
+import { providerModel } from '../../providerModels';
 const POLL_INTERVAL_MS = 4000;
 // Seedance has NO generation SLA — under load a task can sit queued for many minutes — so the
 // client poll waits generously (30 min) before giving up rather than killing a still-live task.
@@ -34,6 +35,7 @@ const POLL_TIMEOUT_MS = 1800000;
 
 export const createBrowserClient = (apiKey) => ({
   async generateImage({ prompt, referenceImages, size, model, seed, optimizePrompt }) {
+    try {
     const res = await fetch('/api/film/imagine', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -41,7 +43,13 @@ export const createBrowserClient = (apiKey) => ({
     });
     const data = await res.json();
     if (!res.ok) throw new Error(errMsg(data, `Image generation failed (HTTP ${res.status})`));
-    return awaitImage(data);
+      return await awaitImage(data);
+    } catch (error) {
+      // A lost response may hide an accepted paid task. Never resubmit WaveSpeed
+      // automatically; its saved job can still finish in Generations.
+      if (providerModel(model)?.provider === 'wavespeed') error.noRetry = true;
+      throw error;
+    }
   },
 
   async reason({ prompt, systemPrompt, images, video, modelId, reasoningEffort }) {
