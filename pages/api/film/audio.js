@@ -12,7 +12,7 @@ import { checkInBytes, signedMediaUrl } from '../../../utils/server/mediaStore';
 
 // REQUIRED via env — no default region. Guarded at request time with a clear error.
 const VOICE_HOST = (process.env.BYTEPLUSVOICE_BASE_URL || '').replace(/\/+$/, '');
-const CREATE_ENDPOINT = `${VOICE_HOST}/api/v3/tts/create`;
+const CREATE_ENDPOINT = VOICE_HOST.endsWith('/api/v3/tts/create') ? VOICE_HOST : `${VOICE_HOST}/api/v3/tts/create`;
 const SEED_AUDIO_MODEL = process.env.MODELARK_MODEL_SEED_AUDIO || null; // REQUIRED via env
 
 const MIME = { mp3: 'audio/mpeg', ogg_opus: 'audio/ogg', pcm: 'audio/pcm', wav: 'audio/wav' };
