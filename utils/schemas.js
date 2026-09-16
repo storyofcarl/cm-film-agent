@@ -1,0 +1,308 @@
+import { generateAssetGroupId } from './assetGroupId';
+import { resolveModelId } from './film/suiteConfig';
+
+// Seedream (image) endpoints for the Tools → Image dropdown — Lite + Pro. Endpoint ids
+// come from the suite-config registry (ROOT_CONFIG.models) so the tab and the film suite
+// share one source; `label` is the dropdown name. `.filter` drops any id not configured yet.
+// LIVE lookups, evaluated at ACCESS time — model ids are env-configured with NO
+// built-in defaults, and the browser only learns them when /api/film/config hydrates
+// (applyDeployModels). A module-load capture here froze `null` into every dropdown
+// ("model is required" on the Tools tabs even with a fully configured .env.local).
+const seedreamEndpointsLive = () => [
+    { value: resolveModelId('seedream'), label: 'Seedream 5.0 Lite' },
+    { value: resolveModelId('seedreamPro'), label: 'Seedream 5.0 Pro' },
+].filter((o) => o.value);
+const defaultSeedreamModel = () => seedreamEndpointsLive()[0]?.value || null; // first CONFIGURED endpoint — never a hardcoded id
+
+// Seedance (video) endpoints for the Tools → Video dropdown. Endpoint ids come from
+// the suite-config registry (ROOT_CONFIG.models) so they live in one place; `label`
+// is the human name shown in the dropdown. `.filter` drops any id not configured yet.
+const seedanceEndpointsLive = () => [
+    { value: resolveModelId('seedance25'), label: 'Seedance 2.5 · 30s' },
+    { value: resolveModelId('seedance'), label: 'Seedance 2.0' },
+    { value: resolveModelId('seedanceFast'), label: 'Seedance 2.0 Fast' },
+    { value: resolveModelId('seedanceMini'), label: 'Seedance 2.0 Mini' },
+].filter((o) => o.value);
+const defaultSeedanceModel = () => seedanceEndpointsLive()[0]?.value || null; // first CONFIGURED endpoint — never a hardcoded id
+
+// LLM Models — the env-configured reasoner slot FIRST (it's what the film suite
+// uses and what a customer actually deployed), then the public catalog names
+// (portable across accounts — standard model names, never account-scoped ep- ids).
+const LLM_CATALOG_IDS = [
+    'seed-2-0-pro-260328',
+    'seed-2-0-mini-260428',
+    'seed-2-0-lite-260428',
+];
+const llmModelsLive = () => {
+    const r = resolveModelId('reasoner');
+    return r && !LLM_CATALOG_IDS.includes(r) ? [r, ...LLM_CATALOG_IDS] : LLM_CATALOG_IDS;
+};
+const defaultLlmModel = () => resolveModelId('reasoner') || LLM_CATALOG_IDS[0];
+
+export const baseSchemas = {
+  seedream: {
+    id: 'seedream',
+    name: 'Seedream Image',
+    description: 'Seedream images/generations',
+    fields: [
+      {
+        key: 'model',
+        label: 'Model',
+        type: 'enum',
+        get options() { return seedreamEndpointsLive(); },
+        get defaultValue() { return defaultSeedreamModel(); },
+        description: 'Seedream endpoint. Pro is the latest (up to 10 reference images) but caps output area at 2048² (no 4K); Lite allows 2K/4K and up to 6 refs.',
+      },
+      {
+        key: 'prompt',
+        label: 'Prompt',
+        type: 'text',
+        required: true,
+        description: 'Primary text prompt. Max ~600 words.',
+      },
+      {
+        key: 'image',
+        label: 'Reference Images',
+        type: 'image-list',
+        description: 'Optional reference images (URL or Base64) for multi-image blending. Max depends on the model — 6 for Lite, 10 for Pro.',
+      },
+      {
+        key: 'size',
+        label: 'Size',
+        type: 'enum',
+        options: ['2K', '4K'],
+        defaultValue: '2K',
+        description: 'Output resolution used by the workflow-style image payload.',
+      },
+    ],
+    defaults: {
+      get model() { return defaultSeedreamModel(); },
+      prompt: 'A hero product shot of a premium skincare bottle on a minimal studio set.',
+      size: '2K',
+      image: [],
+      parallelCount: 1,
+    },
+  },
+  llm: {
+    id: 'llm',
+    name: 'AI Analysis',
+    description: 'Multimodal AI for text, image, and video analysis.',
+    fields: [
+      {
+        key: 'model',
+        label: 'Model',
+        type: 'enum',
+        get options() { return llmModelsLive(); },
+        get defaultValue() { return defaultLlmModel(); },
+        description: 'LLM model id used for analysis.',
+      },
+      {
+        key: 'prompt',
+        label: 'Prompt',
+        type: 'text',
+        required: true,
+        description: 'Text prompt for the analysis.',
+      },
+      {
+        key: 'image',
+        label: 'Image',
+        type: 'image-list',
+        description: 'Image to analyze.',
+      },
+      {
+        key: 'video',
+        label: 'Video',
+        type: 'video-list', 
+        description: 'Video to analyze.',
+      },
+    ],
+    defaults: {
+      get model() { return defaultLlmModel(); },
+      prompt: 'Describe this content.',
+      image: [],
+      video: [],
+    },
+  },
+  seedance: {
+    id: 'seedance',
+    name: 'Seedance Video',
+    description: 'Seedance video generation',
+    fields: [
+      {
+        key: 'model',
+        label: 'Model',
+        type: 'enum',
+        get options() { return seedanceEndpointsLive(); },
+        get defaultValue() { return defaultSeedanceModel(); },
+        description: 'Seedance endpoint used for video generation. 2.5 does 30s takes and richer references (up to 1080p); Fast trades a little fidelity for speed; Mini is the cheapest.',
+      },
+      {
+        key: 'prompt',
+        label: 'Prompt',
+        type: 'text',
+        required: true,
+        description: 'Text prompt describing the video content.',
+      },
+      {
+        key: 'reference_image_refs',
+        label: 'Reference Images',
+        type: 'image-ref-list',
+        description: 'Reference images in insertion order. Each entry is either a URL/local file or an Asset ID. Order is preserved in the API payload, so [Image 1] in your prompt maps to the first entry here.',
+      },
+      {
+        key: 'reference_video_refs',
+        label: 'Reference Videos',
+        type: 'video-ref-list',
+        description: 'Reference videos in insertion order. Each entry is either a URL/local file or an Asset ID.',
+      },
+      {
+        key: 'reference_audios',
+        label: 'Reference Audio',
+        type: 'audio-list',
+        description: 'Reference audio for generation (Seedance 2.0). Use a public http(s) URL or upload a local file to be staged via TOS.',
+      },
+      {
+        key: 'resolution',
+        label: 'Resolution',
+        type: 'enum',
+        options: ['480p', '720p', '1080p', '4k'],
+        defaultValue: '720p',
+        description: 'Resolution of the output video. Seedance 2.5 caps at 1080p; 4K is the 2.0 default endpoint only.',
+      },
+      {
+        key: 'ratio',
+        label: 'Aspect Ratio',
+        type: 'enum',
+        options: ['16:9', '4:3', '1:1', '3:4', '9:16', '21:9', 'adaptive'],
+        defaultValue: '16:9',
+        description: 'Aspect ratio of the output video.',
+      },
+      {
+        key: 'duration',
+        label: 'Duration (seconds)',
+        type: 'enum',
+        options: ['auto', 2, 4, 5, 10, 11, 12, 15, 20, 25, 30],
+        defaultValue: 'auto',
+        description: 'Video duration in seconds, or auto to let the model decide. 16-30s requires Seedance 2.5 (the 2.0 family caps at 15s).',
+      },
+      {
+        key: 'seed',
+        label: 'Seed',
+        type: 'number',
+        defaultValue: -1,
+        description: 'Random seed (-1 for random).',
+      },
+      {
+        key: 'generate_audio',
+        label: 'Generate Audio',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Generate synchronized audio (1.5 pro only).',
+      },
+      {
+        key: 'watermark',
+        label: 'Watermark',
+        type: 'boolean',
+        defaultValue: false,
+        description: 'Add watermark to output video.',
+      },
+    ],
+    defaults: {
+      get model() { return defaultSeedanceModel(); },
+      prompt: 'A cinematic shot of a futuristic city with flying cars.',
+      reference_image_refs: [],
+      reference_video_refs: [],
+      reference_audios: [],
+      resolution: '720p',
+      ratio: '16:9',
+      duration: 'auto',
+      parallelCount: 1,
+      seed: -1,
+      generate_audio: true,
+      watermark: false,
+    },
+  },
+  'film-agent': {
+    id: 'film-agent',
+    name: 'Film Agent',
+    description: 'A freeform canvas for cinematic pre-production. Drop assets, then run agent layers — Inspiration Board, Character & Location Variations — to explore your film.',
+    fields: [
+      {
+        key: 'idea',
+        label: 'Film Idea',
+        type: 'text',
+        required: true,
+        description: 'One- or two-sentence pitch. Genre, tone, and core conflict are all useful. The agent will expand this into a logline first.',
+      },
+      {
+        key: 'language',
+        label: 'Primary Language',
+        type: 'enum',
+        options: ['en', 'zh-CN', 'es', 'fr', 'de', 'ja', 'ko'],
+        defaultValue: 'en',
+        description: 'Language for dialogue, voice timbre, and on-screen text. Seedance 2.0 native audio renders in this language.',
+      },
+      {
+        key: 'targetMinutes',
+        label: 'Target Length (minutes)',
+        type: 'enum',
+        options: [3, 4, 5],
+        defaultValue: 4,
+        description: 'Total runtime. The shot list scales to fit.',
+      },
+    ],
+    defaults: {
+      idea: '',
+      language: 'en',
+      targetMinutes: 4,
+      projectPath: '',
+      projectId: null,
+    },
+  },
+  'asset-upload': {
+    id: 'asset-upload',
+    name: 'Asset Upload',
+    description: 'Upload image assets into the ModelArk private virtual portrait library using AK/SK authentication and the Assets APIs.',
+    fields: [
+      {
+        key: 'assetGroupId',
+        label: 'Asset Group ID',
+        type: 'text',
+        description: 'The upload always uses this existing asset group id.',
+      },
+      {
+        key: 'imageUrl',
+        label: 'Image URL',
+        type: 'text',
+        description: 'Optional. If provided, the Assets API uses this public image URL directly. Leave it empty when staging a local image to TOS first.',
+      },
+      {
+        key: 'assetName',
+        label: 'Asset Name',
+        type: 'text',
+        description: 'Optional asset label used for management and fuzzy search.',
+      },
+      {
+        key: 'pollUntilReady',
+        label: 'Poll Until Ready',
+        type: 'boolean',
+        defaultValue: true,
+        description: 'Poll GetAsset until the asset becomes Active or Failed.',
+      },
+    ],
+    defaults: {
+      assetGroupId: generateAssetGroupId(),
+      assetType: 'Image',
+      imageUrl: '',
+      videoUrl: '',
+      assetName: '',
+      localImageData: '',
+      localImageName: '',
+      localVideoData: '',
+      localVideoName: '',
+      pollUntilReady: true,
+    },
+  },
+};
+
+export const apiKeyStorageKey = 'modelark_api_key';

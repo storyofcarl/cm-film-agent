@@ -1,0 +1,12 @@
+.env*
+!.env.example
+.git
+.local
+artifacts
+electron
+tools
+.agents
+.trae
+asset-ids.txt
+node_modules
+.next

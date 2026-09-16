@@ -1,0 +1,89 @@
+{
+  "name": "modelark-starter-kit",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": "24.x" },
+  "author": "BytePlus Team",
+  "description": "Starter kit for Seedream, Seedance, and Seed APIs",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "eslint .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "dev:next": "next dev -p 3000",
+    "dev:electron": "wait-on http://localhost:3000 && electron .",
+    "dev:desktop": "concurrently -k \"npm:dev:next\" \"npm:dev:electron\"",
+    "start:desktop": "NODE_ENV=production electron .",
+    "build:desktop": "npm run build && electron-builder -m -w"
+  },
+  "dependencies": {
+    "@arco-design/web-react": "^2.66.10",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "@volcengine/tos-sdk": "^2.9.1",
+    "@xyflow/react": "^12.10.1",
+    "cookie": "^2.0.1",
+    "ffmpeg-static": "^5.2.0",
+    "ipaddr.js": "^2.5.0",
+    "next": "16.2.9",
+    "pg": "^8.23.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "undici": "^8.10.2"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "concurrently": "^10.0.3",
+    "dotenv": "^17.3.1",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.2",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.9",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "node-mocks-http": "^1.17.2",
+    "vercel": "^59.19.0",
+    "wait-on": "^9.0.10",
+    "whatwg-fetch": "^3.6.20"
+  },
+  "build": {
+    "appId": "com.modelark.starterkit",
+    "productName": "ModelArk Starter Kit",
+    "asar": true,
+    "files": [
+      "electron/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "package.json",
+      "node_modules/**/*",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}/**/*",
+      "!**/node_modules/.bin",
+      "!**/*.{o,hprof,orig,pyc,pyo,rbc,swp,tod,ts,tsx,web}",
+      "!.next/cache/**/*"
+    ],
+    "directories": {
+      "output": "dist/${os}"
+    },
+    "mac": {
+      "target": "dmg",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "electron/entitlements.mac.plist",
+      "entitlementsInherit": "electron/entitlements.mac.plist"
+    },
+    "dmg": {
+      "sign": false
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}

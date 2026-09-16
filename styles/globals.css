@@ -1,0 +1,127 @@
+:root {
+  --primary-color: #2f5bff;
+  --secondary-color: #101828;
+  --background-color: #e5e7eb;
+  --card-background-color: #f8fafc;
+  --border-color: #eaecf0;
+  --text-color: #111827;
+  --subtle-text-color: #667085;
+  --success-color: #039855;
+  --error-color: #d92d20;
+  --toolbar-width: 60px;
+  --right-sidebar-width: 350px;
+}
+
+.account-signout { position: fixed; bottom: 8px; right: 12px; z-index: 1000; padding: 5px 10px; border: 1px solid #54615b; border-radius: 5px; background: #17221d; color: #dce8df; font-size: 11px; cursor: pointer; }
+.generation-recovery{position:fixed;bottom:8px;right:90px;z-index:1000;font-size:12px}.generation-recovery>button{padding:5px 10px;border:1px solid #54615b;border-radius:5px;background:#17221d;color:#dce8df;cursor:pointer}.generation-recovery section{position:absolute;bottom:36px;right:0;width:340px;max-height:420px;overflow:auto;padding:18px;border:1px solid #40564b;border-radius:8px;background:#17221d;color:#e4eee7;box-shadow:0 12px 30px #0005}.generation-recovery p{color:#a9bbae}.generation-row{padding:12px 0;border-top:1px solid #34473b;display:flex;justify-content:space-between;gap:15px}.generation-row a{color:#b9dbc9}.generation-row small{color:#a9bbae}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Canvas panning must never escalate into the browser's history swipe — a
+     horizontal overscroll on the board otherwise triggers macOS back/forward. */
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, 'Helvetica Neue', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.workflow-toolbox-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.workflow-toolbox-scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* We now use Arco Design Layout, Sider, Menu, etc. */
+
+/* Debug Panel & Results */
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  color: #a3a3a3;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.result {
+  margin-top: 0.5rem;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  border-radius: 8px;
+  padding: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.result-item {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.media {
+  width: 100%;
+  border-radius: 8px;
+  display: block;
+}
+
+/* Helper utils */
+.link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background-color: var(--primary-color);
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.link-button.secondary {
+  background-color: #eef4ff;
+  color: var(--primary-color);
+}
+
+.link-button.secondary:hover { background-color: #e0e7ff; }
+
+/* Film canvas performance: promote the board viewport to its own cached GPU layer —
+   panning then translates a texture instead of repainting 100+ cards per frame.
+   (Zoom re-rasterizes once per step; card faces are inert stills so that's cheap.) */
+.react-flow__viewport {
+  will-change: transform;
+}
