@@ -1,5 +1,7 @@
 import { safeFetch as fetch } from '../../../utils/server/safeFetch';
 import { CONFIG } from '../../../utils/config';
+import { providerModel } from '../../../utils/providerModels';
+import { submitWaveImage } from '../../../utils/server/providerJobs';
 import { getModel } from '../../../utils/film/suiteConfig';
 import { checkInBytes, storeKeyFromUrl, readStoreBytes } from '../../../utils/server/mediaStore';
 
@@ -32,6 +34,11 @@ async function imagineHandler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+
+  if (providerModel(req.body?.model)?.provider === 'wavespeed') {
+    try { return res.status(202).json(await submitWaveImage({ ...req.body, referenceImages: [].concat(req.body.referenceImages || [], req.body.referenceImage || []).filter(Boolean) })); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
   }
 
   const {

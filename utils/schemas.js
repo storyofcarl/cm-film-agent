@@ -1,5 +1,5 @@
 import { generateAssetGroupId } from './assetGroupId';
-import { resolveModelId } from './film/suiteConfig';
+import { resolveModelId, IMAGE_MODEL_OPTIONS, VIDEO_MODEL_OPTIONS } from './film/suiteConfig';
 
 // Seedream (image) endpoints for the Tools → Image dropdown — Lite + Pro. Endpoint ids
 // come from the suite-config registry (ROOT_CONFIG.models) so the tab and the film suite
@@ -9,21 +9,23 @@ import { resolveModelId } from './film/suiteConfig';
 // (applyDeployModels). A module-load capture here froze `null` into every dropdown
 // ("model is required" on the Tools tabs even with a fully configured .env.local).
 const seedreamEndpointsLive = () => [
+    ...IMAGE_MODEL_OPTIONS.filter((m) => !['seedream', 'seedreamPro'].includes(m.key)).map((m) => ({ value: resolveModelId(m.key), label: m.label })),
     { value: resolveModelId('seedream'), label: 'Seedream 5.0 Lite' },
     { value: resolveModelId('seedreamPro'), label: 'Seedream 5.0 Pro' },
 ].filter((o) => o.value);
-const defaultSeedreamModel = () => seedreamEndpointsLive()[0]?.value || null; // first CONFIGURED endpoint — never a hardcoded id
+const defaultSeedreamModel = () => resolveModelId('seedream') || seedreamEndpointsLive()[0]?.value || null;
 
 // Seedance (video) endpoints for the Tools → Video dropdown. Endpoint ids come from
 // the suite-config registry (ROOT_CONFIG.models) so they live in one place; `label`
 // is the human name shown in the dropdown. `.filter` drops any id not configured yet.
 const seedanceEndpointsLive = () => [
+    ...VIDEO_MODEL_OPTIONS.filter((m) => m.key.startsWith('minimax')).map((m) => ({ value: resolveModelId(m.key), label: m.label })),
     { value: resolveModelId('seedance25'), label: 'Seedance 2.5 · 30s' },
     { value: resolveModelId('seedance'), label: 'Seedance 2.0' },
     { value: resolveModelId('seedanceFast'), label: 'Seedance 2.0 Fast' },
     { value: resolveModelId('seedanceMini'), label: 'Seedance 2.0 Mini' },
 ].filter((o) => o.value);
-const defaultSeedanceModel = () => seedanceEndpointsLive()[0]?.value || null; // first CONFIGURED endpoint — never a hardcoded id
+const defaultSeedanceModel = () => resolveModelId('seedance25') || seedanceEndpointsLive()[0]?.value || null;
 
 // LLM Models — the env-configured reasoner slot FIRST (it's what the film suite
 // uses and what a customer actually deployed), then the public catalog names
@@ -34,16 +36,15 @@ const LLM_CATALOG_IDS = [
     'seed-2-0-lite-260428',
 ];
 const llmModelsLive = () => {
-    const r = resolveModelId('reasoner');
-    return r && !LLM_CATALOG_IDS.includes(r) ? [r, ...LLM_CATALOG_IDS] : LLM_CATALOG_IDS;
+    return [...new Set(['reasoner', 'claudeSonnet', 'claudeOpus', 'seedReasoner'].map((slot) => resolveModelId(slot)).filter(Boolean))];
 };
 const defaultLlmModel = () => resolveModelId('reasoner') || LLM_CATALOG_IDS[0];
 
 export const baseSchemas = {
   seedream: {
     id: 'seedream',
-    name: 'Seedream Image',
-    description: 'Seedream images/generations',
+    name: 'Image Studio',
+    description: 'Generate or edit images with the selected model',
     fields: [
       {
         key: 'model',
@@ -125,7 +126,7 @@ export const baseSchemas = {
   },
   seedance: {
     id: 'seedance',
-    name: 'Seedance Video',
+    name: 'Video Studio',
     description: 'Seedance video generation',
     fields: [
       {

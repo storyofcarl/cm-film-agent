@@ -7,6 +7,7 @@ async function main() {
     fs.appendFileSync('.env', '\nCRON_SECRET=' + process.env.CRON_SECRET + '\n');
   }
   const names = ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_SECRET_KEY', 'CRON_SECRET',
+    'ANTHROPIC_API_KEY', 'FAL_API_KEY', 'WAVESPEED_API_KEY',
     'REGION', 'SERVICE', 'VERSION', 'BASE_URL', 'TERMINAL', 'POLL_INTERVAL_MS', 'POLL_MAX_ATTEMPTS',
     ...Object.keys(process.env).filter((name) => /^(MODELARK_|BYTEPLUSVOICE_)/.test(name))];
   const body = [...new Set(names)].filter((key) => process.env[key]?.trim()).map((key) => ({ key, value: process.env[key], target: ['preview', 'production'], type: 'encrypted' }));

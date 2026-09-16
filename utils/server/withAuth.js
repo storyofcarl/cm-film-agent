@@ -1,5 +1,6 @@
 import { createRequestSupabase } from './supabase';
 import { runWithRequest } from './requestContext';
+import { enabledProviderModels } from '../providerModels';
 
 export const isApprovedUser = (user) => user?.app_metadata?.film_agent_access === true;
 
@@ -30,6 +31,7 @@ export const withAuth = (handler) => async (req, res) => {
     const model = req.body?.model || req.body?.modelId;
     if (model) {
       const configured = Object.entries(process.env).filter(([name]) => name.startsWith('MODELARK_MODEL_')).map(([, value]) => value);
+      configured.push(...enabledProviderModels().map((m) => m.id));
       if (!configured.includes(model)) return res.status(400).json({ error: 'Choose a model enabled for this workspace' });
     }
     return await runWithRequest({ user, supabase }, () => handler(req, res));

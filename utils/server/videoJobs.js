@@ -3,9 +3,12 @@ import { getEndpointUrl } from '../config';
 import { checkInUrl } from './mediaStore';
 import { safeFetch } from './safeFetch';
 import { createAdminSupabase } from './supabase';
+import { providerModel } from '../providerModels';
+import { pollExternalJob } from './providerJobs';
 
 export const pollVideoJob = async (job) => {
   if (['succeeded', 'failed', 'cancelled'].includes(job.status) && job.result) return job.result;
+  if (['fal', 'wavespeed'].includes(providerModel(job.request?.model)?.provider)) return pollExternalJob(job);
   const response = await safeFetch(`${getEndpointUrl('video')}/${encodeURIComponent(job.provider_task_id)}`, {
     headers: { Authorization: `Bearer ${process.env.MODELARK_API_KEY}`, 'Content-Type': 'application/json' },
   });

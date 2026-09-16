@@ -12,6 +12,7 @@ import SeedancePlayground from '../components/SeedancePlayground';
 import SeedreamPlayground from '../components/SeedreamPlayground';
 import LLMPlayground from '../components/LLMPlayground';
 import FilmAgentPlayground from '../components/film/FilmAgentPlayground';
+import ReasoningModelSelector from '../components/film/ReasoningModelSelector';
 import { createRequestSupabase } from '../utils/server/supabase';
 import { isApprovedUser } from '../utils/server/withAuth';
 import AssetUploadPlayground from '../components/AssetUploadPlayground';
@@ -186,6 +187,10 @@ export default function Home() {
             reference_video_refs: caps.supports_ref_videos ? prev.reference_video_refs : [],
             reference_audios: caps.supports_ref_audios ? prev.reference_audios : [],
             generate_audio: caps.supports_audio ? prev.generate_audio : false,
+            duration: caps.durations?.includes(prev.duration) ? prev.duration : caps.durations?.[0],
+            ratio: caps.ratios?.includes(prev.ratio) ? prev.ratio : caps.ratios?.[0],
+            first_frame_url: caps.supports_first_frame ? prev.first_frame_url : '',
+            last_frame_url: caps.supports_last_frame ? prev.last_frame_url : '',
             // Mini caps at 720p — drop an out-of-range resolution so we never send one the endpoint rejects.
             resolution: resOk ? prev.resolution : (caps.resolutions.includes('720p') ? '720p' : caps.resolutions[0]),
           };
@@ -437,6 +442,7 @@ export default function Home() {
 
 
                 <header style={{ marginBottom: isCanvasTool ? 8 : 10, textAlign: 'center' }}>
+                    <ReasoningModelSelector />
                     {!isCanvasTool && (
                         <Title heading={6} style={{ margin: '0 0 6px' }}>{uiSchema.title}</Title>
                     )}

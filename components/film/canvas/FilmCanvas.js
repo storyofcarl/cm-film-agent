@@ -343,7 +343,7 @@ const animateWithRefFallback = async (shot, refAssetIds, ctx) => {
     try {
       const out = await animateOp({ // eslint-disable-line no-await-in-loop
         motion: shot.motion, camera: 'auto', refUrls: urls, refAssetIds: ids,
-        firstFrameUrl: shot.firstFrameUrl, audioRefUrls: audioUrls, videoRefUrls: videoUrls,
+        firstFrameUrl: shot.firstFrameUrl, lastFrameUrl: shot.lastFrameUrl, audioRefUrls: audioUrls, videoRefUrls: videoUrls,
         duration: shot.durationSec, resolution: shot.resolution, ratio: shot.ratio,
         generateAudio: genAudio, seed: shot.seed, modelKey: shot.modelKey,
       }, ctx);
@@ -2581,6 +2581,8 @@ const FilmCanvasInner = ({ project, apiKey, serverKeyed = false, onUpdateProject
     const startIdx = kfIndices[0] || 0;
     if (startIdx) {
       const refs = baseRefs;
+      const falFrames = ['minimaxH3', 'minimaxH3Max'].includes(c.data.videoModel);
+      if (falFrames && (kfIndices.length > 2 || refs.length !== kfIndices.length || audioRefUrls.length || videoRefUrls.length)) throw new Error('H3 keyframe shots support an opening and closing frame only. Remove other references, or clear keyframes to use H3 multimodal references.');
       const motion = composePinnedShotPrompt({
         // The keyframe chips carry composition, not identity — exclude them from the
         // subject-definition header (defining a still as a person reads as nonsense).
@@ -2609,9 +2611,10 @@ const FilmCanvasInner = ({ project, apiKey, serverKeyed = false, onUpdateProject
         camera: 'auto',
         durationSec: clampShotSeconds(videoModelKeyOf(c.data.videoModel), c.data.durationSec),
         refEntryIds,
-        refUrls: refs.map((r) => r.url),
-        refAssetIds: refs.map((r) => r.assetId || null),
-        firstFrameUrl: null,
+        refUrls: falFrames ? [] : refs.map((r) => r.url),
+        refAssetIds: falFrames ? [] : refs.map((r) => r.assetId || null),
+        firstFrameUrl: falFrames ? refs[startIdx - 1]?.url : null,
+        lastFrameUrl: falFrames && kfIndices.length > 1 ? refs[kfIndices[1] - 1]?.url : null,
         resolution: clampResolution(videoModelKeyOf(c.data.videoModel), c.data.resolution),
         ratio: c.data.ratio || '21:9', // cinematic scope by default
         generateAudio: c.data.generateAudio,

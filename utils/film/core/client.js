@@ -23,6 +23,7 @@ export const errMsg = (data, fallback) => {
   return fallback;
 };
 
+import { awaitImage } from '../awaitImage';
 const POLL_INTERVAL_MS = 4000;
 // Seedance has NO generation SLA — under load a task can sit queued for many minutes — so the
 // client poll waits generously (30 min) before giving up rather than killing a still-live task.
@@ -40,7 +41,7 @@ export const createBrowserClient = (apiKey) => ({
     });
     const data = await res.json();
     if (!res.ok) throw new Error(errMsg(data, `Image generation failed (HTTP ${res.status})`));
-    return data;
+    return awaitImage(data);
   },
 
   async reason({ prompt, systemPrompt, images, video, modelId, reasoningEffort }) {

@@ -12,10 +12,11 @@ const isHttpUrl = (value) => {
 };
 
 const isDataUrl = (value) => typeof value === 'string' && /^data:[^;]+;base64,/i.test(value);
+const isStoredMedia = (value) => typeof value === 'string' && /^\/api\/film\/media\?key=[a-f0-9]+\.\w+$/.test(value);
 const isAssetUrl = (value) => typeof value === 'string' && /^asset:\/\//i.test(value.trim());
 
 const assertSupportedSeedanceMediaInputs = (values, label) => {
-    const invalidValues = (values || []).filter((value) => !isHttpUrl(value) && !isDataUrl(value));
+    const invalidValues = (values || []).filter((value) => !isHttpUrl(value) && !isDataUrl(value) && !isStoredMedia(value));
     if (invalidValues.length > 0) {
         throw new Error(`${label} must be public http(s) URLs or local uploaded files. Blob URLs and other unsupported formats are not supported.`);
     }
@@ -23,7 +24,7 @@ const assertSupportedSeedanceMediaInputs = (values, label) => {
 
 const assertReferenceImageRefs = (refs) => {
     refs.forEach((ref, i) => {
-        if (ref.type === 'url' && !isHttpUrl(ref.value) && !isDataUrl(ref.value)) {
+        if (ref.type === 'url' && !isHttpUrl(ref.value) && !isDataUrl(ref.value) && !isStoredMedia(ref.value)) {
             throw new Error(`Reference image ${i + 1} must be a public http(s) URL or a local uploaded file.`);
         }
         if (ref.type === 'asset' && (!ref.value || !String(ref.value).trim())) {
@@ -82,6 +83,9 @@ export const constructSeedancePayload = (formValues) => {
     }
 
     const caps = getModelCapabilities(formValues.model);
+
+    if (caps.supports_first_frame && formValues.first_frame_url) payload.content.push({ type: 'image_url', role: 'first_frame', image_url: { url: formValues.first_frame_url } });
+    if (caps.supports_last_frame && formValues.last_frame_url) payload.content.push({ type: 'image_url', role: 'last_frame', image_url: { url: formValues.last_frame_url } });
 
     if (caps.supports_audio) {
         payload.generate_audio = formValues.generate_audio;

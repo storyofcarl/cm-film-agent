@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { resolveModelId } from '../utils/film/suiteConfig';
+import { providerModel } from '../utils/providerModels';
 import { Select, Input, Button, Upload, Dropdown, Menu, Message, Tooltip, Checkbox } from '@arco-design/web-react';
 import { IconCode, IconStar, IconRefresh, IconBook } from '@arco-design/web-react/icon';
 import styles from '../styles/Playground.module.css';
@@ -286,11 +287,11 @@ const SeedreamPlayground = ({
           )}
 
           {/* Submit */}
-          <Dropdown droplist={codeMenu} trigger="click" position="bl">
+          {!providerModel(formValues.model) && <Dropdown droplist={codeMenu} trigger="click" position="bl">
               <Tooltip content="Copy code snippet (API Key not included)">
                   <Button icon={<IconCode />} style={{ marginLeft: 'auto', marginRight: 12 }} shape="circle" />
               </Tooltip>
-          </Dropdown>
+          </Dropdown>}
           <Button 
             type="primary" 
             htmlType="submit" 

@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react';
 import { resolveModelId } from '../utils/film/suiteConfig';
+import { getModelCapabilities } from '../utils/modelCapabilities';
+import { uploadMedia } from '../utils/film/uploadMedia';
 import { Select, Input, InputNumber, Button, Upload, Checkbox, Dropdown, Menu, Message, Tooltip, Grid } from '@arco-design/web-react';
 import { IconCode, IconDown, IconRight, IconStar, IconRefresh, IconBook } from '@arco-design/web-react/icon';
 import styles from '../styles/Playground.module.css';
 import { generateCurlCommand, generatePythonCode, generateNodeCode } from '../utils/codeGenerators';
 import { constructSeedancePayload } from '../utils/apiHelpers';
+import { providerModel } from '../utils/providerModels';
 import { getApiKey } from '../utils/apiKeyStore';
 import { getEndpointUrl } from '../utils/config';
 
@@ -22,6 +25,7 @@ const SeedancePlayground = ({
   onRefreshModels 
 }) => {
   const promptRef = useRef(null);
+  const modelCaps = getModelCapabilities(formValues.model);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [referenceImageUri, setReferenceImageUri] = useState('');
@@ -327,6 +331,16 @@ const SeedancePlayground = ({
         <div className={styles.mainInputArea}>
           {/* Left: Media Inputs */}
           <div className={styles.imageInputs} style={{ maxHeight: '300px', overflowY: 'auto', paddingRight: '8px' }}>
+            {modelCaps.supports_first_frame && ['first', 'last'].map((position) => <div key={position} style={{ marginBottom: 12 }}>
+              <label>{position === 'first' ? 'Opening frame' : 'Closing frame'} (optional)</label>
+              <Input aria-label={position + ' frame URL'} value={formValues[position + '_frame_url'] || ''} placeholder="Image URL or upload a file" onChange={(url) => handleInputChange(position + '_frame_url', url)} />
+              <Upload accept="image/png,image/jpeg,image/webp" showUploadList={false} beforeUpload={async (file) => {
+                try { const result = await uploadMedia(file, file.name); handleInputChange(position + '_frame_url', result.url); }
+                catch (error) { Message.error(error.message); }
+                return false;
+              }}><Button size="small">Upload {position === 'first' ? 'opening' : 'closing'} frame</Button></Upload>
+            </div>)}
+            {modelCaps.native_audio && <p>Native audio is included. H3 Max supports opening/closing frames; H3 also supports multiple references.</p>}
             {/* Reference Images */}
             {!isFieldHidden('reference_image_refs') && (
                 <div style={{ position: 'relative' }}>
@@ -644,7 +658,7 @@ const SeedancePlayground = ({
           </div>
           
           {/* Audio Toggle */}
-          {!isFieldHidden('generate_audio') && (
+          {!isFieldHidden('generate_audio') && !modelCaps.native_audio && (
              <div className={styles.toolChip}>
                 <Checkbox 
                     checked={formValues.generate_audio}
@@ -656,11 +670,11 @@ const SeedancePlayground = ({
           )}
 
           {/* Submit */}
-          <Dropdown droplist={codeMenu} trigger="click" position="bl">
+          {!providerModel(formValues.model) && <Dropdown droplist={codeMenu} trigger="click" position="bl">
               <Tooltip content="Copy code snippet (API Key not included)">
                   <Button icon={<IconCode />} style={{ marginLeft: 'auto', marginRight: 12 }} shape="circle" />
               </Tooltip>
-          </Dropdown>
+          </Dropdown>}
           <Button 
             type="primary" 
             htmlType="submit" 

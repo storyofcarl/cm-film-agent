@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { IconSync } from '@arco-design/web-react/icon';
 import CopyButton from './CopyButton';
 import { getApiKey } from '../utils/apiKeyStore';
+import { awaitImage } from '../utils/film/awaitImage';
 
 const isRemoteUrl = (value) => typeof value === 'string' && /^https?:\/\//.test(value);
 
@@ -103,7 +104,8 @@ const ImageTaskResultCard = ({ request, title, initial, onStarted, onSettled }) 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...request, apiKey: getApiKey() }),
         });
-        const json = await response.json();
+        let json = await response.json();
+        if (response.ok) json = await awaitImage(json);
         if (onSettled) onSettled(response.ok ? { ...json, settled: true } : { error: json?.error || 'Request failed', details: json?.details, settled: true });
         force((x) => x + 1);
       } catch (error) {

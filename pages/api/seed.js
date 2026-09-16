@@ -3,6 +3,8 @@ import { CONFIG } from '../../utils/config';
 import { getModel } from '../../utils/film/suiteConfig';
 import { storeKeyFromUrl, readStoreBytes } from '../../utils/server/mediaStore';
 import { providerMediaUrl } from '../../utils/server/providerMedia';
+import { providerModel } from '../../utils/providerModels';
+import { callClaude } from '../../utils/server/claude';
 
 export const config = {
   api: {
@@ -23,6 +25,11 @@ async function seedHandler(req, res) {
 
   if (!prompt) {
     return res.status(400).json({ error: 'Prompt is required' });
+  }
+  const selected = modelId || getModel('reasoner');
+  if (providerModel(selected)?.provider === 'anthropic') {
+    try { return res.json(await callClaude({ modelId: selected, prompt, systemPrompt, images: imageList, video })); }
+    catch (error) { return res.status(502).json({ error: error.message }); }
   }
 
   const token = apiKey || process.env.MODELARK_API_KEY || process.env.ARK_API_KEY;

@@ -10,7 +10,7 @@
 // those just burns time.
 const TRANSIENT_RE = /overload|retry later|too many requests|rate.?limit|\b429\b|\b502\b|\b503\b|\b504\b|timed? ?out|timeout|temporar|econnreset|socket hang ?up|fetch failed|network/i;
 
-export const isTransient = (err) => TRANSIENT_RE.test(String((err && err.message) || err || ''));
+export const isTransient = (err) => !err?.noRetry && !/check generations before|do not submit again/i.test(String(err?.message || '')) && TRANSIENT_RE.test(String((err && err.message) || err || ''));
 
 /**
  * Run fn(); on a retryable error wait (baseMs · 2^attempt · jitter) and try again.

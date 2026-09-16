@@ -2,6 +2,8 @@ import { safeFetch as fetch } from '../../utils/server/safeFetch';
 import { CONFIG } from '../../utils/config';
 import { getModel } from '../../utils/film/suiteConfig';
 import { providerMediaReferences, providerMediaUrl } from '../../utils/server/providerMedia';
+import { providerModel } from '../../utils/providerModels';
+import { callClaude } from '../../utils/server/claude';
 
 // Env-resolved (MODELARK_MODEL_REASONER / MODELARK_MODEL_SEEDREAM) — endpoint ids are
 // account-scoped, so nothing here may be a literal. getModel throws a clear
@@ -49,6 +51,10 @@ async function callSeed2Prompt({
   inputImages = [],
   modelId = researchModel(),
 }) {
+  if (providerModel(modelId)?.provider === 'anthropic') {
+    const result = await callClaude({ modelId, prompt: userText, systemPrompt: systemText, images: inputImages });
+    return { text: result.content, raw: { model: result.model, usage: result.usage } };
+  }
   const inputContent = [
     {
       type: 'input_text',

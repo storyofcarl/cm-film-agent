@@ -11,7 +11,23 @@
   protected automation access. All three are configured.
 - Owner account created for the user-confirmed address; the private setup link is
   in ignored .local/owner-setup.html. No email was sent.
-- Extra provider credentials remain local and unused until adapters are added.
+- Anthropic, fal, and WaveSpeed runtime credentials were approved for this project.
+
+## Additional model providers
+
+- Claude Sonnet 5 is the default writing/planning model, with Claude Opus 5 and
+  the configured Seed reasoner selectable. Claude supports private image references;
+  video review uses six sampled frames and explicitly excludes audio analysis.
+- MiniMax H3 and H3 Max run through fal. Both include native audio and 5–15 second
+  clips. H3 supports multimodal references; Max supports opening/closing frames.
+- WaveSpeed image choices: Nano Banana Pro, Nano Banana 2, GPT Image 2,
+  GPT Image 2.5 Sunburst, and GPT Image 2.5 Flare. Reference images use edit endpoints.
+- Provider task IDs are saved as owned jobs before returning to the browser.
+  Image and video results are copied into private Storage before success is recorded.
+- Live tests completed for all five image models, both video models, Nano Banana 2
+  editing, both Claude models, Claude image understanding, and sampled-frame video
+  review. Authenticated output retrieval passed for every generated asset.
+- 36 regression tests pass; lint has no errors. Production build passes.
 
 ## Implemented
 

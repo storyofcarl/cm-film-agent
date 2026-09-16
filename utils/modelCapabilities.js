@@ -4,6 +4,7 @@
 // resolves the caller's model id back to its slot at LOOKUP time via the same
 // env-backed registry the routes use.
 import { resolveModelId } from './film/suiteConfig';
+import { providerModel } from './providerModels';
 
 const SLOT_CAPABILITIES = {
     // --- SEEDREAM (IMAGE) ---
@@ -152,6 +153,10 @@ export const DEFAULT_CAPABILITIES = {
 // Always returns an object (DEFAULT_CAPABILITIES when the id is unknown/unset).
 export const getModelCapabilities = (modelId) => {
     const id = String(modelId || '');
+    const extra = providerModel(id);
+    if (extra?.kind === 'image') return { sizes: ['1K', '2K', '4K'], optimize_prompt_modes: [], sequential_generation: false, supports_watermark: false, output_format: true, supports_seed: false, max_ref_images: extra.refs };
+    if (extra?.kind === 'video') return { resolutions: extra.resolutions, ratios: ['16:9', '9:16', '1:1', '4:3', '3:4', '21:9'], durations: [5, 10, 15], supports_audio: true, native_audio: true, supports_draft: false, supports_ref_images: extra.slot === 'minimaxH3', supports_ref_videos: extra.slot === 'minimaxH3', supports_ref_audios: extra.slot === 'minimaxH3', supports_first_frame: true, supports_last_frame: true };
+    if (extra?.kind === 'llm') return { input_modalities: ['text', 'image', 'video'], supportsImage: true, supportsVideo: true, videoAnalysis: 'sampled-frames' };
     if (!id) return DEFAULT_CAPABILITIES;
     for (const [slot, caps] of Object.entries(SLOT_CAPABILITIES)) {
         if (resolveModelId(slot) === id) return caps;

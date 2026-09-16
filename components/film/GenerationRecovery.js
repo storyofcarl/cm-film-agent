@@ -21,9 +21,10 @@ export default function GenerationRecovery() {
   return <div className="generation-recovery">
     <button onClick={() => setOpen(!open)}>Generations {jobs.filter((j) => ['queued', 'running', 'pending'].includes(j.status)).length || ''}</button>
     {open && <section aria-label="Recent generations"><h3>Recent generations</h3>
-      <p>Your video tasks remain available after you close the canvas.</p>
-      {!jobs.length && <p>No video generations yet.</p>}
+      <p>Your queued image and video tasks remain available after you close the canvas.</p>
+      {!jobs.length && <p>No generations yet.</p>}
       {jobs.map((job) => <div key={job.id} className="generation-row"><span>{new Date(job.created_at).toLocaleString()}<br /><small>{job.status}</small></span>
+        {job.kind === 'image' && job.result?.url && <a href={job.result.url} target="_blank" rel="noreferrer">Open image</a>}
         {job.result?.video_url && <a href={job.result.video_url} target="_blank" rel="noreferrer">Open video ↗</a>}
         {job.result?.error && <small role="status">{typeof job.result.error === 'string' ? job.result.error : job.result.error.message}</small>}
       </div>)}

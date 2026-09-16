@@ -1,6 +1,8 @@
 import { safeFetch as fetch } from '../../utils/server/safeFetch';
 import { getEndpointUrl } from '../../utils/config';
 import { providerMediaReferences } from '../../utils/server/providerMedia';
+import { providerModel } from '../../utils/providerModels';
+import { submitWaveImage } from '../../utils/server/providerJobs';
 
 // Seedream 5.0 Lite endpoint — the fallback when a request doesn't name a model.
 // The Image tab now sends the selected endpoint (Lite or Pro) in the request body.
@@ -18,6 +20,11 @@ async function seedreamHandler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+
+  if (providerModel(req.body?.model)?.provider === 'wavespeed') {
+    try { return res.status(202).json(await submitWaveImage({ ...req.body, referenceImages: req.body.image })); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
   }
 
   const {

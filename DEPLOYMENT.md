@@ -94,7 +94,7 @@ node --env-file=.env --env-file=.local/automation.env scripts/schedule-jobs.cjs 
 ```
 
 This uses Supabase pg_cron and pg_net, invokes the endpoint once per minute only
-while video jobs are pending, and keeps the request secret in a private schema.
+while image or video jobs are pending, and keeps the request secret in a private schema.
 If Vercel Deployment Protection blocks this endpoint, configure an approved
 automation access path before relying on unattended reconciliation.
 The current preview has an approved automation secret in ignored
@@ -129,3 +129,15 @@ Remove that account after validation. Lint preserves pre-existing React Compiler
 migration diagnostics as warnings until the canvas refactor.
 
 See IMPLEMENTATION.md for actual completed checks and pending deployment work.
+
+## Additional providers
+
+Set ANTHROPIC_API_KEY, FAL_API_KEY, and WAVESPEED_API_KEY on the server to enable
+the catalog in utils/providerModels.js. They are included in the explicit Vercel
+runtime upload list. Model IDs are public; credentials are never sent to browsers.
+
+The Writing & planning selector chooses Claude Sonnet 5, Opus 5, or the existing
+Seed reasoner. Video review through Claude extracts six frames with FFmpeg and
+does not assess sound. H3 and H3 Max include native audio. On canvas, H3 keyframe
+shots use only the opening/closing frames; clear keyframes for multimodal references.
+WaveSpeed images use saved jobs and remain recoverable through Generations.

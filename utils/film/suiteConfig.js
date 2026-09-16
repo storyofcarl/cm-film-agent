@@ -2,6 +2,7 @@
 // every agent behaves: which models they call, their default parameters, runtime
 // timings, and (via promptTemplates) their prompts.
 
+import { PROVIDER_MODELS, enabledProviderModels } from '../providerModels';
 import {
   renderTemplate,
   getTemplateText,
@@ -19,6 +20,8 @@ export const ROOT_CONFIG = {
   // are account-scoped, so a silent default would bill/break someone else's account.
   // The keys here define the SLOTS (enumeration for the config route + option lists).
   models: {
+    ...Object.fromEntries(PROVIDER_MODELS.map((m) => [m.slot, null])),
+    seedReasoner: null,
     seedream: null,      // Seedream 5.0 Lite image endpoint  (MODELARK_MODEL_SEEDREAM)
     seedreamPro: null,   // Seedream 5.0 Pro                  (MODELARK_MODEL_SEEDREAM_PRO)
     seedance: null,      // Seedance 2.0 video endpoint       (MODELARK_MODEL_SEEDANCE)
@@ -116,6 +119,9 @@ const deployModelLayer = () => {
       const v = String(process.env[envVar] || '').trim();
       if (v) out[key] = v;
     });
+    enabledProviderModels().forEach((m) => { out[m.slot] = m.id; });
+    out.seedReasoner = out.reasoner;
+    if (out.claudeSonnet) out.reasoner = out.claudeSonnet;
   }
   return out;
 };
@@ -141,6 +147,7 @@ export const getModel = (key, perCall) => {
 // The Seedance (video) endpoints a SHOT card can shoot a take on. `key` indexes
 // ROOT_CONFIG.models; the card stores the key in data.videoModel ('seedance' = default).
 export const VIDEO_MODEL_OPTIONS = [
+  ...PROVIDER_MODELS.filter((m) => m.kind === 'video').map((m) => ({ key: m.slot, label: m.label })),
   { key: 'seedance25', label: 'Seedance 2.5 · 30s' },
   { key: 'seedance', label: 'Seedance 2.0' },
   { key: 'seedanceMini', label: 'Seedance 2.0 Mini' },
@@ -151,6 +158,7 @@ export const VIDEO_MODEL_OPTIONS = [
 // ('seedreamPro' = Pro = the suite-wide default; 'seedream' = Lite).
 // Pro accepts up to 10 reference images; Lite is capped lower.
 export const IMAGE_MODEL_OPTIONS = [
+  ...PROVIDER_MODELS.filter((m) => m.kind === 'image').map((m) => ({ key: m.slot, label: m.label })),
   { key: 'seedreamPro', label: 'Seedream 5.0 Pro' },
   { key: 'seedream', label: 'Seedream 5.0 Lite' },
 ];
@@ -159,6 +167,7 @@ export const IMAGE_MODEL_OPTIONS = [
 // keyframeSize: the storyboard-still render size — Pro caps the image AREA at
 // 4,194,304 px (2048²), so its largest 16:9 is 2560×1440; Lite allows the full 2K 16:9.
 const IMAGE_MODEL_TRAITS = {
+  ...Object.fromEntries(PROVIDER_MODELS.filter((m) => m.kind === 'image').map((m) => [m.slot, { refCap: m.refs, shortLabel: m.label.split(' · ')[0], thinkingToggle: false, keyframeSize: '2560x1440' }])),
   seedream: { refCap: 6, shortLabel: 'Lite', thinkingToggle: false, keyframeSize: '2848x1600' },
   seedreamPro: { refCap: 10, shortLabel: 'Pro', thinkingToggle: true, keyframeSize: '2560x1440' },
 };
@@ -190,6 +199,7 @@ export const clampSizeForModel = (modelKey, size) => {
 // density) keys off these TRAITS, never off slot-name comparisons — a new slot
 // is one entry here, zero call-site edits.
 const VIDEO_MODEL_TRAITS = {
+  ...Object.fromEntries(PROVIDER_MODELS.filter((m) => m.kind === 'video').map((m) => [m.slot, { maxSeconds: 15, res: m.resolutions, resDefault: m.defaultResolution, keyframeGrammar: 'composition', overallBlock: false, refCap: m.refs, nativeAudio: true, enrichWords: { light: 180, rich: 280, max: 380 } }])),
   seedance: {
     maxSeconds: 15,
     res: ['480p', '720p', '1080p', '4K'],

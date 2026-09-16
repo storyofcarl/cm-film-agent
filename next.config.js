@@ -3,6 +3,7 @@ module.exports = {
   experimental: { cpus: 2 },
   serverExternalPackages: ['ffmpeg-static'],
   outputFileTracingIncludes: {
+    '/api/seed': ['./node_modules/ffmpeg-static/ffmpeg*'],
     '/api/film/*': ['./node_modules/ffmpeg-static/ffmpeg*'],
   },
   async headers() {

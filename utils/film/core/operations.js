@@ -166,7 +166,7 @@ export const isImagePolicyError = (err) => /image may contain sensitive/i.test((
 // Two source modes: a single imageUrl/assetId (the classic keyframe → first frame),
 // or `refUrls` — SEVERAL real reference images (direct-to-video: the storyboard's
 // cast/place assets, untouched, so the video model preserves the subjects itself).
-export const animate = async ({ imageUrl, assetId, refUrls = [], refAssetIds = [], firstFrameUrl = null, audioRefUrls = [], videoRefUrls = [], motion, camera, lens, focalLength, aperture, duration = 10, resolution = '1080p', ratio = 'adaptive', generateAudio = true, seed = null, modelKey = null, config } = {}, ctx) => {
+export const animate = async ({ imageUrl, assetId, refUrls = [], refAssetIds = [], firstFrameUrl = null, lastFrameUrl = null, audioRefUrls = [], videoRefUrls = [], motion, camera, lens, focalLength, aperture, duration = 10, resolution = '1080p', ratio = 'adaptive', generateAudio = true, seed = null, modelKey = null, config } = {}, ctx) => {
   modelKey = videoModelKeyOf(modelKey); // env-driven default — first CONFIGURED video slot, never a literal
   // Text-to-video is allowed: with no image / refs / first_frame, the PROMPT alone drives
   // it (the Story agent's continuous-shot film). Only fail when there's nothing at all.
@@ -181,6 +181,8 @@ export const animate = async ({ imageUrl, assetId, refUrls = [], refAssetIds = [
   // video (role 'first_frame' — Seedance's "consecutive videos" pattern), so the shot
   // picks up EXACTLY where the last ended. Sent first, before the subject references.
   if (firstFrameUrl) content.push({ type: 'image_url', image_url: { url: firstFrameUrl }, role: 'first_frame' });
+  if (lastFrameUrl) content.push({ type: 'image_url', image_url: { url: lastFrameUrl }, role: 'last_frame' });
+  if (videoTraits(modelKey).nativeAudio && refUrls.length > videoTraits(modelKey).refCap) throw new Error('Too many references for this model. Remove references or choose H3.');
   // Reference images cap at the model's refCap trait — slice, never fail. A ref
   // WITH a portrait-library id
   // (refAssetIds, aligned by index) rides as image_asset_id (the TRUSTED asset://
@@ -209,7 +211,7 @@ export const animate = async ({ imageUrl, assetId, refUrls = [], refAssetIds = [
   const videoModel = getModel(videoModelKeyOf(modelKey), config);
   const { taskId } = await withRetry(
     () => ctx.client.startVideo({ content, model: videoModel, resolution, ratio, duration, generateAudio, seed }),
-    { tries: 3, baseMs: 3000 },
+    { tries: 1, baseMs: 3000 },
   );
   return { taskId, prompt };
 };
@@ -228,5 +230,3 @@ export const generateFilmAudio = async ({ text, imageData, audioRefs } = {}, ctx
   if (!out?.url) throw new Error('The audio engine returned no clip.');
   return out; // { url, bytes, duration, format, model }
 };
-
-

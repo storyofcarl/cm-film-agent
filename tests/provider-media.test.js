@@ -6,6 +6,7 @@ import { signedMediaUrl } from '../utils/server/mediaStore';
 import { safeFetch } from '../utils/server/safeFetch';
 
 jest.mock('../utils/server/withAuth', () => ({ withAuth: (handler) => handler }));
+jest.mock('../utils/server/supabase', () => ({ createAdminSupabase: jest.fn() }));
 jest.mock('../utils/server/safeFetch', () => ({ safeFetch: jest.fn() }));
 jest.mock('../utils/config', () => ({ CONFIG: { API_BASE_URL: 'https://provider.example/api/v3' }, getEndpointUrl: () => 'https://provider.example/api/v3/images/generations' }));
 jest.mock('../utils/server/mediaStore', () => ({

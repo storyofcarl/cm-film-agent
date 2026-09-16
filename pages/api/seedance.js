@@ -4,10 +4,16 @@ import { requestContext } from '../../utils/server/requestContext';
 import { checkInUrl, signedMediaUrl, storeKeyFromUrl } from '../../utils/server/mediaStore';
 import { safeFetch } from '../../utils/server/safeFetch';
 import { createAdminSupabase } from '../../utils/server/supabase';
+import { providerModel } from '../../utils/providerModels';
+import { submitFalVideo } from '../../utils/server/providerJobs';
 
 export const config = { api: { bodyParser: { sizeLimit: '4mb' } }, maxDuration: 300 };
 export default withAuth(async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
+  if (providerModel(req.body?.model)?.provider === 'fal') {
+    try { return res.status(202).json(await submitFalVideo(req.body)); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
+  }
   const { model, content, ...params } = req.body || {};
   const models = ['MODELARK_MODEL_SEEDANCE', 'MODELARK_MODEL_SEEDANCE_FAST', 'MODELARK_MODEL_SEEDANCE_MINI', 'MODELARK_MODEL_SEEDANCE_25'].map((k) => process.env[k]).filter(Boolean);
   if (!models.includes(model)) return res.status(400).json({ error: 'Choose a configured video model' });
