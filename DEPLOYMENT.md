@@ -132,12 +132,13 @@ See IMPLEMENTATION.md for actual completed checks and pending deployment work.
 
 ## Additional providers
 
-Set ANTHROPIC_API_KEY, FAL_API_KEY, and WAVESPEED_API_KEY on the server to enable
+Set ANTHROPIC_API_KEY, MINIMAX_API_KEY, FAL_API_KEY, and WAVESPEED_API_KEY on the server to enable
 the catalog in utils/providerModels.js. They are included in the explicit Vercel
 runtime upload list. Model IDs are public; credentials are never sent to browsers.
 
-The Writing & planning selector chooses Claude Sonnet 5, Opus 5, or the existing
-Seed reasoner. Video review through Claude extracts six frames with FFmpeg and
+The Writing & planning selector defaults to Claude Opus 5, with Sonnet 5,
+Fable 5, Fable 5.1, and the existing Seed reasoner selectable.
+H3 uses MiniMax directly; H3 Max uses fal. Video review through Claude extracts six frames with FFmpeg and
 does not assess sound. H3 and H3 Max include native audio. On canvas, H3 keyframe
 shots use only the opening/closing frames; clear keyframes for multimodal references.
 WaveSpeed images use saved jobs and remain recoverable through Generations.

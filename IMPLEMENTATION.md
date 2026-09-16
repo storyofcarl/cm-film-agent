@@ -11,15 +11,17 @@
   protected automation access. All three are configured.
 - Owner account created for the user-confirmed address; the private setup link is
   in ignored .local/owner-setup.html. No email was sent.
-- Anthropic, fal, and WaveSpeed runtime credentials were approved for this project.
+- Anthropic, MiniMax, fal, and WaveSpeed runtime credentials were approved for this project.
 
 ## Additional model providers
 
-- Claude Opus 5 is the default writing/planning model, with Claude Sonnet 5 and
+- Claude Opus 5 is the default writing/planning model, with Claude Sonnet 5,
+  Claude Fable 5, Claude Fable 5.1, and
   the configured Seed reasoner selectable. Claude supports private image references;
   video review uses six sampled frames and explicitly excludes audio analysis.
-- MiniMax H3 and H3 Max run through fal. Both include native audio and 5–15 second
-  clips. H3 supports multimodal references; Max supports opening/closing frames.
+- MiniMax H3 runs directly through MiniMax at 768p or 2K. H3 Max runs through fal.
+  Both include native audio. H3 supports multimodal references; Max supports
+  opening/closing frames. Previously submitted fal H3 jobs remain recoverable.
 - WaveSpeed image choices: Nano Banana Pro, Nano Banana 2, GPT Image 2,
   GPT Image 2.5 Sunburst, and GPT Image 2.5 Flare. Reference images use edit endpoints.
 - Provider task IDs are saved as owned jobs before returning to the browser.
@@ -27,7 +29,9 @@
 - Live tests completed for all five image models, both video models, Nano Banana 2
   editing, both Claude models, Claude image understanding, and sampled-frame video
   review. Authenticated output retrieval passed for every generated asset.
-- 37 regression tests pass; lint has no errors. Production build passes.
+- Both Fable versions passed live reasoning checks. Direct H3 uses the MiniMax V2
+  generation/query endpoints with its own credential and task namespace.
+- 40 regression tests pass; lint has no errors. Production build passes.
 
 ## Implemented
 

@@ -8,7 +8,7 @@ import { pollExternalJob } from './providerJobs';
 
 export const pollVideoJob = async (job) => {
   if (['succeeded', 'failed', 'cancelled'].includes(job.status) && job.result) return job.result;
-  if (['fal', 'wavespeed'].includes(providerModel(job.request?.model)?.provider)) return pollExternalJob(job);
+  if (['fal', 'wavespeed', 'minimax'].includes(providerModel(job.request?.model)?.provider) || job.request?.model === 'minimax/h3') return pollExternalJob(job);
   const response = await safeFetch(`${getEndpointUrl('video')}/${encodeURIComponent(job.provider_task_id)}`, {
     headers: { Authorization: `Bearer ${process.env.MODELARK_API_KEY}`, 'Content-Type': 'application/json' },
   });

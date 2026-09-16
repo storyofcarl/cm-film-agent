@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getClientConfig, setClientConfig } from '../../utils/film/suiteConfig';
-import { providerModel } from '../../utils/providerModels';
+import { providerModel, REASONING_MODEL_SLOTS } from '../../utils/providerModels';
 export default function ReasoningModelSelector() {
   const [options, setOptions] = useState([]);
   const [value, setValue] = useState('');
@@ -8,7 +8,7 @@ export default function ReasoningModelSelector() {
     let alive = true;
     fetch('/api/film/config').then((r) => r.ok ? r.json() : null).then((data) => {
       if (!alive || !data) return;
-      const ids = [...new Set(['reasoner', 'claudeSonnet', 'claudeOpus', 'seedReasoner'].map((key) => data.models[key]).filter(Boolean))];
+      const ids = [...new Set(REASONING_MODEL_SLOTS.map((key) => data.models[key]).filter(Boolean))];
       setOptions(ids);
       const saved = getClientConfig().models?.reasoner;
       setValue(ids.includes(saved) ? saved : data.models.reasoner);

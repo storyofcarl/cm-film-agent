@@ -6,7 +6,8 @@ import { createAdminSupabase } from './supabase';
 
 const WAVE = 'https://api.wavespeed.ai/api/v3';
 const FAL = 'https://queue.fal.run';
-const headersFor = (provider) => ({ 'Content-Type': 'application/json', Authorization: provider === 'fal' ? 'Key ' + process.env.FAL_API_KEY : 'Bearer ' + process.env.WAVESPEED_API_KEY });
+const MINIMAX = 'https://api.minimax.io';
+const headersFor = (provider) => ({ 'Content-Type': 'application/json', Authorization: provider === 'fal' ? 'Key ' + process.env.FAL_API_KEY : 'Bearer ' + process.env[provider === 'minimax' ? 'MINIMAX_API_KEY' : 'WAVESPEED_API_KEY'] });
 const json = async (response) => {
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -38,6 +39,7 @@ export const imageSettings = (size = '2K') => {
 };
 
 export const buildFalInput = (spec, params, content) => {
+  if (spec.provider !== 'fal') throw new Error('Choose a fal video model');
   const text = content.filter((c) => c.type === 'text').map((c) => c.text).join('\n');
   if (!text.trim() || text.length > 50000) throw new Error('Provide a video prompt of 1–50,000 characters');
   const images = content.filter((c) => c.type === 'image_url');
@@ -75,11 +77,11 @@ export const buildFalInput = (spec, params, content) => {
 
 const submit = async (spec, endpoint, input) => {
   const { user } = requestContext(); const db = createAdminSupabase();
-  const { data: job, error } = await db.from('film_jobs').insert({ owner_id: user.id, kind: spec.kind, status: 'submitting', request: { model: spec.id, prompt: input.prompt, provider: spec.provider, endpoint } }).select('id').single();
+  const { data: job, error } = await db.from('film_jobs').insert({ owner_id: user.id, kind: spec.kind, status: 'submitting', request: { model: spec.id, prompt: input.prompt || input.content?.find((c) => c.type === 'text')?.text, provider: spec.provider, endpoint } }).select('id').single();
   if (error) throw error;
   try {
-    const data = await json(await safeFetch((spec.provider === 'fal' ? FAL : WAVE) + '/' + endpoint, { method: 'POST', headers: headersFor(spec.provider), body: JSON.stringify(input) }));
-    const requestId = spec.provider === 'fal' ? data.request_id : data.data?.id;
+    const data = await json(await safeFetch(({ fal: FAL, wavespeed: WAVE, minimax: MINIMAX })[spec.provider] + '/' + endpoint, { method: 'POST', headers: headersFor(spec.provider), body: JSON.stringify(input) }));
+    const requestId = String((spec.provider === 'fal' ? data.request_id : spec.provider === 'minimax' ? data.task_id : data.data?.id) || '');
     if (!requestId || !/^[a-zA-Z0-9_-]+$/.test(requestId)) throw new Error('Provider accepted the request without a usable task ID');
     const id = spec.provider + '_' + requestId;
     const saved = await db.from('film_jobs').update({ provider_task_id: id, status: 'queued' }).eq('id', job.id);
@@ -111,14 +113,54 @@ export const submitFalVideo = async ({ model, content, ...params }) => {
   return submit(spec, endpoint, input);
 };
 
+export const buildMiniMaxInput = ({ content, resolution = '2K', duration = 5, ratio = 'adaptive' }) => {
+  if (!Array.isArray(content) || !content.length || content.length > 16) throw new Error('Invalid H3 content');
+  const normalized = content.map((item) => item.type === 'image_asset_id' ? { type: 'image_url', role: item.role, image_url: { url: 'asset://' + item.asset_id } } : item);
+  let first = 0; let last = 0; let refs = 0; let videos = 0; let audios = 0;
+  const text = normalized.filter(c => c.type === 'text').map(c => c.text).join('\n');
+  if (!text.trim() || text.length > 50000) throw new Error('Provide an H3 prompt of 1–50,000 characters');
+  const media = normalized.filter(c => c.type !== 'text').map((c) => {
+    if (!['image_url', 'video_url', 'audio_url'].includes(c.type) || typeof c[c.type]?.url !== 'string') throw new Error('Invalid H3 reference');
+    const role = c.role || (c.type === 'image_url' ? 'first_frame' : c.type === 'video_url' ? 'reference_video' : 'reference_audio');
+    if (c.type === 'image_url') {
+      if (role === 'first_frame') first++; else if (role === 'last_frame') last++; else if (role === 'reference_image') refs++; else throw new Error('Invalid image role');
+    } else if (c.type === 'video_url' && role === 'reference_video') videos++;
+    else if (c.type === 'audio_url' && role === 'reference_audio') audios++;
+    else throw new Error('Invalid media role');
+    return { type: c.type, role, [c.type]: { url: c[c.type].url } };
+  });
+  if (first > 1 || last > 1 || refs > 9 || videos > 3 || audios > 3) throw new Error('Too many H3 references');
+  if ((first || last) && (refs || videos || audios)) throw new Error('Use opening/closing frames or multimodal references, not both');
+  const res = String(resolution).toUpperCase();
+  const seconds = duration === 'auto' ? 5 : Number(duration);
+  if (!['768P', '2K'].includes(res)) throw new Error('Direct MiniMax H3 supports 768p and 2K');
+  if (!Number.isInteger(seconds) || seconds < 4 || seconds > 15) throw new Error('H3 clips must be 4–15 seconds');
+  const aspect = first || last ? 'adaptive' : !media.length && ratio === 'adaptive' ? '16:9' : ratio;
+  if (!['adaptive', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16'].includes(aspect)) throw new Error('Unsupported H3 aspect ratio');
+  return { model: 'MiniMax-H3', content: [{ type: 'text', text }, ...media], resolution: res, duration: seconds, ratio: aspect };
+};
+export const submitMiniMaxVideo = async (params) => {
+  const spec = providerModel(params.model);
+  if (spec?.provider !== 'minimax' || !process.env.MINIMAX_API_KEY) throw new Error('MiniMax H3 is not enabled');
+  const input = buildMiniMaxInput(params);
+  for (const c of input.content) if (c.type !== 'text') c[c.type].url = await mediaReference(c[c.type].url);
+  return submit(spec, 'v2/video_generation', input);
+};
+
 export const pollExternalJob = async (job) => {
-  const spec = providerModel(job.request?.model);
-  if (!spec || !['fal', 'wavespeed'].includes(spec.provider)) throw new Error('Unknown job provider');
+  // Keep already-created fal H3 tasks recoverable, without offering new fal H3 submissions.
+  const spec = job.request?.model === 'minimax/h3' ? { id: 'minimax/h3', provider: 'fal', kind: 'video' } : providerModel(job.request?.model);
+  if (!spec || !['fal', 'wavespeed', 'minimax'].includes(spec.provider)) throw new Error('Unknown job provider');
   const prefix = spec.provider + '_';
   if (!job.provider_task_id.startsWith(prefix)) throw new Error('Invalid provider task');
   const id = encodeURIComponent(job.provider_task_id.slice(prefix.length));
   let status; let output; let failure;
-  if (spec.provider === 'wavespeed') {
+  if (spec.provider === 'minimax') {
+    const data = await json(await safeFetch(MINIMAX + '/v2/query/video_generation/' + id, { headers: headersFor('minimax') }));
+    if (!data.task || !['queued', 'running', 'succeeded', 'failed', 'cancelled'].includes(data.task.status)) throw new Error('Invalid MiniMax task response');
+    status = data.task.status === 'cancelled' ? 'failed' : data.task.status;
+    output = data.task.content?.url; failure = data.task.error?.message || data.task.error;
+  } else if (spec.provider === 'wavespeed') {
     const data = (await json(await safeFetch(WAVE + '/predictions/' + id + '/result', { headers: headersFor('wavespeed') }))).data;
     status = data?.status === 'completed' ? 'succeeded' : ['failed', 'cancelled', 'timeout', 'deleted'].includes(data?.status) ? 'failed' : 'running';
     output = data?.outputs?.[0]; failure = data?.error;

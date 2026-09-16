@@ -5,11 +5,15 @@ import { checkInUrl, signedMediaUrl, storeKeyFromUrl } from '../../utils/server/
 import { safeFetch } from '../../utils/server/safeFetch';
 import { createAdminSupabase } from '../../utils/server/supabase';
 import { providerModel } from '../../utils/providerModels';
-import { submitFalVideo } from '../../utils/server/providerJobs';
+import { submitFalVideo, submitMiniMaxVideo } from '../../utils/server/providerJobs';
 
 export const config = { api: { bodyParser: { sizeLimit: '4mb' } }, maxDuration: 300 };
 export default withAuth(async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
+  if (providerModel(req.body?.model)?.provider === 'minimax') {
+    try { return res.status(202).json(await submitMiniMaxVideo(req.body)); }
+    catch (error) { return res.status(400).json({ error: error.message }); }
+  }
   if (providerModel(req.body?.model)?.provider === 'fal') {
     try { return res.status(202).json(await submitFalVideo(req.body)); }
     catch (error) { return res.status(400).json({ error: error.message }); }

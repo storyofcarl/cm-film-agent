@@ -1,4 +1,5 @@
 import { generateAssetGroupId } from './assetGroupId';
+import { REASONING_MODEL_SLOTS } from './providerModels';
 import { resolveModelId, IMAGE_MODEL_OPTIONS, VIDEO_MODEL_OPTIONS } from './film/suiteConfig';
 
 // Seedream (image) endpoints for the Tools → Image dropdown — Lite + Pro. Endpoint ids
@@ -36,7 +37,7 @@ const LLM_CATALOG_IDS = [
     'seed-2-0-lite-260428',
 ];
 const llmModelsLive = () => {
-    return [...new Set(['reasoner', 'claudeSonnet', 'claudeOpus', 'seedReasoner'].map((slot) => resolveModelId(slot)).filter(Boolean))];
+    return [...new Set(REASONING_MODEL_SLOTS.map((slot) => resolveModelId(slot)).filter(Boolean))];
 };
 const defaultLlmModel = () => resolveModelId('reasoner') || LLM_CATALOG_IDS[0];
 

@@ -1,6 +1,7 @@
 /** @jest-environment node */
-import { buildFalInput, imageSettings, pollExternalJob, submitWaveImage } from '../utils/server/providerJobs';
-import { providerModel } from '../utils/providerModels';
+import { buildFalInput, buildMiniMaxInput, submitMiniMaxVideo, imageSettings, pollExternalJob, submitWaveImage } from '../utils/server/providerJobs';
+import { providerModel, REASONING_MODEL_SLOTS } from '../utils/providerModels';
+import { resolveModelId } from '../utils/film/suiteConfig';
 import { claudeContent, callClaude } from '../utils/server/claude';
 import { safeFetch } from '../utils/server/safeFetch';
 import { checkInUrl } from '../utils/server/mediaStore';
@@ -17,7 +18,7 @@ const frame = (role) => ({ type: 'image_url', role, image_url: { url: 'https://m
 beforeEach(() => { jest.clearAllMocks(); process.env.ANTHROPIC_API_KEY = 'test'; process.env.WAVESPEED_API_KEY = 'test'; });
 test('H3 uses multimodal references while Max rejects them', () => {
   const refs = [text, frame('reference_image'), frame('reference_image')];
-  expect(buildFalInput(providerModel('minimaxH3'), { duration: 5 }, refs).endpoint).toBe('minimax/h3/reference-to-video');
+  expect(buildMiniMaxInput({ duration: 5, content: refs })).toMatchObject({ model: 'MiniMax-H3', content: refs });
   expect(() => buildFalInput(providerModel('minimaxH3Max'), {}, refs)).toThrow('H3 Max');
 });
 test('Max sends first and last frames with provider-required settings', () => {
@@ -27,7 +28,7 @@ test('Max sends first and last frames with provider-required settings', () => {
   expect(input.generate_audio).toBeUndefined();
 });
 test.each([{ duration: 30 }, { resolution: '720p' }])('rejects unsupported H3 parameters before billing: %j', (params) => {
-  expect(() => buildFalInput(providerModel('minimaxH3'), params, [text])).toThrow();
+  expect(() => buildMiniMaxInput({ ...params, content: [text] })).toThrow();
 });
 test('WaveSpeed preserves landscape composition from canvas dimensions', () => {
   expect(imageSettings('2560x1440')).toEqual({ resolution: '2k', aspect_ratio: '16:9' });
@@ -72,4 +73,22 @@ test('a browser losing the image submission response cannot auto-submit again', 
   try {
     await expect(createBrowserClient().generateImage({ model: 'google/nano-banana-2', prompt: 'A vase' })).rejects.toMatchObject({ noRetry: true });
   } finally { global.fetch = original; }
+});
+test('Opus is default and both Fable versions are selectable', () => {
+  expect(resolveModelId('reasoner')).toBe('claude-opus-5');
+  expect(REASONING_MODEL_SLOTS.map((slot) => resolveModelId(slot))).toEqual(expect.arrayContaining(['claude-fable-5', 'claude-fable-5-1']));
+});
+test('direct H3 preserves reference roles and does not mix keyframes with references', () => {
+  expect(buildMiniMaxInput({ content: [text, frame('reference_image')] }).content[1].role).toBe('reference_image');
+  expect(buildMiniMaxInput({ content: [text, frame('first_frame'), frame('last_frame')], ratio: '16:9', duration: 4 })).toMatchObject({ ratio: 'adaptive', duration: 4 });
+  expect(() => buildMiniMaxInput({ content: [text, frame('first_frame'), frame('reference_image')] })).toThrow('not both');
+});
+test('H3 submits directly to MiniMax with its own key and saved task namespace', async () => {
+  process.env.MINIMAX_API_KEY = 'minimax-test';
+  const query = { error: null, insert: jest.fn().mockReturnThis(), select: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: { id: 'job' } }), update: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis() };
+  createAdminSupabase.mockReturnValue({ from: () => query });
+  safeFetch.mockResolvedValue({ ok: true, json: async () => ({ task_id: '12345' }) });
+  await expect(submitMiniMaxVideo({ model: 'MiniMax-H3', content: [text], resolution: '768p', duration: 4 })).resolves.toMatchObject({ id: 'minimax_12345', status: 'queued' });
+  expect(safeFetch).toHaveBeenCalledWith('https://api.minimax.io/v2/video_generation', expect.objectContaining({ headers: expect.objectContaining({ Authorization: 'Bearer minimax-test' }) }));
+  expect(query.update).toHaveBeenCalledWith({ provider_task_id: 'minimax_12345', status: 'queued' });
 });
