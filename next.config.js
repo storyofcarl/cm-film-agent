@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
+  experimental: { cpus: 2 },
   serverExternalPackages: ['ffmpeg-static'],
   outputFileTracingIncludes: {
     '/api/film/*': ['./node_modules/ffmpeg-static/ffmpeg*'],

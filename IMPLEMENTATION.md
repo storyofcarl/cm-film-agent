@@ -52,3 +52,6 @@ variables; never deploy Vercel tokens or database administration credentials.
   environment upload remains blocked pending approval.
 - Vercel Deployment Protection applies to previews. Unattended job polling will
   need an approved automation access path before scheduling the callback.
+- Initial source checkpoint committed locally as 742fd5f on setup/hosted-preview.
+- Limited Next build workers to two after a 19-worker build stalled on Windows;
+  the two-worker build compiles and prerenders normally.
