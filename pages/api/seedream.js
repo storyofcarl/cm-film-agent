@@ -1,5 +1,6 @@
 import { safeFetch as fetch } from '../../utils/server/safeFetch';
 import { getEndpointUrl } from '../../utils/config';
+import { providerMediaReferences } from '../../utils/server/providerMedia';
 
 // Seedream 5.0 Lite endpoint — the fallback when a request doesn't name a model.
 // The Image tab now sends the selected endpoint (Lite or Pro) in the request body.
@@ -54,7 +55,7 @@ async function seedreamHandler(req, res) {
       response_format: responseFormat || 'url',
     };
 
-    if (image) payload.image = image;
+    if (image) payload.image = await providerMediaReferences(image);
     
     // Sequential Generation
     if (sequential_image_generation) {

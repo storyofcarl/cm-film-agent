@@ -1,6 +1,7 @@
 import { safeFetch as fetch } from '../../utils/server/safeFetch';
 import { CONFIG } from '../../utils/config';
 import { getModel } from '../../utils/film/suiteConfig';
+import { providerMediaReferences, providerMediaUrl } from '../../utils/server/providerMedia';
 
 // Env-resolved (MODELARK_MODEL_REASONER / MODELARK_MODEL_SEEDREAM) — endpoint ids are
 // account-scoped, so nothing here may be a literal. getModel throws a clear
@@ -54,7 +55,7 @@ async function callSeed2Prompt({
       text: userText,
     },
   ];
-  addInputImages(inputContent, inputImages);
+  addInputImages(inputContent, await providerMediaReferences(inputImages));
 
   const response = await fetch(`${baseUrl}/responses`, {
     method: 'POST',
@@ -110,7 +111,7 @@ async function generateSeedreamImage({ apiKey, baseUrl, prompt, referenceImage }
       size: PRODUCTION_DESIGN_IMAGE_SIZE,
       watermark: false,
       response_format: 'url',
-      ...(referenceImage ? { image: referenceImage } : {}),
+      ...(referenceImage ? { image: await providerMediaUrl(referenceImage) } : {}),
     }),
   });
 

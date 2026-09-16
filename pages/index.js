@@ -4,6 +4,7 @@ import { Layout, Button, Drawer, Input, Message, Card, Typography } from '@arco-
 import { IconImage, IconVideoCamera, IconRobot, IconPlus, IconUser, IconApps } from '@arco-design/web-react/icon';
 import { baseSchemas } from '../utils/schemas';
 import { applyDeployModels } from '../utils/film/suiteConfig';
+import { uploadMedia } from '../utils/film/uploadMedia';
 import { constructWorkflowSeedreamPayload, constructSeedancePayload, constructLLMPayload, constructAssetUploadPayload, updateUiSchemaVisibility } from '../utils/apiHelpers';
 import { getModelCapabilities } from '../utils/modelCapabilities';
 import { clearPersistedApiKey, getApiKey, setApiKey as setApiKeyInStore, isBundledDesktopApp } from '../utils/apiKeyStore';
@@ -235,32 +236,24 @@ export default function Home() {
         ? { localVideoData: formValues.localVideoData, localVideoName: formValues.localVideoName || '', stageOnly: true }
         : { localImageData: formValues.localImageData, localImageName: formValues.localImageName || '', stageOnly: true };
 
-      const response = await fetch('/api/asset-upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-      const data = await response.json();
-
-      if (!response.ok || data?.error) {
-        throw new Error(data?.details || data?.error || 'TOS upload failed');
-      }
+      const data = await uploadMedia(isVideo ? formValues.localVideoData : formValues.localImageData,
+        isVideo ? formValues.localVideoName : formValues.localImageName);
 
       setFormValues((prev) => ({
         ...prev,
-        [isVideo ? 'videoUrl' : 'imageUrl']: data.imageUrl || (isVideo ? prev.videoUrl : prev.imageUrl) || '',
+        [isVideo ? 'videoUrl' : 'imageUrl']: data.url,
       }));
-      Message.success(`Uploaded to TOS and filled the ${isVideo ? 'Video' : 'Image'} URL field.`);
+      Message.success('Saved to your private media library.');
 
       if (showRequestOutput) {
         setLastRequestPayload({
-          endpoint: '/api/asset-upload',
-          body: requestBody,
+          endpoint: '/api/film/upload',
+          body: { name: isVideo ? requestBody.localVideoName : requestBody.localImageName },
         });
         setLastResponsePayload(data);
       }
     } catch (error) {
-      Message.error(error.message || 'TOS upload failed');
+      Message.error(error.message || 'Media upload failed');
     } finally {
       setAssetTosStagingLoading(false);
     }
@@ -322,6 +315,16 @@ export default function Home() {
       } else if (activeModelId === 'asset-upload') {
           endpoint = '/api/asset-upload';
           requestBody = constructAssetUploadPayload(formValues);
+          const isVideo = requestBody.assetType === 'Video';
+          const urlField = isVideo ? 'videoUrl' : 'imageUrl';
+          const localData = isVideo ? requestBody.localVideoData : requestBody.localImageData;
+          if (!requestBody[urlField] && localData) {
+            const uploaded = await uploadMedia(localData, isVideo ? requestBody.localVideoName : requestBody.localImageName);
+            requestBody[urlField] = uploaded.url;
+            setFormValues((prev) => ({ ...prev, [urlField]: uploaded.url }));
+          }
+          delete requestBody.localImageData;
+          delete requestBody.localVideoData;
       } else if (activeModelId === 'llm') {
           endpoint = '/api/seed';
           const llmPayload = constructLLMPayload(formValues);

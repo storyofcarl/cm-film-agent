@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Button, Card, Checkbox, Collapse, Input, Message, Radio, Space, Tag, Typography, Upload } from '@arco-design/web-react';
+import { Button, Card, Input, Message, Radio, Typography, Upload } from '@arco-design/web-react';
 import { IconBook, IconDelete, IconImage, IconUpload, IconVideoCamera } from '@arco-design/web-react/icon';
 import styles from '../styles/Playground.module.css';
 
@@ -25,18 +24,6 @@ const AssetUploadPlayground = ({
   onStageToTos,
   stagingLoading,
 }) => {
-  // The deployment's TOS region, for the info chip — a hardcoded literal here lied
-  // on any deployment outside ap-southeast-1. Display only; nothing secret.
-  const [tosRegion, setTosRegion] = useState('');
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/film/config')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (!cancelled && j?.tosRegion) setTosRegion(j.tosRegion); })
-      .catch(() => { /* chip just stays hidden */ });
-    return () => { cancelled = true; };
-  }, []);
-
   const handleInputChange = (key, value) => {
     setFormValues((prev) => ({ ...prev, [key]: value }));
   };
@@ -120,36 +107,6 @@ const AssetUploadPlayground = ({
       </div>
 
       <form onSubmit={onSubmit}>
-        <Card title="Upload Flow" style={{ marginBottom: 16 }}>
-          <Space wrap size="medium">
-            <Tag color="arcoblue">AK/SK auth</Tag>
-            <Tag color="green">Use fixed asset group</Tag>
-            <Tag color="purple">Create {isVideo ? 'video' : 'image'} asset</Tag>
-            <Tag color="orange">Poll GetAsset</Tag>
-          </Space>
-        </Card>
-
-        <Collapse style={{ marginBottom: 16 }} bordered={false}>
-          <Collapse.Item
-            header={
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Asset Group ID: <span style={{ fontFamily: 'monospace' }}>{formValues.assetGroupId || '(not set)'}</span>
-              </Typography.Text>
-            }
-            name="assetGroup"
-          >
-            <FieldBlock
-              label="Asset Group ID"
-              value={formValues.assetGroupId || ''}
-              placeholder="Format: group-{timestamp}-{random}"
-              onChange={(value) => handleInputChange('assetGroupId', value)}
-            />
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Falls back to <code>MODELARK_ASSET_GROUP_ID</code> in <code>.env.local</code> if left as-is.
-            </Typography.Text>
-          </Collapse.Item>
-        </Collapse>
-
         <Card
           title={
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -194,7 +151,7 @@ const AssetUploadPlayground = ({
                       <Typography.Text>{formValues.localImageName || 'Selected image'}</Typography.Text>
                       <Button size="small" icon={<IconDelete />} onClick={clearLocalImage}>Remove</Button>
                       <Button size="small" type="secondary" onClick={onStageToTos} loading={stagingLoading}>
-                        {stagingLoading ? 'Uploading To TOS...' : 'Upload To TOS'}
+                        {stagingLoading ? 'Saving...' : 'Save to Library'}
                       </Button>
                     </div>
                   </div>
@@ -250,7 +207,7 @@ const AssetUploadPlayground = ({
                       <Typography.Text>{formValues.localVideoName || 'Selected video'}</Typography.Text>
                       <Button size="small" icon={<IconDelete />} onClick={clearLocalVideo}>Remove</Button>
                       <Button size="small" type="secondary" onClick={onStageToTos} loading={stagingLoading}>
-                        {stagingLoading ? 'Uploading To TOS...' : 'Upload To TOS'}
+                        {stagingLoading ? 'Saving...' : 'Save to Library'}
                       </Button>
                     </div>
                   </div>
@@ -288,26 +245,11 @@ const AssetUploadPlayground = ({
         </Card>
 
         <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 16 }}>
-          {isVideo
-            ? 'If you choose a local video, you can upload it to TOS first with the button above. Maximum video duration is 15 seconds.'
-            : 'If you choose a local image, you can upload it to TOS first with the button above. The backend can also stage it automatically during CreateAsset using server-side .env.local settings.'}
+          Files are saved to your private media library and registered for use in generation. Reference videos can be up to 15 seconds long.
         </Typography.Paragraph>
 
-        <div style={{ marginTop: 16 }}>
-          <Checkbox
-            checked={formValues.pollUntilReady !== false}
-            onChange={(checked) => handleInputChange('pollUntilReady', checked)}
-          >
-            Poll until the asset becomes Active or Failed
-          </Checkbox>
-        </div>
 
         <div className={styles.toolbar}>
-          {tosRegion && (
-            <div className={styles.toolChip}>
-              <span>Region: {tosRegion}</span>
-            </div>
-          )}
           <div className={styles.toolChip}>
             <span>Action: CreateAsset</span>
           </div>

@@ -73,5 +73,18 @@ variables; never deploy Vercel tokens or database administration credentials.
 5. Verify preview deployment protection and an approved scheduler access path,
    then test image/video/audio generation and exports against the live storage.
 
-The goal remains active and is not complete. This is the first goal turn in which
-the missing inputs/approval gates prevent the remaining remote work.
+The goal remains active and is not complete.
+
+## Latest update
+
+- The user explicitly approved both Vercel runtime environment upload and the
+  source push to storyofcarl/cm-film-agent on setup/hosted-preview.
+- Uploaded 29 runtime settings to Vercel. No administration credentials or unused
+  provider keys were uploaded.
+- Owner email confirmed and saved only in ignored .local/owner-email.txt.
+- Reasoning, image generation and production design now resolve private media
+  references to authorized signed URLs before calling providers.
+- Asset tool uploads use private Storage directly, and provider registrations use
+  the ownership catalogue shared with the filmmaking canvas.
+- 25 tests pass, including provider-reference and asset ownership regression checks.
+- Session pooler connection is still pending. Migrations have not been applied.

@@ -2,6 +2,7 @@ import { safeFetch as fetch } from '../../utils/server/safeFetch';
 import { CONFIG } from '../../utils/config';
 import { getModel } from '../../utils/film/suiteConfig';
 import { storeKeyFromUrl, readStoreBytes } from '../../utils/server/mediaStore';
+import { providerMediaUrl } from '../../utils/server/providerMedia';
 
 export const config = {
   api: {
@@ -68,6 +69,7 @@ async function seedHandler(req, res) {
 
   try {
     const inlinedImages = await Promise.all(imageList.map(inlineImage));
+    const providerVideo = await providerMediaUrl(video);
     // Seed 2.0 Pro family uses the /responses API + input formatting. The name-prefix
     // heuristic can't sniff an account-scoped ep-… reasoner id, so
     // MODELARK_REASONER_PROTOCOL=responses|chat overrides it explicitly per deployment.
@@ -84,7 +86,7 @@ async function seedHandler(req, res) {
       if (video) {
           inputContent.push({
               type: 'input_video',
-              video_url: video
+              video_url: providerVideo
           });
       }
 
@@ -184,7 +186,7 @@ async function seedHandler(req, res) {
         content.push({ type: 'image_url', image_url: { url: img } });
       });
       if (video) {
-        content.push({ type: 'video_url', video_url: { url: video } });
+        content.push({ type: 'video_url', video_url: { url: providerVideo } });
       }
       messages.push({ role: 'user', content });
     } else {
