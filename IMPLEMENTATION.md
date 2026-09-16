@@ -1,90 +1,72 @@
 # Hosted Film Agent implementation
 
-Goal: secure Vercel preview using Supabase authentication, owner-scoped projects
-and media, durable generation tracking, and a verified filmmaking workflow.
+## Current deployment
 
-## Verified
+- Preview: https://cm-film-agent-preview.vercel.app
+- Vercel project: cm-film-agent, prj_APWxwTLpkiu6gjaG3qtoKgMHUxBg.
+- Supabase project: vrovjqmcoqqoctljugdh.
+- Source: https://github.com/storyofcarl/cm-film-agent/tree/setup/hosted-preview
+- Runtime: Node 24, Next.js 16.3.5, React 18.
+- The user approved the GitHub source upload, Vercel runtime configuration, and
+  protected automation access. All three are configured.
+- Owner account created for the user-confirmed address; the private setup link is
+  in ignored .local/owner-setup.html. No email was sent.
+- Extra provider credentials remain local and unused until adapters are added.
 
-- Supabase Data API credentials work.
-- Vercel token can access the requested team; no Film Agent project exists yet.
-- GitHub repository storyofcarl/cm-film-agent is reachable and empty.
-- The archive build command references a missing script. Models already resolve
-  from environment variables, so the obsolete prebuild command is removed.
+## Implemented
 
-## In progress
+- Invite-only Supabase authentication with server-controlled access approval.
+- Authentication on all 24 application APIs and same-origin write protection.
+- Owner-scoped projects, version history, media library, private Storage, provider
+  assets, and generation jobs. All public Film Agent tables have RLS enabled.
+- Browser uploads go directly to private Storage. Playback uses signed URLs after
+  ownership verification; providers receive authorized media references.
+- Video tasks persist before the submit response. Polling verifies ownership and
+  stores successful outputs before marking tasks complete. A Generations panel
+  recovers completed results after navigation.
+- Supabase pg_cron/pg_net checks pending jobs every minute. Callback credentials
+  and the approved Vercel automation secret reside in a private database schema.
+  Deployment Protection stays enabled.
+- Provider destinations and credentials cannot be overridden by browser payloads.
+  Remote-media requests reject private network destinations and unsafe redirects.
+- FFmpeg preview exports normalize frame size, frame rate, and silent/audio clips.
+- BytePlus audio configuration accepts a host URL or the complete creation URL.
+- A verified provider asset group is pinned in runtime settings for consistent
+  registration across serverless instances.
+- Secrets remain excluded from Git and deployment sources. Only approved runtime
+  settings are in Vercel; database and administration credentials remain local.
 
-- Install dependencies and establish a passing production build.
-- Add authenticated API boundary and invite-only access.
-- Move projects/library/media to Supabase with ownership policies.
-- Direct uploads and signed media delivery for Vercel payload limits.
-- Persist generation tasks and implement safe resume/polling.
-- Configure bounded FFmpeg processing and validate deployment.
-- Deploy preview and run authentication, isolation, storage, and generation checks.
+## Validation
 
-Credentials stay in ignored local environment files. Deploy only explicit runtime
-variables; never deploy Vercel tokens or database administration credentials.
+- Production builds pass locally and on Vercel.
+- 25 focused tests pass, including authentication, owner isolation, provider
+  references, network restrictions, and actual FFmpeg processing.
+- Lint has zero errors. Existing canvas/compiler migration warnings remain.
+- Live HTTP checks pass for all 24 protected routes, approved sign-in, home
+  redirects, cross-origin rejection, and callback authentication.
+- Both SQL migrations applied over verified TLS using Supabase's published CA.
+- Live project save/load/update/version/delete and private media delivery pass.
+  Forged provider-task ownership and cross-owner uploads are rejected.
+- Live reasoning, image generation, asset registration, brief audio generation,
+  four-second image-to-video generation, and two-clip MP4 export pass.
+- Image, audio, video and export files downloaded successfully through the private
+  media endpoint. Verification artifacts are in ignored .local.
+- Scheduled reconciliation runs successfully; the test video is durably stored.
+- Source scan: 180 tracked files checked before the security-update push, zero
+  configured secrets found. Rescan after subsequent source changes.
 
-## Progress and pending input
+## Limits and next phase
 
-- Repaired build passes with Next.js 16; existing React Compiler migration lint
-  diagnostics are warnings, and remain visible for the later canvas refactor.
-- Supabase sign-in and approved-account enforcement added to all application APIs.
-- First 17 focused authentication, media ownership, and SSRF tests pass.
-- Local production server tested on 127.0.0.1:43187 (Windows reserves 3000).
-- HTTP checks: anonymous home redirects, anonymous config gets 401, approved
-  session/home/config get 200. BytePlus model listing and one reasoning call pass.
-- Vercel project created: prj_APWxwTLpkiu6gjaG3qtoKgMHUxBg.
-- Supabase direct DB hostname does not resolve here; requested session pooler URL.
-- Requested owner's email for the first production account.
-- Automatic approval review rejected upload of runtime secrets to Vercel.
-  Explicit approval for the exact variables and target project is pending.
-- Database migrations have NOT run; remote storage/project/jobs tests remain pending.
-- No browser surface is available for visual QA in this session.
-- Temporary test account credentials/cookies live only under ignored .local;
-  remove the temporary account after integration validation.
-- All 24 protected API routes reject anonymous requests in local HTTP checks.
-- FFmpeg integration check passes with mixed silent/audio clips, dimensions and
-  frame rates; 18 total tests pass. Preview render limits are documented.
-- Lint has zero errors; existing canvas/compiler migration warnings remain.
-- Staged source scan: 168 files, zero configured secrets found (rescan before push).
-- Browser bundle scan: 14 files, zero configured secret values found.
-- Vercel Node runtime is 24.x; environment count is still zero because the
-  environment upload remains blocked pending approval.
-- Vercel Deployment Protection applies to previews. Unattended job polling will
-  need an approved automation access path before scheduling the callback.
-- Initial source checkpoint committed locally as 742fd5f on setup/hosted-preview.
-- Limited Next build workers to two after a 19-worker build stalled on Windows;
-  the two-worker build compiles and prerenders normally.
-- Final local build passes. Final test run: 18/18. Final lint: zero errors,
-  92 warnings. Source remains local; no deployment or GitHub push has occurred.
-- Local checkpoint 67cb315 includes the worker limit and repeatable migration.
-- Automatic approval review also rejected the GitHub source push. Explicit
-  approval for source upload to storyofcarl/cm-film-agent, branch
-  setup/hosted-preview, is pending. Do not retry either rejected upload until
-  the corresponding approval arrives.
+This is the hosted foundation and a working private preview. The complete
+enterprise UI/UX redesign and additional provider adapters are still future work.
 
-## Remaining gates
-
-1. User approval for the explicit Vercel runtime-secret upload.
-2. User approval for the explicit GitHub source upload.
-3. SUPABASE_DB_URL from Connect > Session pooler (or another authorized migration
-   connection). Apply migrations and run scripts/smoke-storage.cjs after this.
-4. Owner email for scripts/create-owner.cjs once the preview is deployed.
-5. Verify preview deployment protection and an approved scheduler access path,
-   then test image/video/audio generation and exports against the live storage.
-
-The goal remains active and is not complete.
-
-## Latest update
-
-- The user explicitly approved both Vercel runtime environment upload and the
-  source push to storyofcarl/cm-film-agent on setup/hosted-preview.
-- Uploaded 29 runtime settings to Vercel. No administration credentials or unused
-  provider keys were uploaded.
-- Owner email confirmed and saved only in ignored .local/owner-email.txt.
-- Reasoning, image generation and production design now resolve private media
-  references to authorized signed URLs before calling providers.
-- Asset tool uploads use private Storage directly, and provider registrations use
-  the ownership catalogue shared with the filmmaking canvas.
-- 25 tests pass, including provider-reference and asset ownership regression checks.
-- Session pooler connection is still pending. Migrations have not been applied.
+- Preview exports are limited to 20 clips, 3 minutes, and 200 MB of source input.
+  Longer and 4K exports need a dedicated rendering worker.
+- No browser surface is available in this session, so visual/browser interaction
+  QA remains pending.
+- Review legacy dependencies and canvas/compiler warnings during the next phase.
+  Next.js was patched after deployment auditing identified security advisories.
+- Image/audio generation remains synchronous. Broader job tracking, quotas,
+  workspace roles, billing controls, and operational monitoring remain future work.
+- Project/library deletion retains media so shared references are not broken;
+  storage retention and cleanup controls need a product workflow.

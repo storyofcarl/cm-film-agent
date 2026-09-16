@@ -31,6 +31,9 @@ Required runtime values:
 Add a Session pooler connection string as `SUPABASE_DB_URL` for migration tools.
 Use the exact host from Supabase's Connect dialog and URL-encode the database
 password when constructing a URI. TLS certificate validation stays enabled.
+Migration scripts trust supabase/certs/prod-ca-2021.crt, downloaded from the
+Supabase dashboard's official certificate URL:
+https://supabase-downloads.s3-ap-southeast-1.amazonaws.com/prod/ssl/prod-ca-2021.crt
 
 ```
 node --env-file=.env scripts/migrate.cjs
@@ -63,8 +66,7 @@ node --env-file=.env scripts/sync-vercel-env.cjs
 
 The environment-sync script uploads only an explicit runtime allowlist and
 generates `CRON_SECRET` locally if needed. Run it only after the environment upload
-has been authorized. The current session's upload is awaiting explicit approval
-after automatic review rejected it.
+has been authorized. The owner approved the current deployment's upload.
 
 Build: `npm run build`. Installation skips Electron's desktop binary.
 `.vercelignore` excludes credentials, local test artifacts, and desktop tooling.
@@ -88,13 +90,17 @@ To preserve pending videos without an open browser, schedule the reconciliation
 endpoint after deploying and checking its accessibility:
 
 ```
-node --env-file=.env scripts/schedule-jobs.cjs HTTPS_DEPLOYMENT_URL
+node --env-file=.env --env-file=.local/automation.env scripts/schedule-jobs.cjs HTTPS_DEPLOYMENT_URL
 ```
 
 This uses Supabase pg_cron and pg_net, invokes the endpoint once per minute only
 while video jobs are pending, and keeps the request secret in a private schema.
 If Vercel Deployment Protection blocks this endpoint, configure an approved
 automation access path before relying on unattended reconciliation.
+The current preview has an approved automation secret in ignored
+.local/automation.env. Test requests attach it only to the preview origin.
+Pin MODELARK_ASSET_GROUP_ID for hosted deployments to reuse the same provider
+asset group across function instances. The current preview has a verified group.
 
 FFmpeg uses temporary files only. Preview exports support up to 20 clips,
 three minutes, and 200 MB of source media, with a bounded processing time.
