@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const { createClient } = require('@supabase/supabase-js');
 const base = process.env.FILM_TEST_URL || 'http://127.0.0.1:43187';
+const fetch = require('./test-fetch.cjs')(base);
 const account = JSON.parse(fs.readFileSync('.local/smoke-account.json', 'utf8'));
 const { cookie } = JSON.parse(fs.readFileSync('.local/smoke-cookies.json', 'utf8'));
 async function call(endpoint, method = 'GET', body) {

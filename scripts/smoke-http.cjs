@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const base = process.env.FILM_TEST_URL || 'http://127.0.0.1:43187';
+const fetch = require('./test-fetch.cjs')(base);
 const { cookie } = JSON.parse(fs.readFileSync('.local/smoke-cookies.json', 'utf8'));
 
 async function main() {

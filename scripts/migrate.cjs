@@ -8,7 +8,7 @@ async function main() {
     host: 'db.' + process.env.SUPABASE_PROJECT_ID + '.supabase.co',
     port: 5432, user: 'postgres', database: 'postgres', password: process.env.SUPABASE_DB_PASSWORD,
   };
-  const client = new Client({ ...config, ssl: { rejectUnauthorized: true }, connectionTimeoutMillis: 15000 });
+  const client = new Client({ ...config, ssl: { rejectUnauthorized: true, ca: fs.readFileSync('supabase/certs/prod-ca-2021.crt', 'utf8') }, connectionTimeoutMillis: 15000 });
   try {
     await client.connect();
     await client.query('create table if not exists public.film_schema_migrations (name text primary key, applied_at timestamptz not null default now())');
