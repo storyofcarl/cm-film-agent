@@ -1,6 +1,16 @@
 # Studio implementation status
 
-Updated 2026-09-17. The separate private preview is deployed and verified.
+Updated 2026-09-17. The separate private preview is deployed.
+Latest verification exception: on source 39bd577, the hosted 15.5 MB import check
+timed out waiting for the Scripts document after the import API succeeded.
+Its local run passed; hosted client activation/navigation requires diagnosis.
+Do not report the latest hosted end-to-end import check as passed.
+The director workflow audit and proposed UX work order are recorded in
+[UX_WORKFLOW_AUDIT.md](UX_WORKFLOW_AUDIT.md) (WD53).
+WD54 implements the first audit increment: focused asset preview/details,
+type/ID collection lookup, section-appropriate inspectors, blank new-project
+briefs, and explicit version browsing versus production use. Local browser
+inspection and 127 tests in 22 suites pass; remaining audit work stays open.
 The UX remains a working draft. The owner explicitly rejected describing it as
 final; deployment and passing checks do not establish design acceptance.
 The owner rejected breadcrumb, dropdown and hierarchical thumbnail drilling.

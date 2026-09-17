@@ -25,8 +25,16 @@ and director acceptance remain to be assessed in the creative pilot.
 WD52 adds bounded cleanup for new expired transfer copies and abandoned imports.
 Unit and real-storage checks preserve active transfers, retained text/chunks,
 legacy copies and foreign-owner data. Browser checks verify the new transfer
-folders through large imports and exact export. Comprehensive lifecycle work
+folders through local large imports and exact export. The newest hosted 15.5 MB
+run failed during client navigation after import; see U04 in the workflow audit.
+Comprehensive lifecycle work
 remains open for legacy temporary copies and orphaned immutable records.
+
+WD53 records the director workflow audit. WD54 fixes misplaced cross-section
+controls and inherited new-project briefs, opens assets in a central media/detail
+view, and separates collection version browsing from explicit production use.
+Local UI inspection and 127 tests / 22 suites pass. Owner acceptance and the
+remaining section-level workflow redesign are outstanding.
 
 | Agreed requirement | Implementation and evidence | Remaining acceptance |
 | --- | --- | --- |

@@ -4,6 +4,12 @@ Status: authorized execution plan, 2026-09-16 (D29).
 Architecture separation and production rules remain binding. Proceed through the
 phases using explicitly flagged working decisions for unresolved details.
 
+2026-09-17 workflow review: [UX_WORKFLOW_AUDIT.md](UX_WORKFLOW_AUDIT.md) is the
+current UX improvement backlog (WD53). Prioritize the concept/upload-to-plan
+handoff, task-specific center work surfaces, consolidated review and clear
+approval consequences within the agreed strip/left-navigation/right-chat shell.
+Technical implementation milestones are not section-level UX acceptance.
+
 ## 1. Align on the production contract
 
 Prepare a stage-by-stage matrix for the complete deliverable batch. For each stage,

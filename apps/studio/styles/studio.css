@@ -88,6 +88,22 @@
   margin-top: 15px;
   font-size: 10px;
 }
+.collection-toolbar .field {
+  margin: 0;
+  flex: 1 1 130px;
+  min-width: 0;
+}
+.collection-toolbar > span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.collection-selection {
+  font-size: 11px;
+  margin: 8px 0;
+}
+.media-viewer.asset-viewer > img {
+  object-fit: contain;
+}
 .project-strip {
   flex-shrink: 0;
   min-width: 0;

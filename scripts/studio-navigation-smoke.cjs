@@ -384,10 +384,17 @@ async function main() {
       fullPage: true,
     });
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
+    await expect(
+      page.getByRole("region", { name: "Manual object controls" }),
+    ).toBeHidden();
+    await page.getByRole("button", { name: "The keeper", exact: true }).click();
+    await expect(
+      page.getByRole("region", { name: "Asset preview" }),
+    ).toBeVisible();
     await page
       .locator(".generation-inline")
       .getByText(
-        "This demo version is an illustrated storyboard. No video segment was generated.",
+        "This demo asset is an illustration. No provider generation was run.",
         { exact: true },
       )
       .waitFor();

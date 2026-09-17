@@ -55,6 +55,42 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD54 — Focused asset inspection and explicit version use
+
+First implementation increment from WD53: Assets opens on the collection with
+stable codes, types, a type filter and an upload icon. Selecting an asset opens a
+central media preview with its version-bound mechanics below, and a return-to-
+Assets control. Original uploaded files remain accessible below the collection.
+Asset images are contained rather than cropped. Object controls are visible only
+in their matching detail view; switching to Footage no longer exposes the prior
+asset inspector. New projects start with a blank brief.
+
+Collection version dropdowns now inspect candidates without changing production
+selection. Their media and approval controls follow the inspected version; a
+separate Use V… for edit/reference action changes selection. Opening the detail
+view preserves the inspected candidate. The collection status filter still
+explicitly describes selected versions. Navigation opens the center at its top.
+
+These are delegated choices for owner review, not acceptance of the broader asset
+or revision workflow. Manual full-batch review, usage impact and remaining audit
+items still need work. The local browser walkthrough verifies U01/U02/U03 and
+the focused asset path; 127 tests in 22 suites pass, including candidate review
+binding and asset type/ID lookup. No paid provider calls were made.
+
+### WD53 — Evaluate sections against director tasks and production handoffs
+
+The owner requested a workflow/user-perspective audit. The live demo walkthrough
+and component review are recorded in [UX_WORKFLOW_AUDIT.md](UX_WORKFLOW_AUDIT.md).
+Keep the agreed shell; assess each center section by what the director can inspect,
+change, approve and hand off through chat or manual controls. The audit identifies
+cross-section selection and new-project brief defects, weak task-specific work
+surfaces, and a proposed work order. Recommendations are agent proposals, not
+owner-approved designs. No runtime behavior changed in the audit.
+
+The latest hosted large-import check failed after the successful import response;
+the client handoff needs diagnosis. Earlier passing scale checks remain valid
+evidence for their tested revisions, not proof this newest run passed.
+
 ### WD52 — Expire temporary transfer copies without pruning history
 
 Write new large-response copies under private transfer folders grouped by hour.

@@ -85,15 +85,18 @@ export default function GenerationDetails({
           onClose={() => setOpen(false)}
         >
           <p>
-            Viewing the sources of this exact version. Shot trims and approval
-            remain separate from the full generated segment.
+            {item.kind === "shot"
+              ? "Viewing the sources of this exact version. Shot trims and approval remain separate from the full generated segment."
+              : "Viewing the recorded sources and references of this asset version."}
           </p>
           {!sources.length && (
             <>
               <p>
-                {version.origin === "fixture"
-                  ? "This demo version is an illustrated storyboard. No video segment was generated."
-                  : "No generated source segment is linked to this version. Imported media may not include its original generation history."}
+                {version.origin === "fixture" && item.kind === "asset"
+                  ? "This demo asset is an illustration. No provider generation was run."
+                  : version.origin === "fixture"
+                    ? "This demo version is an illustrated storyboard. No video segment was generated."
+                    : "No generated source segment is linked to this version. Imported media may not include its original generation history."}
               </p>
               {!inline && (
                 <PromptField

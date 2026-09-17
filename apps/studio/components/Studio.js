@@ -5,6 +5,7 @@ import ObjectProperties from "./ObjectProperties";
 import PromptField from "./PromptField";
 import GenerationDetails from "./GenerationDetails";
 import ProjectFiles from "./ProjectFiles";
+import UploadInbox from "./UploadInbox";
 import { FILE_AREAS } from "../lib/fileAreas";
 import { documentArea } from "../lib/documents";
 import CrewConversation from "./CrewConversation";
@@ -154,6 +155,10 @@ export default function Studio({
     chatUploadInput.current.click();
   };
   const mediaInput = useRef(null);
+  const workspaceRef = useRef(null);
+  useEffect(() => {
+    if (workspaceRef.current) workspaceRef.current.scrollTop = 0;
+  }, [tab, itemId]);
   const pollCursor = useRef(0);
   const activateProject = useCallback(
     (result, firstScene = false) => {
@@ -376,12 +381,13 @@ export default function Studio({
           );
       activateProject(result);
     });
-  const selectItem = (item) => {
+  const selectItem = (item, inspectingId = null) => {
     setPropertyTargetId(item.id);
     setItemId(item.id);
-    setReviewVersionId(null);
+    setReviewVersionId(inspectingId);
     setNoteVersionId(null);
     setNote("");
+    if (item.kind === "asset") setTab("Asset");
     if (item.sceneId) {
       setTab("Cut");
       setSceneId(item.sceneId);
@@ -527,14 +533,15 @@ export default function Studio({
           sceneId,
           itemId,
           contextId: propertyTargetId,
-          inspectingVersionId: ["Cut", "Review", "Assets", "Footage"].includes(
-            tab,
-          )
+          inspectingVersionId: ["Cut", "Asset"].includes(tab)
             ? version?.id || null
             : null,
           activeFileArea:
-            Object.keys(FILE_AREAS).find((key) => FILE_AREAS[key] === tab) ||
-            null,
+            (tab === "Asset"
+              ? "assets"
+              : Object.keys(FILE_AREAS).find(
+                  (key) => FILE_AREAS[key] === tab,
+                )) || null,
           inspectingDocumentId:
             project.artifacts.find(
               (entry) =>
@@ -763,7 +770,7 @@ export default function Studio({
           ].map((entry) => (
             <button
               key={entry}
-              className={`nav-item ${tab === entry ? "active" : ""}`}
+              className={`nav-item ${tab === entry || (tab === "Asset" && entry === "Assets") ? "active" : ""}`}
               title={entry === "Overview" ? "Production overview" : entry}
               onClick={() => switchTab(entry)}
             >
@@ -870,7 +877,7 @@ export default function Studio({
             </div>
           )}
           <div className="project-content">
-            <main className="workspace">
+            <main className="workspace" ref={workspaceRef}>
               {!project ? (
                 <div className="welcome">
                   <span className="eyebrow">A NEW WAY TO MAKE PICTURES</span>
@@ -900,7 +907,7 @@ export default function Studio({
                 </div>
               ) : (
                 <>
-                  {!["Cut", "Review"].includes(tab) && (
+                  {!["Cut", "Review", "Asset"].includes(tab) && (
                     <h1 className="view-title">
                       {tab === "Overview" ? "Production overview" : tab}
                     </h1>
@@ -1067,30 +1074,31 @@ export default function Studio({
                       }
                       items={rollupContents}
                       {...{ project, busy, command }}
-                      selectItem={(entry) => {
-                        if (entry.kind) selectItem(entry);
+                      selectItem={(entry, versionId) => {
+                        if (entry.kind) selectItem(entry, versionId);
                         else navigate(entry.id);
                       }}
                     />
                   )}
-                  {Object.values(FILE_AREAS).includes(tab) && (
-                    <ProjectFiles
-                      key={`${project.id}:${documentOpenRequest}`}
-                      {...{
-                        focusDocumentId,
-                        documentDrafts,
-                        setDocumentDrafts,
-                      }}
-                      project={project}
-                      area={Object.keys(FILE_AREAS).find(
-                        (key) => FILE_AREAS[key] === tab,
-                      )}
-                      busy={busy}
-                      command={command}
-                      onUpload={openUpload}
-                      onInspectDocument={setInspectingDocumentId}
-                    />
-                  )}
+                  {Object.values(FILE_AREAS).includes(tab) &&
+                    tab !== "Assets" && (
+                      <ProjectFiles
+                        key={`${project.id}:${documentOpenRequest}`}
+                        {...{
+                          focusDocumentId,
+                          documentDrafts,
+                          setDocumentDrafts,
+                        }}
+                        project={project}
+                        area={Object.keys(FILE_AREAS).find(
+                          (key) => FILE_AREAS[key] === tab,
+                        )}
+                        busy={busy}
+                        command={command}
+                        onUpload={openUpload}
+                        onInspectDocument={setInspectingDocumentId}
+                      />
+                    )}
                   {tab === "Footage" && (
                     <ReviewGrid
                       items={project.shots}
@@ -1104,18 +1112,74 @@ export default function Studio({
                           {project.assets.length} assets · review the full batch
                           together
                         </span>
-                        <button
-                          className="secondary"
-                          onClick={() => setModal("asset")}
-                        >
-                          <Icon name="plus" /> Add asset
-                        </button>
+                        <div className="button-row">
+                          <button
+                            className="secondary"
+                            title="Upload to Assets"
+                            aria-label="Upload to Assets"
+                            disabled={busy}
+                            onClick={() => openUpload("assets")}
+                          >
+                            <Icon name="upload" />
+                          </button>
+                          <button
+                            className="secondary"
+                            onClick={() => setModal("asset")}
+                          >
+                            <Icon name="plus" /> Add asset
+                          </button>
+                        </div>
                       </div>
                       <ReviewGrid
+                        key={`assets:${project.id}`}
+                        assetTypes
                         items={project.assets}
                         {...{ busy, command, selectItem }}
                       />
+                      <UploadInbox
+                        {...{ project, busy, command }}
+                        area="assets"
+                      />
                     </div>
+                  )}
+                  {tab === "Asset" && item?.kind === "asset" && (
+                    <section aria-label="Asset preview">
+                      <button
+                        className="text-button"
+                        onClick={() => switchTab("Assets")}
+                      >
+                        ← Assets
+                      </button>
+                      <div className="viewer-top">
+                        <span>
+                          <b>{item.code || item.id}</b> · {item.type} ·{" "}
+                          {item.title}
+                        </span>
+                        {version && <Badge status={version.review} />}
+                      </div>
+                      <div className="media-viewer asset-viewer">
+                        {version?.media?.url ? (
+                          version.media.type === "video" ? (
+                            <video
+                              key={version.id}
+                              src={version.media.url}
+                              controls
+                              playsInline
+                            />
+                          ) : (
+                            <img src={version.media.url} alt={item.title} />
+                          )
+                        ) : (
+                          <div className="viewer-empty">
+                            <h2>No asset media yet</h2>
+                            <p>
+                              Upload a version below or ask for a design in
+                              chat.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </section>
                   )}
                   {tab === "Batches" && (
                     <BatchPanel
@@ -1298,7 +1362,8 @@ export default function Studio({
                 hidden={
                   !(
                     tab === "Properties" ||
-                    (item && ["Cut", "Assets", "Footage"].includes(tab))
+                    (item?.kind === "shot" && tab === "Cut") ||
+                    (item?.kind === "asset" && tab === "Asset")
                   )
                 }
                 aria-label="Manual object controls"
@@ -1387,7 +1452,8 @@ export default function Studio({
                             })
                           }
                         >
-                          Select V{version.number} for this item
+                          Use V{version.number} for{" "}
+                          {item.kind === "asset" ? "reference" : "edit"}
                         </button>
                       )}
                       <div className="inspector-rule" />
@@ -1943,7 +2009,7 @@ function FormModal({
                 <textarea
                   name="brief"
                   rows={3}
-                  defaultValue={project?.brief || ""}
+                  defaultValue={kind === "settings" ? project?.brief || "" : ""}
                   placeholder="What are we making? What do you already have?"
                 />
               </label>

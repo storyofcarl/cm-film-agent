@@ -28,11 +28,18 @@ export function ReviewGrid({
   project,
   editable = false,
   actions,
+  assetTypes = false,
 }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(0);
   const [drafts, setDrafts] = useState({});
+  const [type, setType] = useState("all");
+  const [inspectedVersions, setInspectedVersions] = useState({});
+  const inspectedVersion = (item) =>
+    item.versions?.find(
+      (version) => version.id === inspectedVersions[item.id],
+    ) || selectedVersion(item);
   const containers = items.some((item) => !item.kind);
   const edit = (id, key, value) =>
     setDrafts((previous) => ({
@@ -41,14 +48,17 @@ export function ReviewGrid({
     }));
   const filtered = items.filter(
     (item) =>
-      item.title.toLowerCase().includes(search.toLowerCase()) &&
+      `${item.code || item.id} ${item.title}`
+        .toLowerCase()
+        .includes(search.toLowerCase()) &&
+      (type === "all" || item.type === type) &&
       (status === "all" || selectedVersion(item)?.review === status),
   );
   const pages = Math.max(1, Math.ceil(filtered.length / 24));
   const current = Math.min(page, pages - 1);
   return (
     <div>
-      <div className="button-row">
+      <div className="button-row collection-toolbar">
         <label className="field">
           Find an item
           <input
@@ -59,6 +69,28 @@ export function ReviewGrid({
             }}
           />
         </label>
+        {assetTypes && (
+          <label className="field">
+            Asset type
+            <select
+              value={type}
+              onChange={(event) => {
+                setType(event.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="all">All types</option>
+              {[...new Set(items.map((item) => item.type))]
+                .filter(Boolean)
+                .sort()
+                .map((value) => (
+                  <option key={value} value={value}>
+                    {value[0].toUpperCase() + value.slice(1)}
+                  </option>
+                ))}
+            </select>
+          </label>
+        )}
         {!containers && (
           <label className="field">
             Review filter
@@ -79,22 +111,27 @@ export function ReviewGrid({
           </label>
         )}
         <span>
-          {filtered.length} items · page {current + 1} of {pages}
+          {filtered.length} items
+          {pages > 1 ? ` · page ${current + 1} of ${pages}` : ""}
         </span>
-        <button
-          className="secondary"
-          disabled={current === 0}
-          onClick={() => setPage(current - 1)}
-        >
-          Previous page
-        </button>
-        <button
-          className="secondary"
-          disabled={current + 1 >= pages}
-          onClick={() => setPage(current + 1)}
-        >
-          Next page
-        </button>
+        {pages > 1 && (
+          <>
+            <button
+              className="secondary"
+              disabled={current === 0}
+              onClick={() => setPage(current - 1)}
+            >
+              Previous page
+            </button>
+            <button
+              className="secondary"
+              disabled={current + 1 >= pages}
+              onClick={() => setPage(current + 1)}
+            >
+              Next page
+            </button>
+          </>
+        )}
         {actions}
       </div>
       {editable && Object.keys(drafts).length > 0 && (
@@ -119,7 +156,7 @@ export function ReviewGrid({
       )}
       <div className="review-grid">
         {filtered.slice(current * 24, (current + 1) * 24).map((item) => {
-          const version = selectedVersion(item);
+          const version = inspectedVersion(item);
           const shots =
             !item.kind && project ? contextShots(project, item.id) : [];
           const thumbnail =
@@ -131,12 +168,13 @@ export function ReviewGrid({
                 <Media media={thumbnail} title={item.title} />
               </div>
               <div className="review-body">
-                {editable && (
-                  <span className="object-code">{item.code || item.id}</span>
-                )}
+                <span className="object-code">
+                  {item.code || item.id}
+                  {item.kind === "asset" ? ` · ${item.type}` : ""}
+                </span>
                 <button
                   className="text-button"
-                  onClick={() => selectItem(item)}
+                  onClick={() => selectItem(item, version?.id)}
                 >
                   <b>{item.title}</b>
                 </button>
@@ -185,16 +223,16 @@ export function ReviewGrid({
                 {item.kind && (
                   <>
                     <label className="field">
-                      Selected version
+                      Reviewing version
                       <select
                         aria-label={`${item.title} version`}
                         disabled={busy || !item.versions.length}
-                        value={item.selectedVersionId || ""}
+                        value={version?.id || ""}
                         onChange={(event) =>
-                          command("version.select", {
-                            itemId: item.id,
-                            versionId: event.target.value,
-                          })
+                          setInspectedVersions((current) => ({
+                            ...current,
+                            [item.id]: event.target.value,
+                          }))
                         }
                       >
                         {!item.versions.length && (
@@ -203,10 +241,33 @@ export function ReviewGrid({
                         {item.versions.map((entry) => (
                           <option value={entry.id} key={entry.id}>
                             V{entry.number} · {REVIEW_LABELS[entry.review]}
+                            {entry.id === item.selectedVersionId
+                              ? " · selected"
+                              : ""}
                           </option>
                         ))}
                       </select>
                     </label>
+                    <p className="muted collection-selection">
+                      {selectedVersion(item)
+                        ? `V${selectedVersion(item).number} selected for ${item.kind === "asset" ? "reference" : "edit"}`
+                        : "Nothing selected"}
+                    </p>
+                    {version && version.id !== item.selectedVersionId && (
+                      <button
+                        className="secondary compact"
+                        disabled={busy}
+                        onClick={() =>
+                          command("version.select", {
+                            itemId: item.id,
+                            versionId: version.id,
+                          })
+                        }
+                      >
+                        Use V{version.number} for{" "}
+                        {item.kind === "asset" ? "reference" : "edit"}
+                      </button>
+                    )}
                     <label className="field">
                       Approval status
                       <select
