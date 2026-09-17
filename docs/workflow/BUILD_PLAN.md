@@ -162,7 +162,10 @@ owner alongside the module grouping; neither is final design acceptance.
 WD40 implements bounded indexed source reads while preserving the full inventory
 and exact successful-study provenance. Next engineering priority: make long-film
 preparation resumable across hosted requests, partition full-deliverable outputs,
-and scale retained history beyond the current 12 MB store. Keep the full deliverable scope
+and scale retained history and browser transport. The current endpoints return the
+entire project; Vercel's documented 4.5 MB request/response bound can be reached
+before the 12 MB store cap. Resolve large-project transport alongside retained
+storage before claiming feature-film capacity. Keep the full deliverable scope
 and stable IDs visible, resolve exact versions from retained records, and partition
 work only at valid scene/document boundaries when it exceeds a model's capacity.
 Aggregate complete outputs before the existing human review gates. Do not silently

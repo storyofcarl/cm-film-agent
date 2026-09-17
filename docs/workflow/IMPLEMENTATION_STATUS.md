@@ -181,6 +181,10 @@ that the conversation is restricted to one object or task.
   resumable. Whole-deliverable output partitioning and scalable history storage are
   still required. Failed studies leave existing saved production data unchanged;
   local long-film rendering does not prove large-project conversational support.
+  Transport also remains incomplete: the project/crew endpoints return the full
+  project, while [Vercel documents a 4.5 MB request/response limit](https://vercel.com/docs/functions/limitations).
+  A large saved project can therefore exceed the hosted transport bound before
+  reaching the 12 MB store cap. Storage and transport must be addressed together.
 
 - No arbitrary paid Studio generations were run. Provider adapters are reused and
   exercised with mocks; a director-approved real pilot is still required to assess
