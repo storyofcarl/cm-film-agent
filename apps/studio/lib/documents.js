@@ -1,6 +1,7 @@
 import { fileArea } from "./fileAreas";
 
 export const DOCUMENT_AREAS = ["scripts", "documents"];
+export const KNOWLEDGE_TYPES = { note: "Project note", learning: "Learning" };
 
 export function documentArea(project, artifact) {
   if (DOCUMENT_AREAS.includes(artifact.documentArea))
@@ -53,6 +54,14 @@ export function appendDocument(project, input, metadata = {}) {
     throw new Error("The document being revised no longer exists.");
   if (parent && documentArea(project, parent) !== input.area)
     throw new Error("A revision must stay in its document's file area.");
+  const purpose = input.purpose ?? parent?.purpose ?? null;
+  if (
+    purpose !== null &&
+    (!Object.hasOwn(KNOWLEDGE_TYPES, purpose) || input.area !== "documents")
+  )
+    throw new Error("Project notes and learnings belong in Production docs.");
+  if (parent && purpose !== (parent.purpose ?? null))
+    throw new Error("A revision must retain its document's purpose.");
   const id = metadata.id || `artifact_${globalThis.crypto.randomUUID()}`;
   const documentId = parent?.documentId || parent?.id || id;
   const earlier = project.artifacts.filter(
@@ -63,6 +72,7 @@ export function appendDocument(project, input, metadata = {}) {
     kind: "document",
     documentId,
     documentArea: input.area,
+    ...(purpose ? { purpose } : {}),
     number: Math.max(0, ...earlier.map((entry) => entry.number || 1)) + 1,
     title: String(input.title || parent?.title || "Untitled document").slice(
       0,

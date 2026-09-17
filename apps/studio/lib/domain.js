@@ -1318,6 +1318,16 @@ export function applyCommand(
       event("document.supplied", { artifactId: artifact.id });
       break;
     }
+    case "document.add": {
+      human();
+      const document = appendDocument(project, payload, {
+        origin: "manual",
+        actor: actor.id,
+        createdAt: time,
+      });
+      event("document.created", { artifactId: document.id });
+      break;
+    }
     case "document.revise": {
       human();
       const parent = project.artifacts.find((entry) => entry.id === payload.id);

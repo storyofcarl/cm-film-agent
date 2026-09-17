@@ -47,6 +47,16 @@ that the conversation is restricted to one object or task.
 
 ## Implemented
 
+- Project notes and learnings (D51/WD51) have explicit purposes in Production docs,
+  inline manual creation, retained versions and normal document review controls.
+  Chat receives their content, origin and review state across tasks, with full
+  source-read coverage for long current/approved records. Agent-written learning
+  drafts retain their source prompt and never grant production approval. Import
+  preserves classification and version lineage while separating supplied approval.
+  Authenticated browser checks create a learning, preserve its unfinished text
+  across navigation, and reload its saved pending version in the intended project.
+  Desktop/narrow-screen composer layout is checked; no paid model calls were made.
+
 - Private immutable text storage and multipart project transport (WD41): long
   text is shared by content hash across snapshots; server and browser verify exact
   bytes. A 15.5 MB/40-version fixture imports, loads and exports through the actual
@@ -163,7 +173,7 @@ that the conversation is restricted to one object or task.
   navigation, V1/V2 approvals, and persistence after reload. Model requests in the
   browser are intercepted; synthetic writing is clearly labeled test content.
 
-- Latest Studio regression: **115 passing tests across 20 suites**, including
+- Latest Studio regression: **119 passing tests across 20 suites**, including
   PDF/DOCX extraction, writing/version/import, lookdev reuse/invalidation and current
   batch-state chat context. Authenticated browser checks verify a zero-job reused
   lookdev review without conflating it with individual asset approval.

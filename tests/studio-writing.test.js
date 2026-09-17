@@ -10,6 +10,62 @@ import {
   documentSource,
 } from "../apps/studio/lib/documents";
 
+test("project notes and learnings retain their purpose and history without granting approvals", () => {
+  let project = createProject();
+  for (const purpose of ["note", "learning"])
+    project = applyCommand(project, {
+      type: "document.add",
+      payload: {
+        area: "documents",
+        purpose,
+        title: purpose,
+        content: "SH-001 V2: observed result; preserve the limited scope.",
+        review: "approved",
+      },
+    });
+  const first = structuredClone(project.artifacts[1]);
+  project = applyCommand(project, {
+    type: "document.revise",
+    payload: { id: first.id, content: "SH-001 V3: revised observation." },
+  });
+  expect(project.artifacts[1]).toEqual(first);
+  expect(project.artifacts.at(-1)).toMatchObject({
+    purpose: "learning",
+    review: "pending",
+    revisesId: first.id,
+    number: 2,
+  });
+  expect(project.artifacts.every((entry) => entry.review === "pending")).toBe(
+    true,
+  );
+  expect(project.batches).toEqual([]);
+  expect(() =>
+    appendDocument(project, {
+      area: "scripts",
+      purpose: "note",
+      content: "Wrong home",
+    }),
+  ).toThrow("Production docs");
+  expect(() =>
+    appendDocument(project, {
+      area: "documents",
+      purpose: "note",
+      revisesId: first.id,
+      content: "Reclassified",
+    }),
+  ).toThrow("purpose");
+  expect(() =>
+    applyCommand(
+      project,
+      {
+        type: "document.add",
+        payload: { area: "documents", purpose: "learning", content: "Bypass" },
+      },
+      { id: "agent", role: "agent" },
+    ),
+  ).toThrow("Human approval");
+});
+
 test("revisions append to a stable document family without changing approved text or recorded prompts", () => {
   let project = createProject();
   project.artifacts.push({

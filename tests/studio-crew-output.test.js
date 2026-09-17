@@ -36,6 +36,27 @@ const document = (content) => ({
   content,
 });
 
+test("partitioned learnings retain their purpose and reject conflicting classification", () => {
+  const assembly = outputAssembly(plan, context);
+  const learning = {
+    key: "learning",
+    title: "Repair lessons",
+    area: "documents",
+    purpose: "learning",
+    content: "SH-001 V2: observed result.",
+  };
+  assembly.accept({ id: "shared", documents: [learning] });
+  expect(() =>
+    assembly.accept({
+      id: "scene1",
+      documents: [{ ...learning, purpose: "note" }],
+    }),
+  ).toThrow();
+  assembly.accept({ id: "scene1", content: "No additional lessons." });
+  assembly.accept({ id: "scene2", content: "No additional lessons." });
+  expect(assembly.finish().documents[0].purpose).toBe("learning");
+});
+
 test("whole-film parts preserve document order and shared asset identities in one result", async () => {
   const chunks = [
     {

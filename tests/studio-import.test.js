@@ -11,6 +11,42 @@ import {
   documentGroups,
   documentSource,
 } from "../apps/studio/lib/documents";
+
+test("portable notes and learnings preserve classification and version families without importing approval", () => {
+  let project = applyCommand(createProject(), {
+    type: "document.add",
+    payload: {
+      area: "documents",
+      purpose: "learning",
+      title: "Frame repair",
+      content: "SH-001 V2: local observation.",
+    },
+  });
+  const first = project.artifacts[0];
+  project = applyCommand(project, {
+    type: "artifact.review",
+    payload: { id: first.id, review: "approved" },
+  });
+  project = applyCommand(project, {
+    type: "document.revise",
+    payload: { id: first.id, content: "SH-001 V3: refined limitation." },
+  });
+  const imported = importDocuments(project, new Date().toISOString());
+  expect(imported.map((entry) => entry.purpose)).toEqual([
+    "learning",
+    "learning",
+  ]);
+  expect(imported.map((entry) => entry.content)).toEqual(
+    project.artifacts.map((entry) => entry.content),
+  );
+  expect(imported.map((entry) => entry.review)).toEqual(["pending", "pending"]);
+  expect(imported[0].suppliedMetadata.review).toBe("approved");
+  expect(imported[1].revisesId).toBe(imported[0].id);
+  project.artifacts[1].purpose = "note";
+  expect(() => importDocuments(project, new Date().toISOString())).toThrow(
+    "one purpose",
+  );
+});
 jest.mock("../utils/server/mediaStore", () => ({
   checkInUrl: async (url) => ({ key: "owned.png", url }),
   readStoreBytes: async () => ({

@@ -1192,6 +1192,67 @@ async function main() {
     findings.push(
       "Manifest import resets foreign shot/document context, opens the root grid, immediately appears in the project picker and preserves each project's unsent chat/document drafts. Chat was intercepted before any provider call.",
     );
+    await page.getByTitle("Production docs", { exact: true }).click();
+    await page
+      .getByRole("button", { name: "Add learning", exact: true })
+      .click();
+    await page
+      .getByRole("textbox", { name: "Note title", exact: true })
+      .fill("Recorded repair learning");
+    const learningText =
+      "SH-001 V2: a frame repair preserved the pose. This synthetic observation does not generalize to untested models.";
+    await page
+      .getByRole("textbox", { name: "Learning", exact: true })
+      .fill(learningText);
+    await page.getByTitle("Assets", { exact: true }).click();
+    await page.getByTitle("Production docs", { exact: true }).click();
+    assert.equal(
+      await page
+        .getByRole("textbox", { name: "Learning", exact: true })
+        .inputValue(),
+      learningText,
+    );
+    await page
+      .getByRole("button", { name: "Save learning", exact: true })
+      .click();
+    const learningCard = page.getByRole("article", {
+      name: "Recorded repair learning document",
+      exact: true,
+    });
+    await learningCard.waitFor();
+    assert.equal(
+      await learningCard
+        .getByRole("combobox", { name: "Document approval", exact: true })
+        .inputValue(),
+      "pending",
+    );
+    await page.reload();
+    await page.locator(".project-strip h1").waitFor();
+    // Reload opens the account's most recently updated project, which may differ
+    // from the inspected one when another production has newer server timestamps.
+    await page.locator(".project-switch button").click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: pilot.title, exact: true })
+      .click();
+    await page
+      .locator(".project-strip h1")
+      .filter({ hasText: pilot.title })
+      .waitFor();
+    await page.getByTitle("Production docs", { exact: true }).click();
+    assert.equal(
+      await learningCard
+        .getByRole("textbox", { name: "Document text", exact: true })
+        .inputValue(),
+      learningText,
+    );
+    await page.screenshot({
+      path: "artifacts/studio-project-learning.png",
+      fullPage: true,
+    });
+    findings.push(
+      "Project learnings retain unsaved composition across navigation and persist as pending versioned Production docs after reload; no approval or provider call was created.",
+    );
     await page.goto(base + "/demo");
     await page
       .getByRole("region", { name: "Project strip", exact: true })

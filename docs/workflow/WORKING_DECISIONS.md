@@ -55,6 +55,21 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD51 — Notes and learnings are versioned project documents
+
+Under D51, add note/learning purposes in Production docs, with inline manual
+creation and normal document version/review controls. Reuse stable document IDs,
+append-only revisions, source prompts and portable import history. Notes capture
+direction, constraints and decisions; learnings capture observations, supporting
+shot/version/job IDs, limits and untested hypotheses. Chat receives these records
+on subsequent tasks, including purpose, authorship origin and review status; long
+current/approved versions use the existing required-source reads. Agent-created
+learnings remain pending, and imports retain supplied approval only as provenance.
+No note or learning grants media, lookdev or spending approval. Unsent composition
+is kept per project during navigation. This is project-local knowledge; a shared
+cross-project knowledge library is not implied. No new approval gate is imposed on
+production solely because a note or learning is pending.
+
 ### WD50 — Full-length synthetic scale fixture
 
 Extend the private-record/browser check with an optional two-hour production:

@@ -525,6 +525,12 @@ opens its media and version-bound mechanics below; clicking a scene, sequence or
 act label opens its contents grid. The existing version dropdown remains. This
 does not request a new version-grid feature.
 
+### D51 — Include project notes and learnings
+
+The owner asks the workspace to account for project notes and learnings. Their
+initial home, versioning and chat-context behavior are working implementation
+choices recorded in WD51, not a claim of final UX approval.
+
 ## Superseded proposals and interpretations
 
 ### D26 — Earlier duration-threshold interpretation, replaced by D27

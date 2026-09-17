@@ -1,5 +1,5 @@
 import { uid } from "../domain";
-import { documentArea, documentSource } from "../documents";
+import { documentArea, documentSource, KNOWLEDGE_TYPES } from "../documents";
 import { fault } from "./errors";
 
 const text = (value) => (typeof value === "string" ? value : null);
@@ -171,6 +171,16 @@ export function importDocuments(input, createdAt) {
   return input.artifacts.map((artifact) => {
     const rootId = membership.get(artifact.id);
     const group = groups.get(rootId);
+    const purpose = artifact.purpose ?? group.root.purpose ?? null;
+    if (
+      purpose !== null &&
+      (!Object.hasOwn(KNOWLEDGE_TYPES, purpose) ||
+        group.area !== "documents" ||
+        purpose !== (group.root.purpose ?? null))
+    )
+      throw fault(
+        "Supplied notes and learnings must retain one purpose in Production docs.",
+      );
     if (
       artifact.revisesId &&
       (!byId.has(artifact.revisesId) ||
@@ -186,6 +196,7 @@ export function importDocuments(input, createdAt) {
       kind: "document",
       documentId: ids.get(rootId),
       documentArea: group.area,
+      ...(purpose ? { purpose } : {}),
       number: numbers.get(artifact.id),
       ...(group.code ? { code: group.code } : {}),
       revisesId: artifact.revisesId ? ids.get(artifact.revisesId) : null,

@@ -17,6 +17,11 @@ exact prompts/seeds, strip inventory, last-shot versions, added script revision,
 old snapshots, owner isolation and complete export passed. Generated media is
 absent from this fixture: playback, concurrency and real creative quality remain
 unproven. This advances the scale evidence without claiming the capacity ceiling.
+D51/WD51 add versioned project notes and learnings in Production docs. Regression
+checks cover purpose/lineage preservation, pending generated/imported drafts,
+source prompts and subsequent chat context. Knowledge records do not authorize
+production or turn model observations into verified results. Actual usefulness
+and director acceptance remain to be assessed in the creative pilot.
 
 | Agreed requirement | Implementation and evidence | Remaining acceptance |
 | --- | --- | --- |

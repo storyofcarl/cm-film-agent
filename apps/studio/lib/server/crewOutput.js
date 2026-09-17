@@ -99,6 +99,7 @@ export function outputAssembly(plan, context) {
         !earlier ||
           (earlier.title === document.title &&
             earlier.area === document.area &&
+            earlier.purpose === document.purpose &&
             earlier.revisesId === document.revisesId),
         "Document identity changed between output parts.",
       );
@@ -112,6 +113,7 @@ export function outputAssembly(plan, context) {
       documents.set(document.key, {
         title: document.title,
         area: document.area,
+        ...(document.purpose ? { purpose: document.purpose } : {}),
         content,
         ...(document.revisesId ? { revisesId: document.revisesId } : {}),
       });

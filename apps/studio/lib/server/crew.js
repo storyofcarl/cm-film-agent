@@ -305,6 +305,7 @@ Hierarchy: film/episode > act > sequence > scene > shot. Scene changes time/loca
 Return ONLY valid JSON with {"title":"...","content":"complete useful document in Markdown","decisions":["assumption and rationale"],"proposal":{"nodes":[{"id":"temporary-id","type":"act|sequence|scene","parentId":"existing-or-temporary-id-or-null","title":"...","location":"...","time":"..."}],"assets":[{"title":"...","type":"character|location|prop|creature","prompt":"...","description":"..."}],"shots":[{"title":"...","sceneId":"existing-or-temporary-id","prompt":"...","description":"...","duration":5,"beats":[{"text":"complete action or sentence","duration":5}]}]}}. Proposal is optional; use empty arrays for analysis or documents. Do not duplicate existing assets or shots. Put prompt refinements and guidance into content unless new items are requested. Do not put generated files or executable code into fields.
 For a requested revision to existing preparation, proposal may also include "updates":[{"id":"existing-item-id","previousPrompt":"exact existing prompt","prompt":"complete revised prompt","title":"...","description":"...","duration":5,"beats":[]}]. Include only fields to change. This updates future intent after human application, never historical version recipes, media, approvals, or selection. Do not merely describe prompt changes in content when the director asked you to apply them; return the reviewable updates too. Preserve assetIds unless asked to change references.
 For actual writing deliverables, return a top-level "documents" array: [{"title":"...","area":"scripts|documents","content":"full document text","revisesId":"existing document version id, only when revising"}]. Screenplays and creative writing belong in scripts; director's vision, shot lists, analysis and production plans belong in documents. Save each requested deliverable separately in the same response. Put the full deliverable in its document content and a concise explanation in the reply content; do not substitute a synopsis or silently truncate the requested scope. Ordinary discussion needs no documents. Revisions append a new pending draft and preserve earlier content, approvals and source history; use a documents[].id from the production context as revisesId. Saving a draft does not approve it or apply a production proposal. All document content is plain text or Markdown, never executable code or file paths.
+For project notes or learnings, file a document in area="documents" with purpose="note" or purpose="learning". Notes record direction, constraints and decisions. Learnings record observations, supporting stable shot/version/job IDs, what worked or failed, limitations and untested hypotheses. Read existing current/approved notes and learnings across tasks; revise the relevant family with revisesId when appropriate. Do not turn an unreviewed observation into an established rule or fabricate supporting evidence. Human-authored notes supply director context. Document review never authorizes paid jobs or approves media.
 SELECTED METHOD ${method} (source instructions and references):\n${source.text}`;
   const context = {
     id: project.id,
@@ -312,6 +313,8 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
     scope: project.scope,
     brief: project.brief,
     globalStyle: project.globalStyle,
+    knowledgeRules:
+      "Documents with purpose=note contain project direction, constraints and decisions; purpose=learning contains observations and lessons. Read their current and approved versions before preparing work. Preserve conflicting or superseded history. Human-authored notes carry director context, but draft or imported learnings are not verified rules or spending/media approvals. Cite supporting stable shot/version/job IDs when recording a learning; distinguish observations, limitations and untested hypotheses. Do not generalize a result to other models or projects without evidence.",
     assetIds: project.assetIds ?? null,
     propertyRules:
       "Container runtime is the sum of descendant shots. Direction accumulates from project global style through act, sequence, scene and shot. Asset references use the nearest explicit assetIds list; [] means none, null inherits, and an unconfigured project uses all project assets. Historical version recipes remain immutable.",
@@ -485,6 +488,8 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
         documentId: document.documentId || document.id,
         number: document.number || 1,
         area: documentArea(project, document),
+        purpose: document.purpose || null,
+        origin: document.origin,
         revisesId: document.revisesId || null,
         title: document.title,
         content: document.content,

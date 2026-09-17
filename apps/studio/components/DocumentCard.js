@@ -2,7 +2,11 @@ import { useState } from "react";
 import SourceStudy from "./SourceStudy";
 import PromptField from "./PromptField";
 import { REVIEW_LABELS } from "../lib/domain";
-import { documentGroups, documentSource } from "../lib/documents";
+import {
+  documentGroups,
+  documentSource,
+  KNOWLEDGE_TYPES,
+} from "../lib/documents";
 import { methodLabel } from "../lib/methods";
 
 export default function DocumentCard({
@@ -55,6 +59,11 @@ export default function DocumentCard({
         <h2>{version.title}</h2>
         <span className="object-code">{root.code}</span>
       </div>
+      {version.purpose && (
+        <p className="muted">
+          {KNOWLEDGE_TYPES[version.purpose]} · Project context
+        </p>
+      )}
       <div className="document-controls">
         <label className="field">
           Document version

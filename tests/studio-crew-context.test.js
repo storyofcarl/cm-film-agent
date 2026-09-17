@@ -24,6 +24,65 @@ jest.mock("../apps/studio/lib/server/store", () => ({
 }));
 beforeEach(() => jest.clearAllMocks());
 
+test("new chat tasks receive persistent project notes and can file source-bound learning drafts", async () => {
+  const project = applyCommand(createProject(), {
+    type: "document.add",
+    payload: {
+      area: "documents",
+      purpose: "note",
+      title: "Direction",
+      content: "Keep the keeper's coat blue. SH-001 is the reference.",
+    },
+  });
+  invokeHandler.mockResolvedValue({
+    content: JSON.stringify({
+      title: "Learning recorded",
+      content: "Filed for review.",
+      documents: [
+        {
+          title: "Frame repair observation",
+          area: "documents",
+          purpose: "learning",
+          content:
+            "SH-001 V2: a single-frame repair preserved the pose. Untested on other shots.",
+        },
+      ],
+    }),
+  });
+  mergeProject.mockImplementation(async (_id, update) => ({
+    project: update(project),
+  }));
+  const result = await runCrew(project, {
+    method: "film.crew",
+    model: "mock",
+    instruction: "Record what we learned from SH-001 V2.",
+  });
+  const request = invokeHandler.mock.calls[0][1];
+  const context = JSON.parse(
+    request.prompt.split(
+      "CURRENT PRODUCTION (complete preparation context)\n",
+    )[1],
+  );
+  expect(context.documents[0]).toMatchObject({
+    purpose: "note",
+    origin: "manual",
+    content: project.artifacts[0].content,
+  });
+  expect(request.systemPrompt).toContain(
+    "Do not turn an unreviewed observation into an established rule",
+  );
+  const learning = result.project.artifacts.find(
+    (entry) => entry.purpose === "learning",
+  );
+  expect(learning).toMatchObject({
+    review: "pending",
+    origin: "generated",
+    number: 1,
+  });
+  expect(documentSource(result.project, learning).prompt).toBe(request.prompt);
+  expect(result.project.batches).toEqual([]);
+});
+
 test("oversized preparation studies full text in bounded requests and saves its source audit", async () => {
   const project = createProject();
   project.artifacts.push({
