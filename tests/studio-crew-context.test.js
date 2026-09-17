@@ -17,6 +17,164 @@ jest.mock("../apps/studio/lib/server/store", () => ({
   fault: (message) => new Error(message),
 }));
 beforeEach(() => jest.clearAllMocks());
+
+test("chat receives the inspected older version and its historical recipe without changing the production selection", async () => {
+  const project = createProject();
+  const longPrompt = "A complete action with deliberate lighting. ".repeat(100);
+  project.shots.push({
+    id: "shot",
+    code: "SH-001",
+    kind: "shot",
+    sceneId: project.nodes[2].id,
+    prompt: "Future intent, not the old recipe",
+    selectedVersionId: "v2",
+    versions: [
+      {
+        id: "v1",
+        number: 1,
+        prompt: longPrompt,
+        review: "revision",
+        note: "Soften the light",
+        seed: 17,
+        model: "old-model",
+        jobIds: ["original-job"],
+      },
+      {
+        id: "v2",
+        number: 2,
+        prompt: "New recipe",
+        review: "approved",
+        seed: null,
+      },
+    ],
+  });
+  project.batches.push({
+    id: "old-batch",
+    jobs: [
+      {
+        id: "original-job",
+        actualPayload: {
+          model: "old-model",
+          seed: 17,
+          resolution: "720p",
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: "original-reference" },
+              role: "first_frame",
+            },
+          ],
+        },
+        request: {
+          prompt: longPrompt,
+          references: [
+            {
+              url: "original-reference",
+              assetId: "asset",
+              versionId: "asset-v1",
+            },
+          ],
+        },
+        output: { url: "full-source-segment", type: "video" },
+        parts: [{ shotId: "shot", start: 1, end: 6 }],
+      },
+    ],
+  });
+  project.inbox = [
+    { id: "script", kind: "document", title: "Draft.pdf", area: "scripts" },
+    { id: "audio", kind: "audio", title: "Score.wav" },
+  ];
+  const before = JSON.stringify(project.shots);
+  invokeHandler.mockResolvedValue({
+    content: JSON.stringify({
+      title: "Revision plan",
+      content: "Compare the versions before revising.",
+    }),
+  });
+  mergeProject.mockImplementation(async (_id, update) => ({
+    project: update(project),
+  }));
+  const result = await runCrew(project, {
+    method: "film.direct",
+    model: "mock",
+    instruction: "Compare this version with V2.",
+    contextId: "shot",
+    inspectingVersionId: "v1",
+    activeFileArea: "footage",
+  });
+  const request = invokeHandler.mock.calls[0][1];
+  const context = JSON.parse(
+    request.prompt.split(
+      "CURRENT PRODUCTION (complete preparation context)\n",
+    )[1],
+  );
+  expect(context.inspection).toMatchObject({
+    itemId: "shot",
+    versionId: "v1",
+    versionNumber: 1,
+    selectedVersionId: "v2",
+  });
+  expect(context.inspection.versions[0]).toMatchObject({
+    prompt: longPrompt,
+    seed: 17,
+    note: "Soften the light",
+    sources: [
+      {
+        prompt: longPrompt,
+        media: { url: "full-source-segment" },
+        settings: { resolution: "720p" },
+        references: [{ url: "original-reference", versionId: "asset-v1" }],
+        ranges: [{ in: 1, out: 6 }],
+      },
+    ],
+  });
+  expect(context.inspection.versions[1].seed).toBeNull();
+  expect(context.inspection.versions[1].prompt).toBe("New recipe");
+  expect(context.activeFileArea).toBe("footage");
+  expect(context.inbox.map((entry) => entry.area)).toEqual([
+    "scripts",
+    "audio",
+  ]);
+  expect(result.project.artifacts.at(-1).inspection).toEqual({
+    itemId: "shot",
+    versionId: "v1",
+    versionNumber: 1,
+  });
+  expect(JSON.stringify(project.shots)).toBe(before);
+  expect(request.systemPrompt).toContain(
+    "Selection is context, not a restriction",
+  );
+  expect(request.images).toEqual([]);
+});
+
+test("stale or mismatched version context is rejected before paid routing or reasoning", async () => {
+  const project = createProject();
+  project.shots.push({
+    id: "shot",
+    kind: "shot",
+    versions: [{ id: "v1", number: 1 }],
+  });
+  for (const input of [
+    { contextId: "shot", inspectingVersionId: "foreign-version" },
+    {
+      contextId: project.nodes[0].id,
+      itemId: "shot",
+      inspectingVersionId: "v1",
+    },
+    { contextId: "shot", activeFileArea: "constructor" },
+  ]) {
+    await expect(
+      runCrew(project, {
+        method: "auto",
+        model: "mock",
+        instruction: "Revise this",
+        ...input,
+      }),
+    ).rejects.toThrow();
+  }
+  expect(invokeHandler).not.toHaveBeenCalled();
+  expect(mergeProject).not.toHaveBeenCalled();
+});
 test("crew uses the selected act instead of stale scene and item context", async () => {
   const project = createProject({ title: "Selected context" });
   project.assetIds = [];

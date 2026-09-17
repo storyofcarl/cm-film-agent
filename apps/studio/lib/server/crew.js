@@ -7,6 +7,8 @@ import { seedHandler } from "../../../../pages/api/seed";
 import { METHODS } from "../methods";
 import { crewNextActions } from "../crewActions";
 import { uid, inputSignature, findItem, stable } from "../domain";
+import { versionSources } from "../provenance";
+import { FILE_AREAS, fileArea } from "../fileAreas";
 import { invokeHandler } from "./invoke";
 import { requireModel, modelCatalog } from "./models";
 import { fault, mergeProject, ownerId } from "./store";
@@ -87,7 +89,16 @@ export function methodSource(id) {
 }
 export async function runCrew(
   project,
-  { method, instruction, model, sceneId, itemId, contextId },
+  {
+    method,
+    instruction,
+    model,
+    sceneId,
+    itemId,
+    contextId,
+    inspectingVersionId,
+    activeFileArea,
+  },
 ) {
   if (!String(instruction || "").trim() || instruction.length > 40000)
     throw fault("Give the crew a direction of up to 40,000 characters.");
@@ -98,6 +109,44 @@ export async function runCrew(
     : null;
   if (contextId && !selectedContext)
     throw fault("The selected production object no longer exists.");
+  if (activeFileArea != null && !Object.hasOwn(FILE_AREAS, activeFileArea))
+    throw fault("The selected file area no longer exists.");
+  const inspectedItem = selectedContext
+    ? selectedContext.kind
+      ? selectedContext
+      : null
+    : findItem(project, itemId);
+  const inspectedVersion = inspectingVersionId
+    ? inspectedItem?.versions.find(
+        (version) => version.id === inspectingVersionId,
+      )
+    : null;
+  if (inspectingVersionId && !inspectedVersion)
+    throw fault(
+      "That version does not belong to the inspected object. Refresh the selection before sending.",
+    );
+  const inspection = inspectedVersion
+    ? {
+        itemId: inspectedItem.id,
+        code: inspectedItem.code,
+        versionId: inspectedVersion.id,
+        versionNumber: inspectedVersion.number,
+        selectedVersionId: inspectedItem.selectedVersionId,
+        versions: inspectedItem.versions.map((version) => ({
+          id: version.id,
+          number: version.number,
+          origin: version.origin,
+          review: version.review,
+          note: version.note || "",
+          prompt: version.prompt ?? null,
+          model: version.model ?? null,
+          seed: version.seed ?? null,
+          media: version.media || null,
+          references: version.references || [],
+          sources: versionSources(project, inspectedItem, version),
+        })),
+      }
+    : null;
   const selected = model || project.settings.llmModel || getModel("reasoner");
   requireModel(selected, "llm");
   let chosenMethods = [method || "auto"];
@@ -113,6 +162,14 @@ export async function runCrew(
         shots: project.shots.length,
       },
       context: selectedContext?.title,
+      inspectingVersion: inspection
+        ? {
+            itemId: inspection.itemId,
+            versionId: inspection.versionId,
+            number: inspection.versionNumber,
+          }
+        : null,
+      activeFileArea: activeFileArea || null,
       suppliedWork: project.artifacts
         .filter((entry) => entry.origin === "imported")
         .map((entry) => ({
@@ -181,6 +238,7 @@ You can return reviewable changes in proposal.project with title, brief, globalS
 This is a persistent director/crew conversation, not a sequence of disconnected forms. Use prior conversation and stable object codes (SC, SH, AST, etc.) to resolve references; use the object's actual id in structured proposals. Reply directly to questions. For production requests, prepare a complete reviewable proposal. Classify assets as character, location, prop, creature, vehicle, wardrobe or other. Analyze the complete source and existing roster; add only reusable or design-critical assets and explain their purpose. Preserve identities and reuse existing assets; never classify every noun as an asset. Use character appearance references without contradictory repeated descriptions; preserve repeated location descriptions and camera freedom. Location image plates are optional design control, not a universal gate. Follow model-specific capabilities rather than blindly applying Seedance syntax to another provider. Retain original Film Agent methods and owner methods as alternatives. Methodology commands referring to external CLI tools describe their original workflow; they are not callable Studio tools and must not be claimed as executed.
 Give each proposed new asset a temporary id, and supply each proposed shot's assetIds using existing or temporary asset ids. Use [] for no asset references. Preserve explicit references rather than attaching the entire production roster to every shot. State why each asset needs reuse or design control in its description.
 The upload inbox contains supplied work before it has been assigned to production objects. Inventory it and name actual gaps. Text extraction and media decoding do not establish creative completeness. You may propose inboxAssignments:[{inboxId,targetId,purpose:"version|board|previs"}] inside proposal, using existing or new temporary asset/shot IDs. Give proposed shots temporary IDs when assigning uploads to them. Reuse supplied media, never fabricate its historical prompt/model/seed or approvals. Images listed in visualEvidenceIds are provided for inspection; all other media has metadata only in this conversation. Do not claim to have watched or heard unprovided media. Full completeness checks use the intake batch after assignments.
+The inspection object records the version currently shown in the center and historical recipes for that object's versions. Use inspection.versionId to resolve "this version"; selectedVersionId is the separate production selection. Inspecting a version does not select it, approve it, or authorize a generation. Compare recorded prompts, sources, references and settings without substituting current intent or asset selections for history. A source URL alone is not evidence that you watched or heard media. Selection is context, not a restriction: follow the director's request across the full project. activeFileArea and each inbox entry's area describe where files live, not whether they are complete or approved.
 The Studio contract overrides methodology interaction mechanics: return the complete requested preparation as one reviewable batch. The user can choose overlapping methods. Do not stop for routine approval questions. State assumptions in decisions. You may NOT approve generated media, lookdev, scenes, delivery, or paid generation plans. Do not call providers or fabricate media, measurements, prices, seeds, checks or job results.
 Hierarchy: film/episode > act > sequence > scene > shot. Scene changes time/location. Segments are execution units; shots are independently revised. Assets are recurring or needed for design control, not every incidental object. Preserve approved work. For long shots, supply complete timed action/sentence beats summing to shot duration. Silhouette previs may use faceless, color-coded character shapes before final asset approval. Burst boards use up to 20 discrete stable compositions in a five-second video, with an extraction map. Lookdev is human-reviewed; one character/location, and one technical test for each scene above three segments by default, with director override.
 Return ONLY valid JSON with {"title":"...","content":"complete useful document in Markdown","decisions":["assumption and rationale"],"proposal":{"nodes":[{"id":"temporary-id","type":"act|sequence|scene","parentId":"existing-or-temporary-id-or-null","title":"...","location":"...","time":"..."}],"assets":[{"title":"...","type":"character|location|prop|creature","prompt":"...","description":"..."}],"shots":[{"title":"...","sceneId":"existing-or-temporary-id","prompt":"...","description":"...","duration":5,"beats":[{"text":"complete action or sentence","duration":5}]}]}}. Proposal is optional; use empty arrays for analysis or documents. Do not duplicate existing assets or shots. Put prompt refinements and guidance into content unless new items are requested. Do not put generated files or executable code into fields.
@@ -196,6 +254,8 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
     propertyRules:
       "Container runtime is the sum of descendant shots. Direction accumulates from project global style through act, sequence, scene and shot. Asset references use the nearest explicit assetIds list; [] means none, null inherits, and an unconfigured project uses all project assets. Historical version recipes remain immutable.",
     settings: project.settings,
+    inspection,
+    activeFileArea: activeFileArea || null,
     availableModels: modelCatalog().map(({ id, label, kind, provider }) => ({
       id,
       label,
@@ -213,6 +273,7 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
         extraction,
         assignments,
         media,
+        area,
       }) => ({
         id,
         code,
@@ -223,6 +284,7 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
         extraction,
         assignments,
         media,
+        area: fileArea({ area, kind, title }),
       }),
     ),
     visualEvidenceIds: (project.inbox || [])
@@ -246,7 +308,12 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
     })),
     shots: project.shots.map(({ versions, ...shot }) => ({
       ...shot,
-      versions: versions.map(({ id, review }) => ({ id, review })),
+      versions: versions.map(({ id, number, review, note }) => ({
+        id,
+        number,
+        review,
+        note,
+      })),
     })),
     conversation: project.artifacts
       .filter(
@@ -262,6 +329,8 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
             .slice("DIRECTOR'S REQUEST\n".length),
         reply: artifact.content,
         context: artifact.context,
+        inspection: artifact.inspection || null,
+        activeFileArea: artifact.activeFileArea || null,
         applied: Boolean(artifact.appliedAt),
       })),
     documents: project.artifacts
@@ -347,6 +416,14 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
     content: String(output.content || result.content),
     instruction: String(instruction),
     context: context.selectedContext,
+    inspection: inspection
+      ? {
+          itemId: inspection.itemId,
+          versionId: inspection.versionId,
+          versionNumber: inspection.versionNumber,
+        }
+      : null,
+    activeFileArea: activeFileArea || null,
     method,
     chosenMethods,
     routing,

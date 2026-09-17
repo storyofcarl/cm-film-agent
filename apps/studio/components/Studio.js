@@ -491,6 +491,14 @@ export default function Studio({
           sceneId,
           itemId,
           contextId: propertyTargetId,
+          inspectingVersionId: ["Cut", "Review", "Assets", "Footage"].includes(
+            tab,
+          )
+            ? version?.id || null
+            : null,
+          activeFileArea:
+            Object.keys(FILE_AREAS).find((key) => FILE_AREAS[key] === tab) ||
+            null,
         }),
       );
       setProject(result.project);

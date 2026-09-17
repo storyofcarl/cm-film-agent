@@ -21,6 +21,12 @@ that the conversation is restricted to one object or task.
 
 ## Implemented
 
+- Chat now receives the exact version being inspected, its original recipes and
+  historical versions for that object, separately from the selected production
+  version. It also receives contextual file locations. WD34 records the choice;
+  mocked-provider tests verify full long prompts, historical references/settings,
+  unknown seeds, unchanged selection and pre-provider rejection of stale IDs.
+
 - Separate `apps/studio` application; legacy remains at the repository root.
 - Persistent crew conversation docked beside the visible production workspace
   (D37–D40). Collapsing/expanding preserves the draft. Saved replies, project-specific

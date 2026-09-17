@@ -55,6 +55,20 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD34 — Chat receives the inspected version separately from production selection
+
+Under D29, extend D42's version-bound mechanics to chat. Send the currently
+inspected version ID as context, resolve its recorded recipe server-side, and
+include that object's historical versions for comparison. Browsing or messaging
+about an older take never changes production selection, approval or execution.
+Retain the inspected ID with the conversation so later replies can distinguish
+which take was discussed. Invalid/mismatched IDs fail before paid routing.
+File areas are also supplied as context; their location never implies approval.
+Selection remains context for a potentially multi-task request, not a task lock.
+This is an implementation choice for owner review. Visual/audio inspection is
+still limited to explicitly supplied evidence; a recorded URL alone is not proof
+that the model has seen or heard its content.
+
 D37–D40 supersede WD30's default wide chat layout: a chat-only right sidebar starts
 expanded and can collapse to a permanent rail. It cannot be removed. Manual controls belong in the center; the left bar has a
 simple open/closed toggle. D36 rejects breadcrumb navigation in the strip. The

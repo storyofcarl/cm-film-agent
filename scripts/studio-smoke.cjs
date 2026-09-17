@@ -465,6 +465,17 @@ async function main() {
     findings.push(
       "Real atomic claim: one concurrent winner, stale loser, no duplicate claim or provider submission.",
     );
+    const inspectedFixtureVersion = current.project.shots[0].versions[0].id;
+    await command("version.add", {
+      itemId,
+      media: { url: media.url, type: "image" },
+    });
+    const productionFixtureVersion =
+      current.project.shots[0].versions.at(-1).id;
+    await command("version.select", {
+      itemId,
+      versionId: productionFixtureVersion,
+    });
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
       viewport: { width: 1600, height: 1100 },
@@ -538,6 +549,56 @@ async function main() {
       .getByRole("heading", { name: "Scene 01", exact: true })
       .waitFor();
     await page.getByRole("button", { name: /A complete action/ }).click();
+    await page
+      .getByRole("combobox", { name: "Reviewing version", exact: true })
+      .selectOption(inspectedFixtureVersion);
+    // Intercept this request in the browser. It must never reach the paid chat API.
+    let inspectedRequest;
+    await page.route("**/api/studio/crew", async (route) => {
+      inspectedRequest = route.request().postDataJSON();
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "Chat transport checked without a model call.",
+        }),
+      });
+    });
+    const chat = page.getByRole("region", { name: "Project chat" });
+    await chat
+      .getByRole("textbox", { name: "Message", exact: true })
+      .fill("Compare this older version with the production selection.");
+    await chat.getByRole("button", { name: "Send", exact: true }).click();
+    await page
+      .getByRole("status")
+      .filter({ hasText: "Chat transport checked without a model call." })
+      .waitFor();
+    assert.equal(inspectedRequest.inspectingVersionId, inspectedFixtureVersion);
+    assert.equal(inspectedRequest.contextId, itemId);
+    const afterInspection = await call(owner, `/api/studio/projects?id=${id}`);
+    assert.equal(
+      afterInspection.project.shots[0].selectedVersionId,
+      productionFixtureVersion,
+    );
+    await page.getByTitle("Scripts", { exact: true }).click();
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/api/studio/crew") &&
+          response.status() === 400,
+      ),
+      chat.getByRole("button", { name: "Send", exact: true }).click(),
+    ]);
+    assert.equal(inspectedRequest.activeFileArea, "scripts");
+    assert.equal(inspectedRequest.inspectingVersionId, null);
+    await page.unroute("**/api/studio/crew");
+    await chat.getByRole("textbox", { name: "Message", exact: true }).fill("");
+    await page
+      .getByRole("button", { name: "Scene workspace", exact: true })
+      .click();
+    findings.push(
+      "Intercepted chat requests carry the inspected version and file area without changing production selection or calling a model.",
+    );
     for (const review of ["revision", "approved"]) {
       await Promise.all([
         page.waitForResponse(
