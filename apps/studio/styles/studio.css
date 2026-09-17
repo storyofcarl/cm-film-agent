@@ -272,6 +272,9 @@
 .grid-save {
   margin-top: 14px;
 }
+.review-card .object-code {
+  margin-right: 8px;
+}
 .phase-checklist {
   display: grid;
   gap: 5px;
