@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { InspectDialog } from "./PromptField";
 import { crewNextActions } from "../lib/crewActions";
 import ProposalReview from "./ProposalReview";
+import UploadInbox from "./UploadInbox";
 
 export function directorMessage(artifact) {
   return (
@@ -88,6 +89,7 @@ export default function CrewConversation({
         <br />
         <small>The crew also sees the full production.</small>
       </p>
+      <UploadInbox {...{ project, busy, command }} />
       {project.artifacts.some((entry) => entry.origin === "imported") && (
         <details className="crew-uploads">
           <summary>

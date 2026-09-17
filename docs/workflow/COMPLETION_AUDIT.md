@@ -25,8 +25,10 @@ does not establish creative quality, live provider reliability, or final accepta
 The owner's subsequent D31–D35 additions also require complete upload-led crew
 operation. Persistent chat, automatic method selection, property/settings proposals,
 batch preparation, text-document upload, source inspection and status snapshot are
-implemented and tested. A general mixed-media/PDF/DOCX upload inbox and real
-conversational production acceptance remain open. Do not equate method routing
+implemented and tested. The mixed-media/PDF/DOCX upload inbox now preserves originals,
+extracts supported text, flags gaps, and supports crew-proposed or manual assignment.
+Scanned-document OCR and audio transcription remain outside current intake coverage.
+Real conversational production acceptance remains open. Do not equate method routing
 with integration of every external OCC CLI tool.
 
 Run one director-approved multi-scene pilot, using supplied work where available.
@@ -45,8 +47,9 @@ on the director's behalf.
 
 1. Keep the original legacy project accessible. Create a separate Studio project;
    never edit the legacy project's stored records to make them look like Studio.
-2. Copy source writing, direction and shot lists into supported text/Markdown/
-   Fountain intake. Export documents as text before intake when necessary.
+2. Upload source writing, direction and shot lists as PDF, Word, text, Markdown
+   or Fountain documents. Scanned PDFs need OCR/text supplied separately; review
+   extraction warnings before treating a document as complete.
 3. Inventory reusable assets and shot media. Import copies through Studio's upload
    and intake flow, preserving originals and mapping each item to its intended
    scene/shot. A valid Studio manifest may carry a prepared hierarchy; a legacy

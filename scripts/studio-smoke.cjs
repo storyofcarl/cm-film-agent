@@ -214,6 +214,87 @@ async function main() {
       action: "complete",
       key,
     });
+    for (const document of await require("./studio-upload-fixtures.cjs").documents()) {
+      const documentKey =
+        crypto
+          .createHash("sha256")
+          .update(document.bytes)
+          .digest("hex")
+          .slice(0, 32) +
+        "." +
+        document.ext;
+      const documentTicket = await call(owner, "/api/film/upload", {
+        action: "sign",
+        key: documentKey,
+        contentType: document.type,
+        size: document.bytes.length,
+      });
+      objects.push(documentTicket.path);
+      const stored = await owner.client.storage
+        .from("film-media")
+        .uploadToSignedUrl(
+          documentTicket.path,
+          documentTicket.token,
+          document.bytes,
+          { contentType: document.type },
+        );
+      if (stored.error) throw stored.error;
+      current = await call(owner, "/api/studio/intake", {
+        id,
+        revision: current.revision,
+        key: documentKey,
+        name: `Supplied screenplay.${document.ext}`,
+      });
+      const entry = current.project.inbox.at(-1);
+      assert.equal(entry.status, "ready", JSON.stringify(entry.warnings));
+      assert.ok(
+        current.project.artifacts
+          .find((artifact) => artifact.id === entry.artifactId)
+          .content.includes("The keeper receives a signal."),
+      );
+      const duplicate = await call(owner, "/api/studio/intake", {
+        id,
+        revision: current.revision,
+        key: documentKey,
+        name: "Repeated upload",
+      });
+      assert.equal(duplicate.duplicate, true);
+      assert.equal(duplicate.revision, current.revision);
+      await call(
+        other,
+        "/api/studio/intake",
+        {
+          id,
+          revision: current.revision,
+          key: documentKey,
+          name: "Foreign work",
+        },
+        404,
+      );
+    }
+    current = await call(owner, "/api/studio/intake", {
+      id,
+      revision: current.revision,
+      key,
+      name: "Supplied keeper.png",
+    });
+    const inboxImage = current.project.inbox.at(-1);
+    assert.equal(inboxImage.status, "ready");
+    await command("item.add", {
+      kind: "asset",
+      title: "Supplied keeper",
+      assetType: "character",
+    });
+    const inboxTarget = current.project.assets.at(-1).id;
+    await command("inbox.assign", {
+      inboxId: inboxImage.id,
+      targetId: inboxTarget,
+    });
+    assert.equal(current.project.assets.at(-1).versions[0].review, "pending");
+    assert.equal(current.project.assets.at(-1).versions[0].prompt, null);
+    findings.push(
+      "Owned PDF, Word, Markdown and image inbox uploads passed; originals retained, duplicate intake is idempotent, and media assignments stay unapproved.",
+    );
     const itemId = current.project.shots[0].id;
     await command("version.add", {
       itemId,
@@ -360,6 +441,58 @@ async function main() {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(base);
     await page.getByRole("region", { name: "Persistent crew chat" }).waitFor();
+    await page
+      .getByRole("button", { name: /^Supplied work · 4 files/ })
+      .click();
+    const inboxDialog = page.getByRole("dialog", {
+      name: "Supplied work inbox",
+    });
+    await inboxDialog
+      .getByRole("heading", { name: /Supplied screenplay.pdf/ })
+      .waitFor();
+    assert.equal(
+      await inboxDialog.getByRole("link", { name: "Open original" }).count(),
+      4,
+    );
+    fs.mkdirSync("artifacts", { recursive: true });
+    await page.screenshot({
+      path: "artifacts/studio-upload-inbox.png",
+      fullPage: true,
+    });
+    await inboxDialog
+      .getByRole("button", { name: "Close", exact: true })
+      .click();
+    objects.push(
+      `${owner.id}/studio/${crypto.createHash("sha256").update("Preserve the uploaded keeper. Develop only the missing setting.").digest("hex").slice(0, 32)}.md`,
+    );
+    await page.locator('input[type="file"][multiple]').setInputFiles([
+      {
+        name: "Director notes.md",
+        mimeType: "text/markdown",
+        buffer: Buffer.from(
+          "Preserve the uploaded keeper. Develop only the missing setting.",
+        ),
+      },
+      {
+        name: "Unsupported.bin",
+        mimeType: "application/octet-stream",
+        buffer: Buffer.from("Unsupported fixture"),
+      },
+    ]);
+    await page
+      .getByRole("status")
+      .filter({ hasText: "Processed 1 of 2 files" })
+      .waitFor();
+    await page
+      .getByRole("button", { name: /^Supplied work · 5 files/ })
+      .waitFor();
+    await page.reload();
+    await page
+      .getByRole("button", { name: /^Supplied work · 5 files/ })
+      .waitFor();
+    findings.push(
+      "Chat upload control, visible intake results, original-file links and inbox persistence across reload passed.",
+    );
     await page.getByRole("button", { name: "Details", exact: true }).click();
     await page
       .getByRole("heading", { name: "Scene 01", exact: true })

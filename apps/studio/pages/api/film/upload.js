@@ -1,5 +1,6 @@
 import { withStudioAuth } from "../../../lib/server/auth";
 import { requestContext } from "../../../../../utils/server/requestContext";
+import { DOCUMENT_TYPES } from "../../../lib/uploads";
 import {
   KEY_RE,
   MAX_MEDIA_BYTES,
@@ -17,10 +18,14 @@ export default withStudioAuth(async (req, res) => {
     return res.status(400).json({ error: "Valid upload key required." });
   if (action === "sign") {
     if (
-      TYPE_BY_EXT[key.split(".").pop()] !== contentType ||
+      (TYPE_BY_EXT[key.split(".").pop()] ||
+        DOCUMENT_TYPES[key.split(".").pop()]) !== contentType ||
       !Number.isFinite(size) ||
       size < 1 ||
-      size > MAX_MEDIA_BYTES
+      size >
+        (DOCUMENT_TYPES[key.split(".").pop()]
+          ? 20 * 1024 * 1024
+          : MAX_MEDIA_BYTES)
     )
       return res
         .status(400)
@@ -37,7 +42,9 @@ export default withStudioAuth(async (req, res) => {
     return res.json({
       url: mediaUrl(key),
       cacheUrl: mediaUrl(key),
-      contentType: TYPE_BY_EXT[key.split(".").pop()],
+      contentType:
+        TYPE_BY_EXT[key.split(".").pop()] ||
+        DOCUMENT_TYPES[key.split(".").pop()],
     });
   }
   return res.status(400).json({ error: "Choose a signed upload action." });

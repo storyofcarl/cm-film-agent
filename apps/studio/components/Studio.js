@@ -5,6 +5,8 @@ import ObjectProperties from "./ObjectProperties";
 import PromptField from "./PromptField";
 import GenerationDetails from "./GenerationDetails";
 import CrewConversation from "./CrewConversation";
+import { UPLOAD_ACCEPT } from "../lib/uploads";
+import { uploadWork } from "../lib/uploadWork";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { getBrowserSupabase } from "../../../utils/supabase/browser";
@@ -354,22 +356,35 @@ export default function Studio({
               }),
             }),
           );
+      const failures = [];
+      let completed = 0;
       for (const file of files) {
-        const content = await file.text();
-        current = await jsonFetch(
-          "/api/studio/projects",
-          post({
-            action: "command",
-            id: current.project.id,
-            revision: current.revision,
-            command: {
-              type: "artifact.add",
-              payload: { title: file.name, content },
-            },
-          }),
-        );
-        setProject(current.project);
-        setRevision(current.revision);
+        try {
+          const uploaded = await uploadWork(file);
+          const attach = () =>
+            jsonFetch(
+              "/api/studio/intake",
+              post({
+                id: current.project.id,
+                revision: current.revision,
+                ...uploaded,
+              }),
+            );
+          try {
+            current = await attach();
+          } catch (error) {
+            if (error.status !== 409) throw error;
+            current = await jsonFetch(
+              `/api/studio/projects?id=${encodeURIComponent(current.project.id)}`,
+            );
+            current = await attach();
+          }
+          setProject(current.project);
+          setRevision(current.revision);
+          completed += 1;
+        } catch (error) {
+          failures.push(`${file.name}: ${error.message}`);
+        }
       }
       setPanel("Crew");
       setPropertyTargetId(current.project.id);
@@ -378,7 +393,7 @@ export default function Studio({
       setSelectedShotId(null);
       setItemId(null);
       setMessage(
-        `Uploaded ${files.length} documents. Tell the crew what is complete and what you want help filling in.`,
+        `Processed ${completed} of ${files.length} files to supplied work. Tell the crew what is complete and what is missing.${failures.length ? " Upload issues: " + failures.join("; ") : ""}`,
       );
     });
   const importProject = (file) =>
@@ -765,22 +780,22 @@ export default function Studio({
               }}
             />
           )}
+          {message && (
+            <div className="notice project-notice" role="status">
+              <span>{message}</span>
+              <button
+                className="icon-button"
+                aria-label="Dismiss message"
+                onClick={() => setMessage("")}
+              >
+                <Icon name="close" size={16} />
+              </button>
+            </div>
+          )}
           <div
             className={`project-content ${project && panel === "Crew" ? "chat-workspace" : ""}`}
           >
             <main className="workspace">
-              {message && (
-                <div className="notice" role="status">
-                  <span>{message}</span>
-                  <button
-                    className="icon-button"
-                    aria-label="Dismiss message"
-                    onClick={() => setMessage("")}
-                  >
-                    <Icon name="close" size={16} />
-                  </button>
-                </div>
-              )}
               {!project ? (
                 <div className="welcome">
                   <span className="eyebrow">A NEW WAY TO MAKE PICTURES</span>
@@ -1563,7 +1578,7 @@ export default function Studio({
         hidden
         type="file"
         multiple
-        accept="text/plain,.txt,.md,.fountain"
+        accept={UPLOAD_ACCEPT}
         onChange={(event) => {
           uploadDocuments(Array.from(event.target.files || []));
           event.target.value = "";

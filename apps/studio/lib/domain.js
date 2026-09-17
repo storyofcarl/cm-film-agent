@@ -24,6 +24,7 @@ export function ensureProductionIds(project) {
     ]),
     ...project.shots.map((shot) => [shot, "SH"]),
     ...project.assets.map((asset) => [asset, "AST"]),
+    ...(project.inbox || []).map((entry) => [entry, "IN"]),
     ...(project.segments || []).map((segment) => [segment, "SEG"]),
     ...(project.batches || []).flatMap((batch) => [
       [batch, "BAT"],
@@ -275,6 +276,64 @@ export function validateProject(project) {
 
 export const findItem = (project, id) =>
   [...project.assets, ...project.shots].find((item) => item.id === id);
+export function assignInbox(
+  project,
+  { inboxId, targetId, purpose = "version" },
+) {
+  const entry = project.inbox?.find((candidate) => candidate.id === inboxId);
+  const item = findItem(project, targetId);
+  assert(
+    entry?.status === "ready" && entry.media?.url && item,
+    "Choose usable supplied media and an existing asset or shot.",
+  );
+  assert(
+    ["version", "board", "previs"].includes(purpose),
+    "Choose a version, storyboard or previs assignment.",
+  );
+  const requiredType =
+    purpose === "previs" || (purpose === "version" && item.kind === "shot")
+      ? "video"
+      : "image";
+  assert(
+    entry.media.type === requiredType,
+    `This assignment requires ${requiredType} media.`,
+  );
+  entry.assignments ||= [];
+  if (
+    entry.assignments.some(
+      (assignment) =>
+        assignment.targetId === targetId && assignment.purpose === purpose,
+    )
+  )
+    return;
+  const record = {
+    id: uid(purpose === "version" ? "version" : "guide"),
+    media: clone(entry.media),
+    sourceInboxId: entry.id,
+    prompt: null,
+    seed: null,
+    model: null,
+    method: "import",
+    origin: "imported",
+    review: "pending",
+    createdAt: now(),
+  };
+  if (purpose === "version") {
+    record.number = item.versions.length + 1;
+    record.note = "Supplied work; completeness review pending.";
+    item.versions.push(record);
+    if (!item.selectedVersionId) item.selectedVersionId = record.id;
+  } else {
+    project.guides ||= [];
+    project.guides.push({
+      ...record,
+      title: entry.title,
+      kind: purpose,
+      targetId,
+    });
+  }
+  entry.assignments.push({ targetId, purpose, recordId: record.id });
+}
 export function creativePath(project, id) {
   const item = findItem(project, id);
   const chain = item?.kind === "shot" ? [item] : [];
@@ -997,8 +1056,16 @@ export function applyCommand(
           Number(shot.duration) > 0 && ids.get(shot.sceneId),
           "Every proposed shot needs a scene and positive duration.",
         );
+        const shotId = uid("shot");
+        if (shot.id) {
+          assert(
+            !ids.has(shot.id),
+            "A proposed shot duplicates an identifier.",
+          );
+          ids.set(shot.id, shotId);
+        }
         project.shots.push({
-          id: uid("shot"),
+          id: shotId,
           kind: "shot",
           title: String(shot.title || "Untitled"),
           sceneId: ids.get(shot.sceneId),
@@ -1081,9 +1148,27 @@ export function applyCommand(
             project.settings[key] = change.settings[key];
         event("project.updated", { artifactId: artifact.id });
       }
+      for (const assignment of proposal.inboxAssignments || [])
+        assignInbox(project, {
+          ...assignment,
+          targetId:
+            assetIds.get(assignment.targetId) ||
+            ids.get(assignment.targetId) ||
+            assignment.targetId,
+        });
       artifact.appliedAt = time;
       artifact.review = "approved";
       event("crew.proposal.applied", { artifactId: artifact.id });
+      break;
+    }
+    case "inbox.assign": {
+      human();
+      assignInbox(project, payload);
+      event("work.assigned", {
+        inboxId: payload.inboxId,
+        targetId: payload.targetId,
+        purpose: payload.purpose || "version",
+      });
       break;
     }
     case "artifact.add": {

@@ -11,6 +11,28 @@ export default function ProposalReview({ project, proposal }) {
   ];
   return (
     <div className="proposal-review">
+      {proposal.inboxAssignments?.length > 0 && (
+        <section>
+          <h4>Use supplied work</h4>
+          {proposal.inboxAssignments.map((assignment, index) => (
+            <p key={index}>
+              {project.inbox?.find((entry) => entry.id === assignment.inboxId)
+                ?.title || assignment.inboxId}{" "}
+              →{" "}
+              {objects.find((entry) => entry.id === assignment.targetId)
+                ?.title ||
+                proposal.assets?.find(
+                  (entry) => entry.id === assignment.targetId,
+                )?.title ||
+                proposal.shots?.find(
+                  (entry) => entry.id === assignment.targetId,
+                )?.title ||
+                assignment.targetId}{" "}
+              · {assignment.purpose || "version"}
+            </p>
+          ))}
+        </section>
+      )}
       {proposal.project && (
         <section>
           <h4>Project changes</h4>

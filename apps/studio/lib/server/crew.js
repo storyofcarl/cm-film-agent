@@ -180,6 +180,7 @@ Guide concept-only projects through creative intent, writing, direction/coverage
 You can return reviewable changes in proposal.project with title, brief, globalStyle and settings (llmModel, imageModel, videoModel, aspectRatio, draftResolution, deliveryResolution, seed, audio, lookdevMode, methodDefaults). Use only model IDs provided in availableModels; do not invent cost quotes. Container updates may use proposal.nodeUpdates with existing id, prompt, location, time or title. For safe next steps return nextActions:[{kind,title,reason}], where kind is intake, assets, lookdev, production, previs, boards, burst-boards, burst-assets, revision or finishing. These buttons only PREPARE a batch for inspection; they never approve spend or execute generation. Do not offer production before required lookdev/asset review; explain the next gate instead. Manual controls remain available. Continue the conversation using the director's responses and the resulting project state.
 This is a persistent director/crew conversation, not a sequence of disconnected forms. Use prior conversation and stable object codes (SC, SH, AST, etc.) to resolve references; use the object's actual id in structured proposals. Reply directly to questions. For production requests, prepare a complete reviewable proposal. Classify assets as character, location, prop, creature, vehicle, wardrobe or other. Analyze the complete source and existing roster; add only reusable or design-critical assets and explain their purpose. Preserve identities and reuse existing assets; never classify every noun as an asset. Use character appearance references without contradictory repeated descriptions; preserve repeated location descriptions and camera freedom. Location image plates are optional design control, not a universal gate. Follow model-specific capabilities rather than blindly applying Seedance syntax to another provider. Retain original Film Agent methods and owner methods as alternatives. Methodology commands referring to external CLI tools describe their original workflow; they are not callable Studio tools and must not be claimed as executed.
 Give each proposed new asset a temporary id, and supply each proposed shot's assetIds using existing or temporary asset ids. Use [] for no asset references. Preserve explicit references rather than attaching the entire production roster to every shot. State why each asset needs reuse or design control in its description.
+The upload inbox contains supplied work before it has been assigned to production objects. Inventory it and name actual gaps. Text extraction and media decoding do not establish creative completeness. You may propose inboxAssignments:[{inboxId,targetId,purpose:"version|board|previs"}] inside proposal, using existing or new temporary asset/shot IDs. Give proposed shots temporary IDs when assigning uploads to them. Reuse supplied media, never fabricate its historical prompt/model/seed or approvals. Images listed in visualEvidenceIds are provided for inspection; all other media has metadata only in this conversation. Do not claim to have watched or heard unprovided media. Full completeness checks use the intake batch after assignments.
 The Studio contract overrides methodology interaction mechanics: return the complete requested preparation as one reviewable batch. The user can choose overlapping methods. Do not stop for routine approval questions. State assumptions in decisions. You may NOT approve generated media, lookdev, scenes, delivery, or paid generation plans. Do not call providers or fabricate media, measurements, prices, seeds, checks or job results.
 Hierarchy: film/episode > act > sequence > scene > shot. Scene changes time/location. Segments are execution units; shots are independently revised. Assets are recurring or needed for design control, not every incidental object. Preserve approved work. For long shots, supply complete timed action/sentence beats summing to shot duration. Silhouette previs may use faceless, color-coded character shapes before final asset approval. Burst boards use up to 20 discrete stable compositions in a five-second video, with an extraction map. Lookdev is human-reviewed; one character/location, and one technical test for each scene above three segments by default, with director override.
 Return ONLY valid JSON with {"title":"...","content":"complete useful document in Markdown","decisions":["assumption and rationale"],"proposal":{"nodes":[{"id":"temporary-id","type":"act|sequence|scene","parentId":"existing-or-temporary-id-or-null","title":"...","location":"...","time":"..."}],"assets":[{"title":"...","type":"character|location|prop|creature","prompt":"...","description":"..."}],"shots":[{"title":"...","sceneId":"existing-or-temporary-id","prompt":"...","description":"...","duration":5,"beats":[{"text":"complete action or sentence","duration":5}]}]}}. Proposal is optional; use empty arrays for analysis or documents. Do not duplicate existing assets or shots. Put prompt refinements and guidance into content unless new items are requested. Do not put generated files or executable code into fields.
@@ -201,6 +202,38 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
       kind,
       provider,
     })),
+    inbox: (project.inbox || []).map(
+      ({
+        id,
+        code,
+        title,
+        kind,
+        status,
+        warnings,
+        extraction,
+        assignments,
+        media,
+      }) => ({
+        id,
+        code,
+        title,
+        kind,
+        status,
+        warnings,
+        extraction,
+        assignments,
+        media,
+      }),
+    ),
+    visualEvidenceIds: (project.inbox || [])
+      .filter(
+        (entry) =>
+          entry.status === "ready" &&
+          entry.kind === "image" &&
+          !entry.assignments?.length,
+      )
+      .slice(0, 6)
+      .map((entry) => entry.id),
     nodes: project.nodes,
     assets: project.assets.map(({ versions, ...asset }) => ({
       ...asset,
@@ -273,6 +306,9 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
     prompt,
     systemPrompt,
     reasoningEffort: "high",
+    images: (project.inbox || [])
+      .filter((entry) => context.visualEvidenceIds.includes(entry.id))
+      .map((entry) => entry.media.url),
   });
   let output;
   try {

@@ -39,6 +39,11 @@ A director-reviewed real creative pilot remains outstanding.
 - Supplied text/Studio manifests/media intake. Decode and timing checks precede
   completeness assessment; only supplied completed work can receive agent approval.
   Unknown provenance stays unknown; imported executable jobs/approvals are removed.
+- Mixed upload inbox through crew chat: PDF, DOCX, text/Markdown/Fountain/JSON,
+  images, video and audio. Originals are retained in private owner storage. Crew
+  proposals or manual controls assign usable media to asset/shot versions or guides;
+  assignments remain pending completeness review with unknown recipe fields intact.
+  Duplicate intake is idempotent, and partial upload failures do not discard successes.
 - Server-only owner-scoped persistence, compare-and-swap edits, atomic execution
   claims, four concurrent submissions per pass, recovery and pause/resume.
 - WaveSpeed upscale and supported same-prompt/seed V2V finishing after scene approval.
@@ -48,7 +53,12 @@ A director-reviewed real creative pilot remains outstanding.
 
 ## Evidence
 
-- Complete automated regression: **91 passing tests across 17 suites**.
+- Complete automated regression: **93 passing tests across 18 suites**.
+- Real PDF and DOCX extraction, unreadable/oversized document handling, inbox media
+  assignment and idempotency are covered. Authenticated integration checks verify
+  ownership, retained originals, document text, browser upload controls, visible
+  intake results and persistence after reload. The compatible XML parser patch
+  was applied; new parser dependencies introduce no remaining production advisories.
 - New regressions cover automatic method selection, conversation context, stable
   IDs, typed asset/reference proposals, exact historical source inspection, and the
   4-of-6 scene approval count changing to 3-of-6 after an approved selection changes.
@@ -89,11 +99,15 @@ A director-reviewed real creative pilot remains outstanding.
   an automatic spend ceiling or an actual invoice reconciliation system.
 - Video completeness analysis samples frames; it cannot independently establish
   exact dialogue, sound quality or every instant of a continuous action.
-- Direct document intake accepts text/Markdown/Fountain or a Studio JSON manifest.
-  PDF/DOCX extraction and legacy-project conversion are not automated.
-- Chat's multi-file Upload work entry currently accepts text/Markdown/Fountain.
-  Media and Studio manifests retain their existing dedicated intake controls.
-  A general unassigned mixed-media/document upload inbox is still outstanding.
+- PDF/DOCX intake extracts text, not page layout or embedded-image content. Scanned
+  or unreadable documents need OCR/text exports and remain flagged with originals
+  available. Unsupported files report per-file errors. JSON uploaded to chat is
+  treated as supplied text; explicit Studio-manifest import remains a separate action.
+- Audio is retained in the inbox for inventory and access; automatic transcription,
+  music analysis and soundtrack assembly are not newly claimed by this release.
+- Crew conversation sees full text/inventory and up to six unassigned image references
+  per request, with explicit evidence IDs. Other media is not falsely described as
+  watched/heard; completeness validation remains a separate intake batch.
 - Automatic crew method routing and proposals have mocked-provider coverage;
   conversational quality and autonomous end-to-end production need the real pilot.
 - Hosted renders are capped at 180 seconds/30 shots. Longer edits use local render
@@ -137,5 +151,13 @@ verified the persistent wide/docked chat, unchanged drafts during navigation,
 long-prompt expansion, status details, source-inspection access, object properties,
 and all existing authentication/ownership checks. Temporary fixtures were cleaned
 up. The release did not run paid reasoning or generation; automatic craft routing
-was verified with mocked provider responses. General mixed-media/document intake
-and the real director-reviewed production pilot remain open.
+was verified with mocked provider responses. The real director-reviewed
+production pilot remains open.
+
+The mixed-upload inbox is deployed and passed hosted verification on the same
+Studio domain. Real PDF, Word, Markdown and image fixtures retained their private
+originals; extraction, duplicate handling, assignment provenance, mixed-selection
+failure recovery and persistence across reload all passed. A hosted-only missing
+PDF canvas dependency was fixed with explicit runtime tracing and lazy PDF loading.
+Desktop/mobile navigation and synthetic scene export passed again. Temporary
+test accounts and media were removed; no paid AI requests were made.

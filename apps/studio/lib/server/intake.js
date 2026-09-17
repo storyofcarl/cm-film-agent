@@ -43,6 +43,7 @@ export async function importManifest(input) {
   project.guides = [];
   project.deliveries = [];
   project.shotFragments = [];
+  project.inbox = [];
   project.segmentProfiles = {};
   project.segments = [];
   project.createdAt = new Date().toISOString();
@@ -53,6 +54,10 @@ export async function importManifest(input) {
     provenance:
       "Supplied work validated on intake. Historical claims retained as supplied metadata, not as new human approvals.",
   };
+  if (input.inbox?.length)
+    report.gaps.push(
+      "Unassigned inbox uploads need their original files uploaded into this production; imported storage claims are not trusted.",
+    );
   // Imported manifests are untrusted data. Never import executable jobs or forged
   // human approvals. Completed media can receive a clearly attributed agent review.
   for (const item of [...project.assets, ...project.shots]) {

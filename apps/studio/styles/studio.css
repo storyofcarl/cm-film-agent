@@ -1328,6 +1328,36 @@ button:hover:not(:disabled) {
   overflow: auto;
   margin-bottom: 8px;
 }
+.inbox-entry {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
+}
+.inbox-entry h3 {
+  overflow-wrap: anywhere;
+}
+.inbox-entry > img,
+.inbox-entry > video {
+  display: block;
+  max-width: 100%;
+  max-height: 300px;
+  margin: 16px 0;
+}
+.inbox-entry > audio {
+  display: block;
+  margin: 16px 0;
+  max-width: 100%;
+}
+.inbox-entry > a {
+  color: var(--accent);
+}
+.inbox-summary {
+  text-align: left;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+.crew-dock:has(.inbox-summary) {
+  min-height: 430px;
+}
 .hierarchy-card > .object-code {
   margin-left: 8px;
 }
@@ -1541,6 +1571,10 @@ select {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 18px;
+}
+.project-notice {
+  margin: 12px 24px;
+  flex-shrink: 0;
 }
 .asset-grid {
   display: grid;
