@@ -3,8 +3,9 @@
 Updated 2026-09-17. The separate private preview is deployed and verified.
 The UX remains a working draft. The owner explicitly rejected describing it as
 final; deployment and passing checks do not establish design acceptance.
-The owner rejected the breadcrumb-driven strip interaction (D36); direct level
-controls now replace it. Owner review of the replacement remains outstanding.
+The owner rejected breadcrumb and dropdown strip navigation (D36, D45); thumbnail
+corner drill-down and a leading drill-up button now replace them. Owner review
+of the implementation remains outstanding.
 Passing placement/navigation checks do not establish interaction acceptance.
 A director-reviewed real creative pilot remains outstanding.
 
@@ -13,23 +14,31 @@ starts expanded and is chat-only, with collapse/expand controls that retain a
 permanent right rail (D40). Object Properties and
 Details have moved to the center. D42–D43 keep shot/version mechanics inline with
 no Details toggle and add contextual Footage, Scripts, Production docs and Audio.
-D44/WD35 supersede D41's stacked header: scope identity, metadata and status now
-live inside the strip module. Project overview/export live in the left bar;
+D45/WD42 keep the project title above compact ID/runtime thumbnails inside the
+strip module. Object details sit below the image, with no middle sidebar.
+Project overview/export live in the left bar;
 the center's compact shot/grid toggle replaces the extra workspace tab row.
 Chat remains the primary direction interface;
 the center provides manual inspection and adjustment. Browser checks cover both
-sidebar states, draft retention, central controls and direct strip-level selection.
+sidebar states, draft retention, below-image controls and icon-based drilling.
 Chat copy follows D39: Chat, Message and Send, with no directing banner implying
 that the conversation is restricted to one object or task.
 
 ## Implemented
+
+- Private immutable text storage and multipart project transport (WD41): long
+  text is shared by content hash across snapshots; server and browser verify exact
+  bytes. A 15.5 MB/40-version fixture imports, loads and exports through the actual
+  browser, appends V41, preserves old snapshots and rejects foreign access/direct
+  overwrites. Legacy inline records remain readable. No provider calls are used.
 
 - Indexed reasoning context (WD40): oversized contexts retain the complete object
   and version inventory and retrieve lossless source-text parts on demand. Required
   current/approved writing and creative-intent coverage gates preparation output.
   Exact successful-study requests/responses remain inspectable and survive import.
   This is bounded retrieval, not completion of long-film task partitioning or
-  scalable storage; 12 passes and the 12 MB store remain explicit limits.
+  resumable preparation; 12 passes remain an explicit limit. WD41 separately
+  externalizes retained long text while keeping a 12 MB operational index limit.
 
 - Strip selection is separate from scope (WD39): container thumbnails open their
   central workspace without replacing the thumbnail row. Level changes follow the
@@ -122,7 +131,7 @@ that the conversation is restricted to one object or task.
   navigation, V1/V2 approvals, and persistence after reload. Model requests in the
   browser are intercepted; synthetic writing is clearly labeled test content.
 
-- Latest Studio regression: **85 passing tests across 14 suites**, including
+- Latest Studio regression: **94 passing tests across 16 suites**, including
   PDF/DOCX extraction, writing/version/import, lookdev reuse/invalidation and current
   batch-state chat context. Authenticated browser checks verify a zero-job reused
   lookdev review without conflating it with individual asset approval.
@@ -178,13 +187,13 @@ that the conversation is restricted to one object or task.
 - Large-project chat remains incomplete. Oversized contexts now use indexed exact
   reads under the 650,000-character per-call guard, with the full inventory retained.
   Studies currently stop after 12 passes or the pre-call deadline; they are not yet
-  resumable. Whole-deliverable output partitioning and scalable history storage are
-  still required. Failed studies leave existing saved production data unchanged;
+  resumable. Whole-deliverable output partitioning and upper-bound scale validation
+  are still required. Failed studies leave existing saved production data unchanged;
   local long-film rendering does not prove large-project conversational support.
-  Transport also remains incomplete: the project/crew endpoints return the full
-  project, while [Vercel documents a 4.5 MB request/response limit](https://vercel.com/docs/functions/limitations).
-  A large saved project can therefore exceed the hosted transport bound before
-  reaching the 12 MB store cap. Storage and transport must be addressed together.
+  WD41 routes large payloads through private storage parts instead of sending the
+  full project through [Vercel's 4.5 MB function limit](https://vercel.com/docs/functions/limitations).
+  A 15.5 MB production fixture is verified; this does not establish upper-bound
+  performance, concurrent-team capacity or live creative quality.
 
 - No arbitrary paid Studio generations were run. Provider adapters are reused and
   exercised with mocks; a director-approved real pilot is still required to assess
@@ -210,8 +219,11 @@ that the conversation is restricted to one object or task.
 - Hosted renders are capped at 180 seconds/30 shots. Longer edits use local render
   or OTIO. There is no full DAW, advanced color grade, caption/title editor or automatic
   lip-sync/master-audio timing system in this release.
-- Current persistence is a private-preview JSON project store with a 12 MB save
-  limit. Multi-user production roles and large-team concurrent editing are not claimed.
+- Current persistence keeps a JSON operational index (12 MB bound) plus immutable
+  text records. Full-project memory loading remains, with a 480 MB project guard
+  and 500 MB multipart transfer/import guard. Orphan/expired-transfer garbage
+  collection is unfinished; retained snapshot records must not be deleted.
+  Multi-user production roles and large-team concurrent editing are not claimed.
 
 ## Deployment progress — 2026-09-17
 

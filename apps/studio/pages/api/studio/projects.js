@@ -11,6 +11,7 @@ import { createProject, applyCommand } from "../../../lib/domain";
 import { importManifest, validateMedia } from "../../../lib/server/intake";
 import { videoProfile } from "../../../lib/server/models";
 import { preflight } from "../../../lib/server/preflight";
+import { readProjectImport } from "../../../lib/server/projectRecords";
 
 export const config = {
   api: { bodyParser: { sizeLimit: "12mb" } },
@@ -37,7 +38,9 @@ export default withStudioAuth(async (req, res) => {
   }
   if (action === "import") {
     const { project, report } = await importManifest(
-      req.body.project || req.body.manifest,
+      req.body.importKey
+        ? await readProjectImport(req.body.importKey)
+        : req.body.project || req.body.manifest,
     );
     return res.status(201).json({ ...(await insertProject(project)), report });
   }

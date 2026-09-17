@@ -2,6 +2,7 @@ import { createAdminSupabase } from "../../../../utils/server/supabase";
 import { requestContext } from "../../../../utils/server/requestContext";
 import { validateProject, stable, ensureProductionIds } from "../domain";
 import { fault } from "./errors";
+import { packProject, hydrateProject } from "./projectRecords";
 
 export { fault } from "./errors";
 export const ownerId = () => requestContext().user.id;
@@ -17,7 +18,7 @@ export async function loadProject(id) {
   if (error) throw fault("Project store unavailable.", 503);
   if (!data) throw fault("Production not found.", 404);
   return {
-    project: ensureProductionIds(data.document),
+    project: ensureProductionIds(await hydrateProject(data.document)),
     revision: data.revision,
   };
 }
@@ -33,11 +34,12 @@ export async function listProjects() {
 export async function insertProject(project) {
   ensureProductionIds(project);
   validateProject(project);
+  const document = await packProject(project);
   const { error } = await createAdminSupabase().from("studio_projects").insert({
     id: project.id,
     owner_id: ownerId(),
     title: project.title,
-    document: project,
+    document,
   });
   if (error)
     throw fault(
@@ -58,14 +60,11 @@ export function assertRevision(actual, expected) {
 export async function saveProject(project, revision) {
   ensureProductionIds(project);
   validateProject(project);
-  if (JSON.stringify(project).length > 12 * 1024 * 1024)
-    throw fault(
-      "The updated project exceeds the current 12 MB storage limit. Your existing saved production is unchanged.",
-    );
+  const document = await packProject(project);
   const { data, error } = await createAdminSupabase()
     .from("studio_projects")
     .update({
-      document: project,
+      document,
       title: project.title,
       revision: revision + 1,
       updated_at: new Date().toISOString(),

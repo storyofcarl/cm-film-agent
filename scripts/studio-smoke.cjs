@@ -7,6 +7,7 @@ const path = require("node:path");
 const { createClient } = require("@supabase/supabase-js");
 const { createServerClient } = require("@supabase/ssr");
 const { chromium } = require("@playwright/test");
+const removeStudioTestRecords = require("./studio-record-test-cleanup.cjs");
 const base = process.env.STUDIO_TEST_URL || "http://127.0.0.1:43189";
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -224,16 +225,19 @@ async function main() {
       prompt: "A gray card held still.",
       duration: 2,
     });
+    const sceneDirection = "Keep the camera locked off in this scene. ".repeat(
+      60,
+    );
     await command("node.update", {
       id: sceneId,
-      prompt: "Keep the camera locked off in this scene.",
+      prompt: sceneDirection,
       assetIds: [],
     });
     assert.equal(
       (await call(owner, `/api/studio/projects?id=${id}`)).project.nodes.find(
         (node) => node.id === sceneId,
       ).prompt,
-      "Keep the camera locked off in this scene.",
+      sceneDirection,
     );
     await call(
       owner,
@@ -528,6 +532,21 @@ async function main() {
     );
     current = await call(owner, `/api/studio/projects?id=${id}`);
     assert.equal(current.project.batches[0].jobs[0].state, "claimed");
+    assert.equal(
+      current.project.batches[0].jobs[0].request.prompt,
+      claimInput.p_jobs[0].request.prompt,
+    );
+    const claimedDocument = await admin
+      .from("studio_projects")
+      .select("document")
+      .eq("id", id)
+      .single();
+    assert.ifError(claimedDocument.error);
+    assert.equal(
+      typeof claimedDocument.data.document.batches[0].jobs[0].request.prompt
+        .$studioText,
+      "string",
+    );
     const duplicate = await admin.rpc("studio_claim_jobs", {
       ...claimInput,
       p_revision: current.revision,
@@ -665,14 +684,9 @@ async function main() {
     findings.push(
       "Chat upload control, visible intake results, original-file links and inbox persistence across reload passed.",
     );
-    assert.ok(
-      (
-        await page
-          .getByRole("combobox", { name: "Strip scope" })
-          .locator("option:checked")
-          .textContent()
-      ).includes("Scene 01"),
-    );
+    await page
+      .getByRole("region", { name: "Project strip", exact: true })
+      .waitFor();
     await page.getByRole("button", { name: /A complete action/ }).click();
     await page
       .getByRole("combobox", { name: "Reviewing version", exact: true })
@@ -1072,7 +1086,9 @@ async function main() {
       fullPage: true,
     });
     await page.goto(base + "/demo");
-    await page.getByRole("combobox", { name: "Strip scope" }).waitFor();
+    await page
+      .getByRole("region", { name: "Project strip", exact: true })
+      .waitFor();
     await page.screenshot({
       path: "artifacts/studio-desktop.png",
       fullPage: true,
@@ -1102,7 +1118,7 @@ async function main() {
       .fill("Sequence · Test addition");
     await dialog.getByRole("button", { name: "Save changes" }).click();
     await page
-      .getByRole("heading", { name: "Sequence · Test addition", exact: true })
+      .getByRole("button", { name: /SEQ-.*Sequence · Test addition/ })
       .waitFor();
     await page
       .getByRole("button", { name: "Add sequence", exact: true })
@@ -1155,7 +1171,10 @@ async function main() {
   } finally {
     if (browser) await browser.close();
     if (objects.length) await admin.storage.from("film-media").remove(objects);
-    for (const id of users) await admin.auth.admin.deleteUser(id);
+    for (const id of users) {
+      await removeStudioTestRecords(admin, id);
+      await admin.auth.admin.deleteUser(id);
+    }
   }
 }
 main().catch((error) => {

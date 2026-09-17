@@ -187,26 +187,6 @@ export function HierarchyStrip({
       : project.nodes
           .filter((node) => node.parentId === (containerId || null))
           .sort((a, b) => a.order - b.order);
-  const chain = [];
-  let cursor =
-    project.nodes.find((node) => node.id === selectedId) || container;
-  while (cursor) {
-    chain.unshift(cursor);
-    cursor = project.nodes.find((node) => node.id === cursor.parentId);
-  }
-  const targetAtLevel = (level) =>
-    chain.find((node) => node.type === level) ||
-    project.nodes.find((node) => {
-      if (node.type !== level) return false;
-      if (!container) return true;
-      let parent = node;
-      while (parent) {
-        if (parent.id === container.id) return true;
-        parent = project.nodes.find((entry) => entry.id === parent.parentId);
-      }
-      return false;
-    }) ||
-    project.nodes.find((node) => node.type === level);
   const descendantShots = (id) => {
     const ids = new Set([id]);
     let size;
@@ -218,82 +198,19 @@ export function HierarchyStrip({
     } while (ids.size !== size);
     return project.shots.filter((shot) => ids.has(shot.sceneId));
   };
-  const scopeShots = container ? descendantShots(container.id) : project.shots;
-  const seconds = Math.round(
-    scopeShots.reduce((sum, shot) => sum + Number(shot.duration || 0), 0),
-  );
-  const runtime = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   const addType =
     { scene: "shot", sequence: "scene", act: "sequence" }[container?.type] ||
     "act";
   return (
-    <section className="project-strip" aria-label="Project strip">
+    <section
+      className="project-strip"
+      aria-label="Project strip"
+      data-scope={containerId || project.id}
+    >
       <div className="project-strip-heading">
-        <div className="strip-navigation">
-          <select
-            className="strip-level"
-            aria-label="Strip view level"
-            value={container?.type || "project"}
-            onChange={(event) =>
-              onNavigate(
-                event.target.value === "project"
-                  ? null
-                  : targetAtLevel(event.target.value).id,
-              )
-            }
-          >
-            {["project", "act", "sequence", "scene"].map((level) => (
-              <option
-                key={level}
-                value={level}
-                disabled={
-                  level !== "project" &&
-                  !project.nodes.some((node) => node.type === level)
-                }
-              >
-                {level[0].toUpperCase() + level.slice(1)}
-              </option>
-            ))}
-          </select>
-          <div className="strip-context">
-            <select
-              className="strip-scope"
-              aria-label="Strip scope"
-              value={containerId || ""}
-              onChange={(event) => onNavigate(event.target.value || null)}
-            >
-              {!container && (
-                <option value="">
-                  {project.code} · {project.title}
-                </option>
-              )}
-              {container &&
-                project.nodes
-                  .filter((node) => node.type === container.type)
-                  .map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.code || node.type} · {node.title}
-                    </option>
-                  ))}
-            </select>
-            <p className="strip-metadata">
-              {[
-                container?.location,
-                container?.time,
-                `${scopeShots.length} shots`,
-                `${runtime} planned`,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
-        </div>
+        <h1 className="strip-project-title">{project.title}</h1>
         <div className="button-row strip-actions">
-          <ProjectStatus
-            project={project}
-            containerId={containerId}
-            onNavigate={onNavigate}
-          />
+          <ProjectStatus project={project} onNavigate={onNavigate} />
           <button
             className="icon-button"
             aria-label={`Add ${addType}`}
@@ -334,56 +251,107 @@ export function HierarchyStrip({
           )}
         </div>
       </div>
-      <div className="hierarchy-cards" key={containerId || project.id}>
-        {children.map((node) => {
-          const shots =
-            node.kind === "shot" ? [node] : descendantShots(node.id);
-          const take =
-            node.kind === "shot"
-              ? selectedVersion(node)
-              : shots
-                  .map(selectedVersion)
-                  .find((version) => version?.media?.url);
-          return (
-            <button
-              key={node.id}
-              className={`hierarchy-card ${node.id === selectedId ? "selected" : ""}`}
-              data-kind={node.type || "shot"}
-              title={`${node.code || node.id} · ${node.title}`}
-              aria-pressed={node.id === selectedId}
-              onClick={() =>
-                node.kind === "shot" ? onShot(node) : onInspect(node)
-              }
-            >
-              <div>
-                {take?.media?.type === "image" ? (
-                  <img src={take.media.url} alt="" />
-                ) : take?.media?.type === "video" ? (
-                  <video
-                    muted
-                    preload="metadata"
-                    src={take.media.url + "#t=0.1"}
-                  />
-                ) : (
-                  <span>{node.type || "Shot"}</span>
+      <div className="strip-track">
+        <button
+          type="button"
+          className="icon-button strip-up"
+          aria-label="Up one level"
+          title="Up one level"
+          disabled={!container}
+          onClick={() => onNavigate(container.parentId || null)}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            aria-hidden="true"
+          >
+            <path d="m6 10 6-6 6 6M12 4v16" />
+          </svg>
+        </button>
+        <div className="hierarchy-cards" key={containerId || project.id}>
+          {children.map((node) => {
+            const shots =
+              node.kind === "shot" ? [node] : descendantShots(node.id);
+            const take =
+              node.kind === "shot"
+                ? selectedVersion(node)
+                : shots
+                    .map(selectedVersion)
+                    .find((version) => version?.media?.url);
+            return (
+              <div className="hierarchy-entry" key={node.id}>
+                <button
+                  key={node.id}
+                  className={`hierarchy-card ${node.id === selectedId ? "selected" : ""}`}
+                  data-kind={node.type || "shot"}
+                  title={`${node.code || node.id} · ${node.title}`}
+                  aria-label={`${node.code || node.id} · ${node.title}`}
+                  aria-pressed={node.id === selectedId}
+                  onClick={() =>
+                    node.kind === "shot" ? onShot(node) : onInspect(node)
+                  }
+                >
+                  <div>
+                    {take?.media?.type === "image" ? (
+                      <img src={take.media.url} alt="" />
+                    ) : take?.media?.type === "video" ? (
+                      <video
+                        muted
+                        preload="metadata"
+                        src={take.media.url + "#t=0.1"}
+                      />
+                    ) : (
+                      <span aria-hidden="true">—</span>
+                    )}
+                  </div>
+                  <span className="strip-thumb-caption">
+                    <span>{node.code || node.id}</span>
+                    <span>
+                      {shots
+                        .reduce(
+                          (sum, shot) => sum + Number(shot.duration || 0),
+                          0,
+                        )
+                        .toFixed(1)}
+                      s
+                    </span>
+                  </span>
+                </button>
+                {node.kind !== "shot" && (
+                  <button
+                    type="button"
+                    className="strip-down"
+                    aria-label={`Open ${node.code || node.id} contents`}
+                    title={`Open ${node.title} contents`}
+                    onClick={() => onNavigate(node.id)}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      aria-hidden="true"
+                    >
+                      <path d="M6 4v12h13m-5-5 5 5-5 5" />
+                    </svg>
+                  </button>
                 )}
               </div>
-              <span className="object-code">{node.code || node.id}</span>
-              <h3>{node.title}</h3>
-              <p>
-                {node.kind === "shot"
-                  ? `${Number(node.duration).toFixed(1)}s · ${take ? `V${take.number} · ${REVIEW_LABELS[take.review]}` : "No takes yet"}`
-                  : `${shots.length} shots · ${shots.reduce((sum, shot) => sum + Number(shot.duration), 0).toFixed(1)}s · ${shots.filter((shot) => selectedVersion(shot)?.review === "approved").length}/${shots.length} shots approved`}
-              </p>
-            </button>
-          );
-        })}
-        {!children.length && (
-          <p className="strip-empty">
-            No {container?.type === "scene" ? "shots" : "items"} here yet. Add
-            one to begin.
-          </p>
-        )}
+            );
+          })}
+          {!children.length && (
+            <p className="strip-empty">
+              No {container?.type === "scene" ? "shots" : "items"} here yet. Add
+              one to begin.
+            </p>
+          )}
+        </div>
       </div>
     </section>
   );

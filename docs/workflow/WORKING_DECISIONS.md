@@ -55,6 +55,54 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD42 — Implement D45 without another center sidebar
+
+Use 112-pixel-wide thumbnails with an ID/runtime caption. Container drill-down
+buttons sit at the lower-right of the image; the up button stays before the
+scrolling thumbnail row and is disabled at the project root. Selection and
+drilling are separate actions. The project title and project status stay fixed
+above the row. Container runtime is the sum of its descendant shots.
+
+Move manual object controls into the main content flow below the viewer; preserve
+version-bound prompts, references and settings. No middle sidebar or strip
+dropdown remains. Browser checks cover every hierarchy level, selection without
+drilling, a stable project title, compact thumbnail dimensions, below-image
+controls, persistent chat, version switching and narrow-screen navigation.
+
+The navigation behavior is owner-directed (D45). Exact sizing and spacing are
+working choices for review, not a claim of final UX acceptance.
+
+### WD41 — Immutable text records and multipart project transport
+
+Externalize text values of at least 2 KB into private content-addressed records in
+the separate studio-records bucket. Project snapshots keep exact hash references;
+unchanged text and unchanged large-record chunks are reused. Loaders verify every
+record's size and digest before reconstructing the original text. Inline legacy
+Studio snapshots remain readable and migrate only on their next authorized save.
+The legacy application and its media bucket are unchanged.
+
+The bucket has no direct-client read/write policies. Server operations remain
+owner-scoped; imports get one-time-path upload tickets only for temporary parts.
+Project responses above 2 MB return expiring private download descriptors, with
+integrity checks in the browser. Large JSON imports upload directly to storage in
+parts, then enter the same existing validation/approval flow. Browser exports
+contain full text, not internal storage pointers. Storage objects are at most
+4 MB so they work within the configured Supabase limit; no text is truncated.
+
+Validation uses a 15,525,873-byte synthetic project with 40 full document versions.
+Browser import/load/reload/export, an appended V41, retained original snapshots,
+exact text, denied direct record overwrites, cross-owner isolation and stale-write
+rejection are checked without provider generation. Ordinary Studio regression
+also exercises the unchanged claim/approval workflow with retained prompt records.
+
+Remaining limits are explicit: the operational object index is capped at 12 MB,
+the current client/server still reconstructs the whole project in memory, project
+state is capped at 480 MB and multipart imports/transfers at 500 MB. The large
+fixture proves 15.5 MB behavior, not capacity at those upper bounds. Orphan-record
+and expired-transfer garbage collection remains unimplemented; do not delete
+anything that retained snapshots reference. Multi-user roles and a normalized,
+paged workspace are not newly claimed. This is a delegated choice for owner review.
+
 ### WD40 — Indexed source access for large reasoning requests
 
 When the existing complete context exceeds 650,000 characters, retain the full

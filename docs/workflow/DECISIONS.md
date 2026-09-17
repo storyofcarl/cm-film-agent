@@ -466,6 +466,20 @@ WD35 records the implementation choices made under delegated authority. They are
 a working iteration, not an owner-approved final interaction. D44 replaces D41's
 presentation; the distinction between project actions and shot artifacts remains.
 
+### D45 — Compact thumbnail navigation and details below the image
+
+The owner specifies that the strip title is the project, independent of the
+current hierarchy depth. Thumbnails show only stable ID and runtime, at a smaller
+size. Remove strip dropdowns. A lower-right icon on each container thumbnail
+drills down one level; an icon button before the first thumbnail drills up one
+level. Clicking the thumbnail itself selects the object for inspection.
+
+There is no sidebar within the center workspace. Shot details, version selection,
+prompts, references and settings live below the image. The separate persistent
+right chat bar and collapsible left navigation remain. This replaces the level
+and scope dropdown interpretation in WD35/WD39; version and approval dropdowns
+in the object details remain required by earlier owner decisions.
+
 ## Superseded proposals and interpretations
 
 ### D26 — Earlier duration-threshold interpretation, replaced by D27

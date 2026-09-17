@@ -1,4 +1,5 @@
 import { withAuth } from "../../../../utils/server/withAuth";
+import { projectResponse } from "./projectRecords";
 import {
   requestContext,
   runWithRequest,
@@ -7,6 +8,8 @@ import {
 export const withStudioAuth = (handler) =>
   withAuth((req, res) =>
     runWithRequest({ ...requestContext(), namespace: "studio" }, async () => {
+      const json = res.json.bind(res);
+      res.json = async (value) => json(await projectResponse(value));
       try {
         return await handler(req, res);
       } catch (error) {

@@ -33,6 +33,11 @@ Checkpoint: documented baseline complete; D29 authorizes proceeding with flagged
 
 ## 2. Wireframe the director's workspace
 
+Latest owner direction D45 replaces strip dropdowns with thumbnail corner
+drill-down and a leading drill-up icon. Keep the project title fixed; show only
+ID/runtime on small thumbnails. Place shot mechanics below the image in the
+center, with no center sidebar. Preserve the separate persistent chat dock.
+
 Explore the nested thumbnail strip, context at each hierarchy level, batch planning
 and status, agent assistance, technical lookdev review, shot/take comparison and
 replacement, and direct access to tool controls. Include revision-route selection,
@@ -162,10 +167,11 @@ owner alongside the module grouping; neither is final design acceptance.
 WD40 implements bounded indexed source reads while preserving the full inventory
 and exact successful-study provenance. Next engineering priority: make long-film
 preparation resumable across hosted requests, partition full-deliverable outputs,
-and scale retained history and browser transport. The current endpoints return the
-entire project; Vercel's documented 4.5 MB request/response bound can be reached
-before the 12 MB store cap. Resolve large-project transport alongside retained
-storage before claiming feature-film capacity. Keep the full deliverable scope
+and validate full-film preparation end to end. WD41 now externalizes immutable text
+and uses private multipart transport for large projects; a 15.5 MB/40-version
+browser fixture verifies behavior beyond the former manifest/response limits.
+Whole-project memory loading, record lifecycle/garbage collection and upper-bound
+scale validation remain open. Keep the full deliverable scope
 and stable IDs visible, resolve exact versions from retained records, and partition
 work only at valid scene/document boundaries when it exceeds a model's capacity.
 Aggregate complete outputs before the existing human review gates. Do not silently

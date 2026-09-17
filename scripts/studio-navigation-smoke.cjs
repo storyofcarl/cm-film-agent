@@ -19,82 +19,38 @@ async function main() {
       exact: true,
     });
     await strip.waitFor();
-    for (const [level, childType] of [
-      ["Project", "act"],
-      ["Act", "sequence"],
-      ["Sequence", "scene"],
-      ["Scene", "shot"],
-    ]) {
-      await strip
-        .getByRole("combobox", { name: "Strip view level" })
-        .selectOption(level.toLowerCase());
-      assert.equal(
-        await strip
-          .getByRole("combobox", { name: "Strip view level" })
-          .inputValue(),
-        level.toLowerCase(),
-      );
-      assert.equal(
-        await strip
-          .locator(".hierarchy-card")
-          .first()
-          .getAttribute("data-kind"),
-        childType,
-      );
+    const up = strip.getByRole("button", { name: "Up one level", exact: true });
+    const root = async () => {
+      while (await up.isEnabled()) await up.click();
+    };
+    const descend = async () => {
+      await strip.locator(".strip-down").first().click();
+    };
+    await root();
+    assert.equal(await strip.getByRole("combobox").count(), 0);
+    const projectTitle = await strip.locator("h1").textContent();
+    for (const childType of ["act", "sequence", "scene"]) {
+      const priorScope = await strip.getAttribute("data-scope");
+      const thumb = strip.locator(".hierarchy-card").first();
+      assert.equal(await thumb.getAttribute("data-kind"), childType);
+      await thumb.click();
+      assert.equal(await strip.getAttribute("data-scope"), priorScope);
+      await descend();
+      assert.equal(await strip.locator("h1").textContent(), projectTitle);
     }
-    await strip
-      .getByRole("combobox", { name: "Strip view level" })
-      .selectOption("sequence");
-    await strip
-      .getByRole("combobox", { name: "Strip scope" })
-      .selectOption("seq1");
-    await strip.locator(".hierarchy-card").nth(1).click();
+    assert.equal(await strip.locator(".strip-down").count(), 0);
     assert.equal(
-      await strip.getByRole("combobox", { name: "Strip scope" }).inputValue(),
-      "seq1",
+      await strip.locator(".hierarchy-card").first().getAttribute("data-kind"),
+      "shot",
     );
-    await page
-      .locator(".viewer-top")
-      .getByText("A familiar voice", { exact: false })
-      .waitFor();
+    await up.click();
+    assert.equal(await strip.getAttribute("data-scope"), "seq1");
+    await strip.locator(".hierarchy-card").nth(1).click();
+    assert.equal(await strip.getAttribute("data-scope"), "seq1");
     await page
       .getByRole("region", { name: "Selected object properties" })
       .getByRole("heading", { name: "A familiar voice", exact: true })
       .waitFor();
-    const sceneProperties = page.getByRole("region", {
-      name: "Selected object properties",
-    });
-    await sceneProperties
-      .getByRole("spinbutton", { name: "Position among siblings" })
-      .fill("5");
-    await sceneProperties
-      .getByRole("button", { name: "Save object properties" })
-      .click();
-    await sceneProperties.getByRole("status").waitFor();
-    assert.equal(
-      await strip.getByRole("combobox", { name: "Strip scope" }).inputValue(),
-      "seq1",
-    );
-    await strip.locator(".hierarchy-card").first().click();
-    await strip.locator(".hierarchy-card").nth(1).click();
-    assert.equal(
-      await sceneProperties
-        .getByRole("spinbutton", { name: "Position among siblings" })
-        .inputValue(),
-      "5",
-    );
-    await sceneProperties
-      .getByRole("spinbutton", { name: "Position among siblings" })
-      .fill("1");
-    await sceneProperties
-      .getByRole("button", { name: "Save object properties" })
-      .click();
-    await sceneProperties.getByRole("status").waitFor();
-    fs.mkdirSync("artifacts", { recursive: true });
-    await page.screenshot({
-      path: "artifacts/studio-scene-selection.png",
-      fullPage: true,
-    });
     await page.getByRole("button", { name: "Scripts", exact: true }).click();
     assert.equal(
       await strip
@@ -103,37 +59,34 @@ async function main() {
         .getAttribute("aria-pressed"),
       "true",
     );
-    await strip.locator(".hierarchy-card").nth(1).click();
-    await strip
-      .getByRole("combobox", { name: "Strip view level" })
-      .selectOption("scene");
-    assert.equal(
-      await strip.getByRole("combobox", { name: "Strip scope" }).inputValue(),
-      "sc2",
-      "Changing levels follows the selected scene, not the first scene in the sequence.",
-    );
-    await strip
-      .getByRole("combobox", { name: "Strip scope" })
-      .selectOption("sc3");
-    await strip
-      .getByRole("combobox", { name: "Strip view level" })
-      .selectOption("sequence");
-    assert.equal(
-      await strip.getByRole("combobox", { name: "Strip scope" }).inputValue(),
-      "seq2",
-    );
-    await strip
-      .getByRole("combobox", { name: "Strip view level" })
-      .selectOption("scene");
-    assert.equal(
-      await strip.getByRole("combobox", { name: "Strip scope" }).inputValue(),
-      "sc3",
-    );
-    await strip
-      .getByRole("combobox", { name: "Strip scope" })
-      .selectOption("sc1");
+    await strip.locator(".strip-down").nth(1).click();
+    assert.equal(await strip.getAttribute("data-scope"), "sc2");
+    await root();
+    await descend();
+    await descend();
+    await descend();
     await strip.locator(".hierarchy-card").first().click();
-
+    const media = await page.locator(".media-viewer").boundingBox();
+    const details = await page
+      .getByRole("region", { name: "Manual object controls" })
+      .boundingBox();
+    assert.ok(
+      details.y >= media.y + media.height,
+      "Shot controls sit below the viewer.",
+    );
+    assert.ok(
+      Math.abs(details.x - media.x) <= 1,
+      "Shot controls share the viewer column.",
+    );
+    assert.equal(await page.locator(".project-content > aside").count(), 0);
+    assert.ok(
+      (await strip.locator(".hierarchy-card").first().boundingBox()).width <=
+        114,
+    );
+    assert.equal(
+      await strip.locator(".hierarchy-card h3, .hierarchy-card p").count(),
+      0,
+    );
     const chat = page.getByRole("region", { name: "Project chat" });
     assert.equal(
       await chat.locator(".crew-context").count(),
@@ -211,7 +164,7 @@ async function main() {
       0,
     );
     assert.ok(
-      (await strip.boundingBox()).height <= 250,
+      (await strip.boundingBox()).height <= 170,
       "Scope and thumbnails form one compact module.",
     );
     assert.ok(
@@ -226,14 +179,12 @@ async function main() {
         .count(),
       0,
     );
-    await strip
-      .getByRole("button", { name: /^Scene status: 2 of 4 shots approved/ })
-      .click();
+    await strip.getByRole("button", { name: /^Project status:/ }).click();
     const status = page.getByRole("dialog", {
-      name: "The observatory · Status",
+      name: "Production status",
     });
     await status
-      .getByText("0 of 1 scenes approved for the current selected versions.", {
+      .getByText("0 of 3 scenes approved for the current selected versions.", {
         exact: true,
       })
       .waitFor();
@@ -252,9 +203,7 @@ async function main() {
     const selection = await strip
       .locator('.hierarchy-card[aria-pressed="true"]')
       .textContent();
-    const level = await strip
-      .getByRole("combobox", { name: "Strip view level" })
-      .inputValue();
+    const level = await strip.getAttribute("data-scope");
     assert.equal(
       await strip.getByRole("navigation").count(),
       0,
@@ -297,12 +246,7 @@ async function main() {
       );
       assert.equal(await strip.count(), 1);
       assert.ok(await strip.isVisible());
-      assert.equal(
-        await strip
-          .getByRole("combobox", { name: "Strip view level" })
-          .inputValue(),
-        level,
-      );
+      assert.equal(await strip.getAttribute("data-scope"), level);
       assert.equal(
         await strip
           .locator('.hierarchy-card[aria-pressed="true"]')
@@ -317,134 +261,9 @@ async function main() {
       );
     }
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
-    await strip
-      .getByRole("combobox", { name: "Strip view level" })
-      .selectOption("project");
-    const properties = page.getByRole("region", {
-      name: "Selected object properties",
-    });
-    await properties
-      .getByRole("heading", { name: "The Last Light", exact: true })
-      .waitFor();
-    for (const type of ["act", "sequence", "scene"]) {
-      const priorScope = await strip
-        .getByRole("combobox", { name: "Strip scope" })
-        .inputValue();
-      const priorLevel = await strip
-        .getByRole("combobox", { name: "Strip view level" })
-        .inputValue();
-      assert.equal(
-        await strip
-          .locator(".hierarchy-card")
-          .first()
-          .getAttribute("data-kind"),
-        type,
-      );
-      await strip.locator(".hierarchy-card").first().click();
-      assert.ok(
-        (await properties.locator(".eyebrow").textContent()).includes(type),
-      );
-      assert.equal(
-        await strip.getByRole("combobox", { name: "Strip scope" }).inputValue(),
-        priorScope,
-        "Selecting a container inspects it without replacing the strip scope.",
-      );
-      assert.equal(
-        await strip
-          .getByRole("combobox", { name: "Strip view level" })
-          .inputValue(),
-        priorLevel,
-      );
-      assert.equal(
-        await strip
-          .locator(".hierarchy-card")
-          .first()
-          .getAttribute("aria-pressed"),
-        "true",
-      );
-      assert.equal(await page.getByRole("dialog").count(), 0);
-      await strip
-        .getByRole("combobox", { name: "Strip view level" })
-        .selectOption(type);
-    }
-    await properties
-      .getByRole("textbox", { name: "Object prompt / direction", exact: true })
-      .fill("Cool dawn light; deliberate camera movement.");
-    await properties
-      .getByRole("button", { name: "Save object properties" })
-      .click();
-    await properties.getByRole("status").waitFor();
-    await properties
-      .getByRole("button", {
-        name: "Expand Object prompt / direction",
-        exact: true,
-      })
-      .click();
-    const promptDialog = page.getByRole("dialog", {
-      name: "Object prompt / direction",
-      exact: true,
-    });
-    const longDirection = "Deliberate camera movement. ".repeat(150);
-    await promptDialog
-      .getByRole("textbox", { name: "Object prompt / direction expanded" })
-      .fill(longDirection);
-    await promptDialog
-      .getByRole("button", { name: "Close", exact: true })
-      .click();
-    assert.equal(
-      await properties
-        .getByRole("textbox", {
-          name: "Object prompt / direction",
-          exact: true,
-        })
-        .inputValue(),
-      longDirection,
-    );
-    await properties
-      .getByRole("textbox", { name: "Object prompt / direction", exact: true })
-      .fill("Cool dawn light; deliberate camera movement.");
-    await page.getByRole("button", { name: "History", exact: true }).click();
-    assert.equal(await page.locator(".manual-inspector").isVisible(), false);
-    await page.getByRole("button", { name: "Assets 3", exact: true }).click();
-    assert.equal(
-      await properties
-        .getByRole("textbox", {
-          name: "Object prompt / direction",
-          exact: true,
-        })
-        .inputValue(),
-      "Cool dawn light; deliberate camera movement.",
-    );
-    await page.getByRole("button", { name: "Assets 3", exact: true }).click();
-    await properties
-      .getByRole("heading", { name: "The observatory", exact: true })
-      .waitFor();
-    await strip.locator(".hierarchy-card").nth(1).click();
-    await properties
-      .getByRole("heading", { name: "Crossing the ridge", exact: true })
-      .waitFor();
-    await properties.getByText("Inherited direction", { exact: true }).click();
-    assert.ok(
-      await properties
-        .getByText("Cool dawn light; deliberate camera movement.", {
-          exact: true,
-        })
-        .isVisible(),
-    );
-    assert.ok(
-      (await strip
-        .locator(".hierarchy-card")
-        .nth(1)
-        .getAttribute("aria-pressed")) === "true",
-    );
-    assert.ok(
-      (
-        await strip
-          .getByRole("combobox", { name: "Strip scope" })
-          .locator("option:checked")
-          .textContent()
-      ).includes("The observatory"),
-    );
+    await root();
+    for (let level = 0; level < 3; level++) await descend();
+    await strip.locator(".hierarchy-card").first().click();
     fs.mkdirSync("artifacts", { recursive: true });
     await page.locator(".inspector-object").evaluate((element) => {
       element.scrollTop = 0;
