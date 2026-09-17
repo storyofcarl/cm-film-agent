@@ -33,10 +33,11 @@ Checkpoint: documented baseline complete; D29 authorizes proceeding with flagged
 
 ## 2. Wireframe the director's workspace
 
-Latest owner direction D45 replaces strip dropdowns with thumbnail corner
-drill-down and a leading drill-up icon. Keep the project title fixed; show only
-ID/runtime on small thumbnails. Place shot mechanics below the image in the
-center, with no center sidebar. Preserve the separate persistent chat dock.
+Latest owner direction D46 keeps the strip as all project shots, grouped by scene
+outlines with sequence/act ranges above. Use arrows and wheel panning without
+visible scrollbars. Keep the project title fixed and compact ID/runtime captions.
+Rollups open as grids; shot mechanics stay below the image with no center sidebar.
+D47 adds a production-phase checklist below the persistent right chat composer.
 
 Explore the nested thumbnail strip, context at each hierarchy level, batch planning
 and status, agent assistance, technical lookdev review, shot/take comparison and
@@ -159,15 +160,16 @@ Deliverable: verified production workflow, delivery package, and migration plan.
 
 ## Current review artifact
 
-WD39 separates thumbnail selection from strip scope: object clicks open the center,
-while level/title selectors control the row. The selected branch guides subsequent
-level changes. Scope editing uses inline Properties. Review this behavior with the
-owner alongside the module grouping; neither is final design acceptance.
+D46/WD44 replace WD39's changing scope with a continuous all-shot strip. Range
+labels open rollup grids; shot clicks open the viewer and mechanics below it.
+D47 adds the phase checklist below chat. These implementations remain review
+artifacts; browser checks do not establish owner acceptance.
 
 WD40 implements bounded indexed source reads while preserving the full inventory
-and exact successful-study provenance. Next engineering priority: make long-film
-preparation resumable across hosted requests, partition full-deliverable outputs,
-and validate full-film preparation end to end. WD41 now externalizes immutable text
+and exact successful-study provenance. WD43 adds saved, resumable chat tasks across
+hosted requests, verified with mocked studies beyond twelve passes. Next priority:
+partition full-deliverable outputs and validate full-film preparation end to end.
+WD41 now externalizes immutable text
 and uses private multipart transport for large projects; a 15.5 MB/40-version
 browser fixture verifies behavior beyond the former manifest/response limits.
 Whole-project memory loading, record lifecycle/garbage collection and upper-bound

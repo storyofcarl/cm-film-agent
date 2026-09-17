@@ -38,6 +38,8 @@ export async function importManifest(input) {
   project.id = uid("film");
   project.sample = false;
   project.batches = [];
+  // Imported runtime journals must never authorize model calls or resume work.
+  project.crewRuns = [];
   project.events = [];
   project.lookdev = [];
   project.sceneApprovals = [];

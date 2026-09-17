@@ -18,8 +18,9 @@ export default function SourceStudy({ study }) {
       {open && (
         <>
           <p>
-            {read} of {total} indexed text parts read. This records source
-            access, not creative approval.
+            {study.mode === "journal"
+              ? "Completed model steps are saved here while the task continues."
+              : `${read} of ${total} indexed text parts read. This records source access, not creative approval.`}
           </p>
           <label className="field">
             Source read step

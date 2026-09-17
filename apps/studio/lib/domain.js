@@ -1044,6 +1044,51 @@ export function applyCommand(
       });
       break;
     }
+    case "grid.update": {
+      human();
+      assert(
+        Array.isArray(payload.updates) && payload.updates.length > 0,
+        "Choose grid changes to save.",
+      );
+      const ids = new Set();
+      for (const update of payload.updates) {
+        assert(
+          update && typeof update === "object" && !ids.has(update.id),
+          "Each grid object must appear once.",
+        );
+        ids.add(update.id);
+        const target =
+          findItem(project, update.id) ||
+          project.nodes.find((node) => node.id === update.id);
+        assert(target, "A grid object no longer exists.");
+        assert(
+          Object.keys(update).every((key) =>
+            ["id", "title", "duration"].includes(key),
+          ),
+          "Unsupported grid field.",
+        );
+        if (update.title !== undefined) {
+          assert(
+            typeof update.title === "string" && update.title.trim(),
+            "An object title is required.",
+          );
+          target.title = update.title.trim();
+        }
+        if (update.duration !== undefined) {
+          const duration = Number(update.duration);
+          assert(
+            target.kind === "shot" && Number.isFinite(duration) && duration > 0,
+            "Shot runtime must be greater than zero.",
+          );
+          target.duration = duration;
+        }
+        event(
+          target.kind ? "item.updated" : "node.updated",
+          target.kind ? { itemId: target.id } : { nodeId: target.id },
+        );
+      }
+      break;
+    }
     case "item.update": {
       const item = findItem(project, payload.id);
       assert(item, "Item not found.");

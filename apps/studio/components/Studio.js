@@ -8,6 +8,7 @@ import ProjectFiles from "./ProjectFiles";
 import { FILE_AREAS } from "../lib/fileAreas";
 import { documentArea } from "../lib/documents";
 import CrewConversation from "./CrewConversation";
+import PhaseChecklist from "./PhaseChecklist";
 import { UPLOAD_ACCEPT } from "../lib/uploads";
 import { uploadWork } from "../lib/uploadWork";
 import {
@@ -29,7 +30,6 @@ import {
   createProject,
   selectedVersion,
   sceneShots,
-  contextShots,
   revisionItems,
   REVIEW_LABELS,
   lookdevRequirement,
@@ -108,9 +108,9 @@ export default function Studio({
   const [sceneId, setSceneId] = useState(
     initialProject?.nodes.find((node) => node.type === "scene")?.id || null,
   );
-  const [itemId, setItemId] = useState(initialProject?.shots[0]?.id || null);
+  const [itemId, setItemId] = useState(null);
   const [reviewVersionId, setReviewVersionId] = useState(null);
-  const [tab, setTab] = useState("Cut");
+  const [tab, setTab] = useState("Review");
   const [containerId, setContainerId] = useState(sceneId);
   const [selectedShotId, setSelectedShotId] = useState(itemId);
   const [propertyTargetId, setPropertyTargetId] = useState(
@@ -178,17 +178,15 @@ export default function Studio({
               setSceneId(
                 loaded.project.nodes.find((node) => node.type === "scene")?.id,
               );
-              setItemId(loaded.project.shots[0]?.id || null);
+              setItemId(null);
               setContainerId(
                 loaded.project.nodes.find((node) => node.type === "scene")
                   ?.id || null,
               );
-              setSelectedShotId(loaded.project.shots[0]?.id || null);
+              setSelectedShotId(null);
               setPropertyTargetId(
-                loaded.project.shots[0]?.id ||
-                  loaded.project.nodes.find((node) => node.type === "scene")
-                    ?.id ||
-                  loaded.project.id,
+                loaded.project.nodes.find((node) => node.type === "scene")
+                  ?.id || loaded.project.id,
               );
             }
           });
@@ -272,6 +270,52 @@ export default function Studio({
       setBusy(false);
     }
   };
+  useEffect(() => {
+    if (demo || busy || !project) return undefined;
+    const tasks = (project.crewRuns || []).filter((task) =>
+      ["queued", "running"].includes(task.state),
+    );
+    if (!tasks.length) return undefined;
+    let active = true;
+    const timer = setTimeout(() => {
+      const task = tasks[pollCursor.current++ % tasks.length];
+      jsonFetch("/api/studio/crew", {
+        ...post({ action: "advance", id: project.id, taskId: task.id }),
+      })
+        .then((result) => {
+          if (active) {
+            setProject(result.project);
+            setRevision(result.revision);
+          }
+        })
+        .catch(async (error) => {
+          if (!active) return;
+          // An interrupted HTTP response does not imply the model call stopped.
+          // Reload the durable journal; the next tick observes its existing lease.
+          const current = await jsonFetch(
+            `/api/studio/projects?id=${encodeURIComponent(project.id)}`,
+          ).catch(() => null);
+          if (active && current) {
+            setProject(current.project);
+            setRevision(current.revision);
+          }
+          if (active) setMessage(error.message);
+        });
+    }, 2000);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [demo, busy, project, revision]);
+  const cancelChatTask = (taskId) =>
+    run(async () => {
+      const result = await jsonFetch(
+        "/api/studio/crew",
+        post({ action: "cancel", id: project.id, taskId }),
+      );
+      setProject(result.project);
+      setRevision(result.revision);
+    });
   const command = (type, payload) =>
     run(async () => {
       if (demo) {
@@ -530,7 +574,11 @@ export default function Studio({
       );
       setProject(result.project);
       setRevision(result.revision);
-      setMessage("Reply saved.");
+      setMessage(
+        result.project.crewRuns?.some((task) => task.state === "queued")
+          ? "Request saved. Work will continue here."
+          : "Reply saved.",
+      );
       setInstruction("");
     });
   const batchAction = (action, extra = {}) =>
@@ -586,6 +634,7 @@ export default function Studio({
   const navigate = (id) => {
     setContainerId(id);
     inspectContainer(id);
+    setTab("Review");
   };
   const switchTab = (next) => {
     setTab(next);
@@ -594,6 +643,15 @@ export default function Studio({
   const inspectedNode = project?.nodes.find(
     (node) => node.id === propertyTargetId,
   );
+  const rollupId = inspectedNode?.id || containerId || project?.id;
+  const rollup = project?.nodes.find((node) => node.id === rollupId);
+  const rollupContents = !project
+    ? []
+    : rollup?.type === "scene"
+      ? sceneShots(project, rollup.id)
+      : project.nodes
+          .filter((node) => node.parentId === (rollup?.id || null))
+          .sort((a, b) => a.order - b.order);
   const shots = project ? sceneShots(project, sceneId) : [];
   const item =
     project &&
@@ -744,7 +802,7 @@ export default function Studio({
                               className={`tree-scene ${entry.id === sceneId ? "active" : ""}`}
                               onClick={() => {
                                 navigate(entry.id);
-                                setTab("Cut");
+                                setTab("Review");
                               }}
                             >
                               <span className="scene-number">
@@ -849,10 +907,6 @@ export default function Studio({
               containerId={containerId}
               selectedId={inspectedNode?.id || selectedShotId}
               onNavigate={navigate}
-              onInspect={(node) => {
-                inspectContainer(node.id);
-                setTab("Cut");
-              }}
               onAdd={(type) => {
                 if (type === "shot") {
                   setSceneId(containerId);
@@ -864,7 +918,7 @@ export default function Studio({
               }}
               onEdit={() => {
                 inspectContainer(containerId);
-                setTab("Cut");
+                setTab("Properties");
               }}
               onShot={(shot) => {
                 selectItem(shot);
@@ -920,7 +974,7 @@ export default function Studio({
                       {tab === "Overview" ? "Production overview" : tab}
                     </h1>
                   )}
-                  {["Cut", "Review"].includes(tab) && (
+                  {["Cut", "Review"].includes(tab) && item?.kind === "shot" && (
                     <div
                       className="workspace-view-switch"
                       role="group"
@@ -954,8 +1008,8 @@ export default function Studio({
                       <h2>{inspectedNode?.title || project.title}</h2>
                       <p>
                         Edit this {inspectedNode?.type || project.scope}’s
-                        direction and references below. Use its thumbnail’s
-                        corner icon to view its contents.
+                        direction and references below. Select its range label
+                        in the strip to view its contents.
                       </p>
                     </section>
                   )}
@@ -1066,8 +1120,14 @@ export default function Studio({
                   )}
                   {tab === "Review" && (
                     <ReviewGrid
-                      items={contextShots(project, containerId || project.id)}
-                      {...{ busy, command, selectItem }}
+                      key={`rollup:${rollupId}`}
+                      editable
+                      items={rollupContents}
+                      {...{ project, busy, command }}
+                      selectItem={(entry) => {
+                        if (entry.kind) selectItem(entry);
+                        else navigate(entry.id);
+                      }}
                     />
                   )}
                   {Object.values(FILE_AREAS).includes(tab) && (
@@ -1292,7 +1352,12 @@ export default function Studio({
               )}
               <section
                 className="manual-inspector"
-                hidden={!["Cut", "Review", "Assets", "Footage"].includes(tab)}
+                hidden={
+                  !(
+                    tab === "Properties" ||
+                    (item && ["Cut", "Assets", "Footage"].includes(tab))
+                  )
+                }
                 aria-label="Manual object controls"
               >
                 <div className="inspector-object">
@@ -1561,6 +1626,7 @@ export default function Studio({
             {project && (
               <CrewConversation
                 {...{ project, busy, command }}
+                cancelTask={cancelChatTask}
                 openDocument={(document) => {
                   setFocusDocumentId(document.id);
                   setInspectingDocumentId(document.id);
@@ -1601,6 +1667,7 @@ export default function Studio({
                 ? "Illustrated demo · sign in to chat."
                 : "Replies use the project's reasoning model. Paid generation batches still need your approval."}
             </small>
+            {project && <PhaseChecklist project={project} onOpen={switchTab} />}
           </section>
         </aside>
       </div>

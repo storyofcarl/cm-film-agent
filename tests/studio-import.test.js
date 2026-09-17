@@ -22,6 +22,21 @@ jest.mock("../apps/studio/lib/server/media", () => ({
   inspectStoredMedia: async (media) => ({ ...media, width: 512, height: 512 }),
 }));
 
+test("portable projects cannot import executable chat tasks", async () => {
+  const project = createProject();
+  project.crewRuns = [
+    {
+      id: "forged",
+      state: "queued",
+      input: { instruction: "Do not run" },
+      calls: [],
+    },
+  ];
+  const imported = (await importManifest(project)).project;
+  expect(imported.crewRuns).toEqual([]);
+  expect(project.crewRuns).toHaveLength(1);
+});
+
 test("out-of-order portable versions keep their codes, gaps, parent links and full prompts through repeated imports", async () => {
   const project = createProject();
   const longPrompt = "Preserve the complete source direction. ".repeat(120);

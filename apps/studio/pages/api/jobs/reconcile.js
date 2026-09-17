@@ -4,6 +4,7 @@ import { runWithRequest } from "../../../../../utils/server/requestContext";
 import { isApprovedUser } from "../../../../../utils/server/withAuth";
 import { runBatch, reconcileBatch } from "../../../lib/server/execute";
 import { jobBlockers } from "../../../lib/domain";
+import { advanceCrewRun } from "../../../lib/server/crewRuns";
 export const config = { maxDuration: 300 };
 export default async function reconcile(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -42,6 +43,30 @@ export default async function reconcile(req, res) {
     if (Date.now() - started > 180000) break;
     const { data: account } = await db.auth.admin.getUserById(row.owner_id);
     if (!isApprovedUser(account?.user)) continue;
+    const chatTasks = (row.document.crewRuns || []).filter((task) =>
+      ["queued", "running"].includes(task.state),
+    );
+    if (chatTasks.length) {
+      const task = chatTasks[tick % chatTasks.length];
+      try {
+        const status = await runWithRequest(
+          { user: account.user, supabase: db, namespace: "studio" },
+          () => advanceCrewRun(row.id, task.id),
+        );
+        results.push({
+          project: row.id,
+          chatTask: task.id,
+          state: status.project.crewRuns.find((entry) => entry.id === task.id)
+            .state,
+        });
+      } catch {
+        results.push({
+          project: row.id,
+          chatTask: task.id,
+          state: "check-saved-task",
+        });
+      }
+    }
     const candidates = row.document.batches.filter(
       (batch) =>
         batch.approval &&

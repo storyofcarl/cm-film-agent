@@ -23,6 +23,7 @@ export default function CrewConversation({
   command,
   prepare,
   openDocument,
+  cancelTask,
 }) {
   const log = useRef(null);
   const [expanded, setExpanded] = useState(null);
@@ -32,82 +33,117 @@ export default function CrewConversation({
   useEffect(() => {
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
   }, [messages.length]);
-  const reply = (artifact) => (
-    <>
-      <div className="crew-reply">
-        <ReactMarkdown>{artifact.content}</ReactMarkdown>
-      </div>
-      {artifact.documentIds?.map((id) => {
-        const document = project.artifacts.find((entry) => entry.id === id);
-        return (
-          document && (
+  const reply = (artifact) => {
+    const task = project.crewRuns?.find(
+      (entry) => entry.id === artifact.crewRunId,
+    );
+    if (task && task.state !== "completed")
+      return (
+        <>
+          <p role="status">{artifact.content}</p>
+          {["queued", "running"].includes(task.state) && (
             <button
               type="button"
-              className="text-button document-link"
-              key={id}
-              onClick={() => {
-                openDocument(document);
-                setExpanded(null);
-              }}
+              className="text-button"
+              disabled={busy}
+              onClick={() => cancelTask(task.id)}
             >
-              {document.title} · V{document.number}
+              Stop
             </button>
-          )
-        );
-      })}
-      {artifact.documentWarnings?.map((warning, index) => (
-        <p className="gate-message" key={index}>
-          {warning}
-        </p>
-      ))}
-      {!!artifact.unfiledDocuments?.length && (
-        <details>
-          <summary>Unfiled document output</summary>
-          <pre className="unfiled-document-output">
-            {JSON.stringify(artifact.unfiledDocuments, null, 2)}
-          </pre>
-        </details>
-      )}
-      <SourceStudy key={artifact.id} study={artifact.contextStudy} />
-      {artifact.decisions?.length > 0 && (
-        <p className="gate-message">
-          Working decisions: {artifact.decisions.join(" · ")}
-        </p>
-      )}
-      {artifact.proposal && (
-        <>
-          <details>
-            <summary>Review proposed changes</summary>
-            <ProposalReview {...{ project }} proposal={artifact.proposal} />
-          </details>
-          <button
-            type="button"
-            className="secondary full"
-            disabled={busy || Boolean(artifact.appliedAt)}
-            onClick={() => command("artifact.apply", { id: artifact.id })}
-          >
-            {artifact.appliedAt
-              ? "Proposal applied"
-              : "Apply proposed production changes"}
-          </button>
+          )}
+          <SourceStudy
+            artifactId={artifact.id}
+            study={{
+              mode: "journal",
+              transcript: task.calls
+                .filter((call) => call.state === "completed")
+                .map((call) => ({
+                  prompt: call.request.prompt,
+                  response: call.result.content,
+                  usage: call.result.usage || null,
+                })),
+              coverage: [],
+            }}
+          />
         </>
-      )}
-      {crewNextActions(artifact.nextActions).map((action, index) => (
-        <div key={`${action.kind}:${index}`} className="crew-next-action">
-          <p>{action.reason}</p>
-          <button
-            type="button"
-            className="secondary full"
-            disabled={busy}
-            onClick={() => prepare(action.kind)}
-          >
-            {action.title}
-          </button>
-          <small>Prepare for review · no generation submitted</small>
+      );
+    return (
+      <>
+        <div className="crew-reply">
+          <ReactMarkdown>{artifact.content}</ReactMarkdown>
         </div>
-      ))}
-    </>
-  );
+        {artifact.documentIds?.map((id) => {
+          const document = project.artifacts.find((entry) => entry.id === id);
+          return (
+            document && (
+              <button
+                type="button"
+                className="text-button document-link"
+                key={id}
+                onClick={() => {
+                  openDocument(document);
+                  setExpanded(null);
+                }}
+              >
+                {document.title} · V{document.number}
+              </button>
+            )
+          );
+        })}
+        {artifact.documentWarnings?.map((warning, index) => (
+          <p className="gate-message" key={index}>
+            {warning}
+          </p>
+        ))}
+        {!!artifact.unfiledDocuments?.length && (
+          <details>
+            <summary>Unfiled document output</summary>
+            <pre className="unfiled-document-output">
+              {JSON.stringify(artifact.unfiledDocuments, null, 2)}
+            </pre>
+          </details>
+        )}
+        <SourceStudy key={artifact.id} study={artifact.contextStudy} />
+        {artifact.decisions?.length > 0 && (
+          <p className="gate-message">
+            Working decisions: {artifact.decisions.join(" · ")}
+          </p>
+        )}
+        {artifact.proposal && (
+          <>
+            <details>
+              <summary>Review proposed changes</summary>
+              <ProposalReview {...{ project }} proposal={artifact.proposal} />
+            </details>
+            <button
+              type="button"
+              className="secondary full"
+              disabled={busy || Boolean(artifact.appliedAt)}
+              onClick={() => command("artifact.apply", { id: artifact.id })}
+            >
+              {artifact.appliedAt
+                ? "Proposal applied"
+                : "Apply proposed production changes"}
+            </button>
+          </>
+        )}
+        {crewNextActions(artifact.nextActions).map((action, index) => (
+          <div key={`${action.kind}:${index}`} className="crew-next-action">
+            <p>{action.reason}</p>
+            <button
+              type="button"
+              className="secondary full"
+              disabled={busy}
+              onClick={() => prepare(action.kind)}
+            >
+              {action.title}
+            </button>
+            <small>Prepare for review · no generation submitted</small>
+          </div>
+        ))}
+      </>
+    );
+  };
   return (
     <>
       <UploadInbox {...{ project, busy, command }} />

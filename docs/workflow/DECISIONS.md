@@ -480,6 +480,26 @@ right chat bar and collapsible left navigation remain. This replaces the level
 and scope dropdown interpretation in WD35/WD39; version and approval dropdowns
 in the object details remain required by earlier owner decisions.
 
+### D46 — Continuous shot strip and default rollup grids
+
+The owner replaces hierarchical thumbnail drilling with a continuous strip of all
+project shots. Scene-colored outlines and labels group those shots; sequence and
+act range indicators span the groups above. Only shot ID and runtime appear on
+each compact thumbnail. No strip dropdowns, corner drill icons or visible
+scrollbars. Navigation uses left/right arrows and scrollwheel/trackpad panning.
+The project title stays fixed. Range labels and left navigation open the selected
+act, sequence or scene as a grid of its immediate contents for bulk editing.
+Shot clicks open the shot viewer and its details below. This supersedes D45's
+drilling behavior, while retaining its below-image details and separate sidebars.
+
+### D47 — Major production phases below the chat box
+
+The owner requests a checklist below the message controls in the right panel:
+Scripting, Assets, Previs, Animation and Delivery. Each has a checkbox, status
+marker and colored outline indicating approval. The interpretation that these
+reflect recorded approvals rather than providing a new approval bypass is a
+working choice documented in WD44, open to owner correction.
+
 ## Superseded proposals and interpretations
 
 ### D26 — Earlier duration-threshold interpretation, replaced by D27

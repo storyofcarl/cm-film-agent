@@ -167,6 +167,7 @@ export async function queryCrewContext({
   instruction,
   systemPrompt,
   invoke,
+  maxPasses = 12,
 }) {
   const original = `DIRECTOR'S REQUEST\n${instruction}\n\nCURRENT PRODUCTION (complete preparation context)\n${JSON.stringify(context)}`;
   if (original.length + systemPrompt.length <= CREW_CONTEXT_LIMIT) {
@@ -181,12 +182,12 @@ export async function queryCrewContext({
   const studySystem = `${systemPrompt}\n\nINDEXED CONTEXT PROTOCOL
 All production objects and document versions remain in the index; selection does not narrow the deliverable. A recordId descriptor is an exact retained text value, NOT its content. Read it before quoting, changing or claiming to have reviewed it. Return only JSON {"contextRequest":{"reads":[{"recordId":"...","part":0}],"notes":"cumulative working notes"}} to retrieve up to eight parts. Only records in this index are available; this is read-only and does not call production tools. The server supplies exact text, offsets, hashes and a coverage ledger. Parts are transport boundaries, not scene/shot/generation boundaries. Read all parts in order to inspect a complete document. Never fill in unseen text.
 Each subsequent request includes the full index, cumulative coverage, your cumulative notes and the requested parts. Earlier parts are retained in the source audit but are not automatically repeated; carry forward relevant conclusions, unresolved questions and stable IDs in notes (maximum 40,000 characters), and reread exact parts when necessary. Never substitute those notes for the source text in a requested revision.
-Before returning any proposal, writing documents or preparation actions, read every requiredForPreparation part, including current and approved source documents, active intent and inspected drafts. This is full-deliverable source coverage, not permission to execute. For ordinary discussion you may return coverageMode:"discussion" with no preparation outputs, but cannot claim complete-source review without reading it. For full-source analysis or preparation use coverageMode:"preparation" and the normal final response format. Do not silently narrow or truncate a deliverable to fit a response. There are at most 12 reasoning passes in this request; prioritize complete required source coverage and exact requested historical records.`;
+Before returning any proposal, writing documents or preparation actions, read every requiredForPreparation part, including current and approved source documents, active intent and inspected drafts. This is full-deliverable source coverage, not permission to execute. For ordinary discussion you may return coverageMode:"discussion" with no preparation outputs, but cannot claim complete-source review without reading it. For full-source analysis or preparation use coverageMode:"preparation" and the normal final response format. Do not silently narrow or truncate a deliverable to fit a response. Prioritize complete required source coverage and exact requested historical records. The server retains completed reasoning steps across requests; continue the source study until the required work is complete.`;
   let notes = "";
   let parts = [];
   const transcript = [];
   const started = Date.now();
-  for (let pass = 0; pass < 12; pass++) {
+  for (let pass = 0; pass < maxPasses; pass++) {
     const prompt = `DIRECTOR'S REQUEST\n${instruction}\n\nCURRENT PRODUCTION (indexed context)\n${JSON.stringify({ production: library.index, coverage: library.coverage(), notes, parts })}`;
     if (prompt.length + studySystem.length > CREW_CONTEXT_LIMIT)
       throw fault(

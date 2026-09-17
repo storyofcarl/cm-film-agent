@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const { chromium } = require("@playwright/test");
+const { chromium, expect } = require("@playwright/test");
 
 async function main() {
   const browser = await chromium.launch({ headless: true });
@@ -19,53 +19,137 @@ async function main() {
       exact: true,
     });
     await strip.waitFor();
-    const up = strip.getByRole("button", { name: "Up one level", exact: true });
-    const root = async () => {
-      while (await up.isEnabled()) await up.click();
-    };
-    const descend = async () => {
-      await strip.locator(".strip-down").first().click();
-    };
-    await root();
+    const phases = page.getByRole("region", { name: "Production phases" });
+    await expect(phases.getByRole("checkbox")).toHaveCount(5);
+    for (const label of [
+      "Scripting",
+      "Assets",
+      "Previs",
+      "Animation",
+      "Delivery",
+    ])
+      await expect(
+        phases.getByRole("checkbox", { name: `${label} approved` }),
+      ).toBeDisabled();
+    const sendBox = await page
+      .getByRole("button", { name: "Send", exact: true })
+      .boundingBox();
+    const phasesBox = await phases.boundingBox();
+    assert.ok(phasesBox.y > sendBox.y + sendBox.height);
+    assert.ok(phasesBox.y + phasesBox.height <= 1000);
+    const thumbs = strip.locator(".hierarchy-card");
+    const allIds = await thumbs.evaluateAll((nodes) =>
+      nodes.map((node) => node.dataset.shotId),
+    );
+    assert.equal(allIds.length, 6);
     assert.equal(await strip.getByRole("combobox").count(), 0);
+    assert.equal(await strip.locator(".strip-down, .strip-up").count(), 0);
+    assert.equal(await strip.locator(".strip-scene-range").count(), 3);
+    assert.equal(await strip.locator(".strip-sequence-range").count(), 2);
+    assert.equal(
+      await page.locator(".review-card").count(),
+      4,
+      "Scene opens in grid view.",
+    );
     const projectTitle = await strip.locator("h1").textContent();
-    for (const childType of ["act", "sequence", "scene"]) {
-      const priorScope = await strip.getAttribute("data-scope");
-      const thumb = strip.locator(".hierarchy-card").first();
-      assert.equal(await thumb.getAttribute("data-kind"), childType);
-      await thumb.click();
-      assert.equal(await strip.getAttribute("data-scope"), priorScope);
-      await descend();
+    for (const [name, count] of [
+      [/^View act /, 2],
+      [/^View sequence .*A final transmission/, 2],
+      [/^View scene .*The observatory/, 4],
+    ]) {
+      await strip.getByRole("button", { name }).click();
+      assert.equal(await page.locator(".review-card").count(), count);
+      assert.equal(await page.locator(".manual-inspector").isVisible(), false);
+      assert.equal(await page.locator(".media-viewer").count(), 0);
       assert.equal(await strip.locator("h1").textContent(), projectTitle);
+      assert.deepEqual(
+        await thumbs.evaluateAll((nodes) =>
+          nodes.map((node) => node.dataset.shotId),
+        ),
+        allIds,
+      );
     }
-    assert.equal(await strip.locator(".strip-down").count(), 0);
-    assert.equal(
-      await strip.locator(".hierarchy-card").first().getAttribute("data-kind"),
-      "shot",
-    );
-    await up.click();
-    assert.equal(await strip.getAttribute("data-scope"), "seq1");
-    await strip.locator(".hierarchy-card").nth(1).click();
-    assert.equal(await strip.getAttribute("data-scope"), "seq1");
     await page
-      .getByRole("region", { name: "Selected object properties" })
-      .getByRole("heading", { name: "A familiar voice", exact: true })
-      .waitFor();
-    await page.getByRole("button", { name: "Scripts", exact: true }).click();
+      .getByRole("spinbutton", { name: "SH-001 runtime", exact: true })
+      .fill("9");
+    await page
+      .getByRole("spinbutton", { name: "SH-002 runtime", exact: true })
+      .fill("7");
+    await page
+      .getByRole("button", { name: "Save grid changes", exact: true })
+      .click();
+    assert.ok((await thumbs.first().textContent()).includes("9.0s"));
+    assert.ok((await thumbs.nth(1).textContent()).includes("7.0s"));
+    await page
+      .getByRole("spinbutton", { name: "SH-001 runtime", exact: true })
+      .fill("8");
+    await page
+      .getByRole("spinbutton", { name: "SH-002 runtime", exact: true })
+      .fill("8");
+    await page
+      .getByRole("button", { name: "Save grid changes", exact: true })
+      .click();
+    fs.mkdirSync("artifacts", { recursive: true });
+    await page.screenshot({
+      path: "artifacts/studio-rollup-grid.png",
+      fullPage: true,
+    });
+    await page.setViewportSize({ width: 1200, height: 1000 });
+    const track = strip.locator(".shot-strip-track");
+    const left = strip.getByRole("button", {
+      name: "Pan shots left",
+      exact: true,
+    });
+    const right = strip.getByRole("button", {
+      name: "Pan shots right",
+      exact: true,
+    });
     assert.equal(
-      await strip
-        .locator(".hierarchy-card")
-        .nth(1)
-        .getAttribute("aria-pressed"),
-      "true",
+      await track.evaluate((node) => getComputedStyle(node).scrollbarWidth),
+      "none",
     );
-    await strip.locator(".strip-down").nth(1).click();
-    assert.equal(await strip.getAttribute("data-scope"), "sc2");
-    await root();
-    await descend();
-    await descend();
-    await descend();
-    await strip.locator(".hierarchy-card").first().click();
+    await right.click();
+    await page.waitForFunction(
+      () => document.querySelector(".shot-strip-track").scrollLeft > 0,
+    );
+    await expect(left).toBeEnabled();
+    await left.click();
+    await page.waitForFunction(
+      () => document.querySelector(".shot-strip-track").scrollLeft === 0,
+    );
+    const trackBounds = await track.boundingBox();
+    await page.mouse.move(trackBounds.x + 50, trackBounds.y + 70);
+    await page.mouse.wheel(0, 180);
+    await page.waitForFunction(
+      () => document.querySelector(".shot-strip-track").scrollLeft > 0,
+    );
+    const sticky = await strip
+      .locator(".strip-range-label.act button")
+      .first()
+      .boundingBox();
+    assert.ok(
+      sticky.x >= trackBounds.x - 1,
+      "Act label stays readable while panning inside its range.",
+    );
+    await page
+      .locator(".project-nav")
+      .getByRole("button", { name: /What we carry/ })
+      .click();
+    const lastScene = await strip
+      .locator('[data-range-id="sc3"]')
+      .boundingBox();
+    assert.ok(
+      lastScene.x >= trackBounds.x - 1 &&
+        lastScene.x < trackBounds.x + trackBounds.width,
+    );
+    assert.deepEqual(
+      await thumbs.evaluateAll((nodes) =>
+        nodes.map((node) => node.dataset.shotId),
+      ),
+      allIds,
+    );
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await thumbs.first().click();
     const media = await page.locator(".media-viewer").boundingBox();
     const details = await page
       .getByRole("region", { name: "Manual object controls" })
@@ -146,10 +230,10 @@ async function main() {
       0,
       "Manual controls must not live in chat.",
     );
-    const right = await page.locator(".crew-sidebar").boundingBox();
+    const chatRight = await page.locator(".crew-sidebar").boundingBox();
     const centerStrip = await strip.boundingBox();
-    assert.ok(centerStrip.x + centerStrip.width <= right.x + 1);
-    assert.ok(right.y <= centerStrip.y);
+    assert.ok(centerStrip.x + centerStrip.width <= chatRight.x + 1);
+    assert.ok(chatRight.y <= centerStrip.y);
     fs.mkdirSync("artifacts", { recursive: true });
     await page.screenshot({
       path: "artifacts/studio-chat-workspace.png",
@@ -164,7 +248,7 @@ async function main() {
       0,
     );
     assert.ok(
-      (await strip.boundingBox()).height <= 170,
+      (await strip.boundingBox()).height <= 230,
       "Scope and thumbnails form one compact module.",
     );
     assert.ok(
@@ -261,8 +345,6 @@ async function main() {
       );
     }
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
-    await root();
-    for (let level = 0; level < 3; level++) await descend();
     await strip.locator(".hierarchy-card").first().click();
     fs.mkdirSync("artifacts", { recursive: true });
     await page.locator(".inspector-object").evaluate((element) => {
@@ -360,7 +442,7 @@ async function main() {
     });
     assert.deepEqual(errors, []);
     console.log(
-      "Compact scoped strip, separate project actions, persistent chat, inline version controls and desktop/mobile navigation passed.",
+      "Continuous shot strip, phase checklist, bulk grids, persistent chat, inline versions and desktop/mobile navigation passed.",
     );
   } finally {
     await browser.close();

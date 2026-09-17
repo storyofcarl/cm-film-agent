@@ -55,7 +55,46 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD44 — Continuous strip, default grids and phase summary
+
+Implement D46 with 96px shot thumbnails and 54px images, colored scene groups,
+sticky range labels, edge-disabled pan arrows and wheel/trackpad panning. Keep
+all project shots mounted while the center changes. Scene grids edit shot titles
+and runtime together; act/sequence grids edit their immediate children's titles.
+Version histories and approvals remain untouched by those edits. Rare container
+properties are available through Edit rather than taking over the default grid.
+This replaces WD42's corner/up navigation and WD39's changing strip scope.
+
+For D47, use read-only approval checkboxes with green/amber/red/gray outlines for
+approved/review/revision/not-started. Phase names open the relevant review area.
+Latest script drafts, selected asset versions, recorded previs guides, exact
+scene approvals and current whole-picture delivery determine the markers. Empty
+optional phases remain Not started and introduce no new production gate. Previs
+guides are independent records: approving another guide for the same shot does
+not silently approve an earlier unreviewed guide. These aggregation rules and
+exact sizing are implementation choices for owner review.
+
+### WD43 — Persist and resume chat tasks across requests
+
+Save the instruction and frozen project context before model execution. Store
+each exact provider request/result in a server-owned journal and lease the task
+atomically. One new provider call runs per worker request; completed calls replay
+from saved results. Browser and scheduler workers can resume the same task, so
+the Studio path is no longer limited to twelve study passes. Publish the complete
+proposal/document only after its required source coverage succeeds.
+
+Stop cancels further work; an already submitted call may finish and retain its
+result without publishing a proposal. An uncertain submitted call or changed
+replay input pauses for attention rather than buying a duplicate response.
+Imported manifests cannot inject executable task journals. The conversation stays
+available for another request while tasks run. There is no automatic paid retry
+for attention states. Tests use mocks; real creative quality remains unverified.
+Full-deliverable output partitioning, record lifecycle and scale validation remain
+open. This is a working engineering choice under D29, not a new approval policy.
+
 ### WD42 — Implement D45 without another center sidebar
+
+Navigation superseded by D46/WD44; retained here as implementation history.
 
 Use 112-pixel-wide thumbnails with an ID/runtime caption. Container drill-down
 buttons sit at the lower-right of the image; the up button stays before the

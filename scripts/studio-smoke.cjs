@@ -687,7 +687,10 @@ async function main() {
     await page
       .getByRole("region", { name: "Project strip", exact: true })
       .waitFor();
-    await page.getByRole("button", { name: /A complete action/ }).click();
+    await page
+      .locator(".project-strip")
+      .getByRole("button", { name: /A complete action/ })
+      .click();
     await page
       .getByRole("combobox", { name: "Reviewing version", exact: true })
       .selectOption(inspectedFixtureVersion);
@@ -914,7 +917,7 @@ async function main() {
     );
     await page.unroute("**/api/studio/crew");
     await chat.getByRole("textbox", { name: "Message", exact: true }).fill("");
-    await page.locator(".hierarchy-card[aria-pressed=true]").click();
+    await page.locator(".project-strip").getByRole("button", { name: /A complete action/ }).click();
     findings.push(
       "Intercepted chat requests carry the inspected version and file area without changing production selection or calling a model.",
     );
@@ -1118,7 +1121,7 @@ async function main() {
       .fill("Sequence · Test addition");
     await dialog.getByRole("button", { name: "Save changes" }).click();
     await page
-      .getByRole("button", { name: /SEQ-.*Sequence · Test addition/ })
+      .getByRole("button", { name: /Sequence · Test addition/ })
       .waitFor();
     await page
       .getByRole("button", { name: "Add sequence", exact: true })

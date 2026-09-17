@@ -3,8 +3,9 @@
 Updated 2026-09-17. The separate private preview is deployed and verified.
 The UX remains a working draft. The owner explicitly rejected describing it as
 final; deployment and passing checks do not establish design acceptance.
-The owner rejected breadcrumb and dropdown strip navigation (D36, D45); thumbnail
-corner drill-down and a leading drill-up button now replace them. Owner review
+The owner rejected breadcrumb, dropdown and hierarchical thumbnail drilling.
+D46 keeps all shots in the strip, with scene outlines and sequence/act ranges.
+Arrows and wheel/trackpad panning replace visible scrollbars. Owner review
 of the implementation remains outstanding.
 Passing placement/navigation checks do not establish interaction acceptance.
 A director-reviewed real creative pilot remains outstanding.
@@ -14,13 +15,15 @@ starts expanded and is chat-only, with collapse/expand controls that retain a
 permanent right rail (D40). Object Properties and
 Details have moved to the center. D42–D43 keep shot/version mechanics inline with
 no Details toggle and add contextual Footage, Scripts, Production docs and Audio.
-D45/WD42 keep the project title above compact ID/runtime thumbnails inside the
+D46/WD44 keep the project title above compact ID/runtime thumbnails inside the
 strip module. Object details sit below the image, with no middle sidebar.
 Project overview/export live in the left bar;
 the center's compact shot/grid toggle replaces the extra workspace tab row.
 Chat remains the primary direction interface;
 the center provides manual inspection and adjustment. Browser checks cover both
-sidebar states, draft retention, below-image controls and icon-based drilling.
+sidebar states, draft retention, below-image controls and continuous strip panning.
+D47 adds Scripting/Assets/Previs/Animation/Delivery approval markers below the chat
+composer. Rollups default to grids of immediate contents for bulk edits.
 Chat copy follows D39: Chat, Message and Send, with no directing banner implying
 that the conversation is restricted to one object or task.
 
@@ -36,15 +39,15 @@ that the conversation is restricted to one object or task.
   and version inventory and retrieve lossless source-text parts on demand. Required
   current/approved writing and creative-intent coverage gates preparation output.
   Exact successful-study requests/responses remain inspectable and survive import.
-  This is bounded retrieval, not completion of long-film task partitioning or
-  resumable preparation; 12 passes remain an explicit limit. WD41 separately
+  WD43 persists and resumes Studio tasks across requests with one new provider call
+  per worker, exact replay, cancellation and uncertain-call protection. Mocked
+  studies exceed twelve passes; full output partitioning remains open. WD41 separately
   externalizes retained long text while keeping a 12 MB operational index limit.
 
-- Strip selection is separate from scope (WD39): container thumbnails open their
-  central workspace without replacing the thumbnail row. Level changes follow the
-  selected branch; selection survives file-view switches. Scope edits use inline
-  Properties, and shot cards include the production version number. Owner review
-  remains required; the interface is not described as final.
+- The strip always contains project shots (D46/WD44). Scene, sequence and act
+  labels open center grids without replacing the row. Shot captions contain only
+  ID/runtime; version controls stay below the shot viewer. Owner review remains
+  required; the interface is not described as final.
 
 - Portable document identity (WD38): imports preserve family codes, explicit
   version numbers and gaps, revision links and full source prompts even when
@@ -131,7 +134,7 @@ that the conversation is restricted to one object or task.
   navigation, V1/V2 approvals, and persistence after reload. Model requests in the
   browser are intercepted; synthetic writing is clearly labeled test content.
 
-- Latest Studio regression: **94 passing tests across 16 suites**, including
+- Latest Studio regression: **107 passing tests across 19 suites**, including
   PDF/DOCX extraction, writing/version/import, lookdev reuse/invalidation and current
   batch-state chat context. Authenticated browser checks verify a zero-job reused
   lookdev review without conflating it with individual asset approval.
@@ -186,8 +189,8 @@ that the conversation is restricted to one object or task.
 
 - Large-project chat remains incomplete. Oversized contexts now use indexed exact
   reads under the 650,000-character per-call guard, with the full inventory retained.
-  Studies currently stop after 12 passes or the pre-call deadline; they are not yet
-  resumable. Whole-deliverable output partitioning and upper-bound scale validation
+  Studio tasks now resume saved study calls across worker requests (WD43). Direct
+  helper callers retain a twelve-pass default. Whole-deliverable output partitioning and upper-bound scale validation
   are still required. Failed studies leave existing saved production data unchanged;
   local long-film rendering does not prove large-project conversational support.
   WD41 routes large payloads through private storage parts instead of sending the

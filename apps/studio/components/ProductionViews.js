@@ -1,11 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
-import ProjectStatus from "./ProjectStatus";
 import {
   REVIEW_LABELS,
   selectedVersion,
   sceneShots,
   sceneSignature,
+  contextShots,
 } from "../lib/domain";
 
 function Media({ media, title = "" }) {
@@ -20,10 +20,24 @@ function Media({ media, title = "" }) {
   );
 }
 
-export function ReviewGrid({ items, busy, command, selectItem }) {
+export function ReviewGrid({
+  items,
+  busy,
+  command,
+  selectItem,
+  project,
+  editable = false,
+}) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(0);
+  const [drafts, setDrafts] = useState({});
+  const containers = items.some((item) => !item.kind);
+  const edit = (id, key, value) =>
+    setDrafts((previous) => ({
+      ...previous,
+      [id]: { ...previous[id], [key]: value },
+    }));
   const filtered = items.filter(
     (item) =>
       item.title.toLowerCase().includes(search.toLowerCase()) &&
@@ -35,7 +49,7 @@ export function ReviewGrid({ items, busy, command, selectItem }) {
     <div>
       <div className="button-row">
         <label className="field">
-          Find an asset or shot
+          Find an item
           <input
             value={search}
             onChange={(event) => {
@@ -44,23 +58,25 @@ export function ReviewGrid({ items, busy, command, selectItem }) {
             }}
           />
         </label>
-        <label className="field">
-          Review filter
-          <select
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value);
-              setPage(0);
-            }}
-          >
-            <option value="all">All selected versions</option>
-            {Object.entries(REVIEW_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!containers && (
+          <label className="field">
+            Review filter
+            <select
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value);
+                setPage(0);
+              }}
+            >
+              <option value="all">All selected versions</option>
+              {Object.entries(REVIEW_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <span>
           {filtered.length} items · page {current + 1} of {pages}
         </span>
@@ -79,66 +95,140 @@ export function ReviewGrid({ items, busy, command, selectItem }) {
           Next page
         </button>
       </div>
+      {editable && Object.keys(drafts).length > 0 && (
+        <div className="button-row grid-save">
+          <span>{Object.keys(drafts).length} items changed</span>
+          <button
+            className="secondary"
+            disabled={busy}
+            onClick={async () => {
+              const result = await command("grid.update", {
+                updates: Object.entries(drafts).map(([id, fields]) => ({
+                  id,
+                  ...fields,
+                })),
+              });
+              if (result) setDrafts({});
+            }}
+          >
+            Save grid changes
+          </button>
+        </div>
+      )}
       <div className="review-grid">
         {filtered.slice(current * 24, (current + 1) * 24).map((item) => {
           const version = selectedVersion(item);
+          const shots =
+            !item.kind && project ? contextShots(project, item.id) : [];
+          const thumbnail =
+            version?.media ||
+            shots.map(selectedVersion).find((entry) => entry?.media)?.media;
           return (
             <article className="review-card" key={item.id}>
               <div className="review-media">
-                <Media media={version?.media} title={item.title} />
+                <Media media={thumbnail} title={item.title} />
               </div>
               <div className="review-body">
+                {editable && (
+                  <span className="object-code">{item.code || item.id}</span>
+                )}
                 <button
                   className="text-button"
                   onClick={() => selectItem(item)}
                 >
                   <b>{item.title}</b>
                 </button>
-                <label className="field">
-                  Selected version
-                  <select
-                    aria-label={`${item.title} version`}
-                    disabled={busy || !item.versions.length}
-                    value={item.selectedVersionId || ""}
-                    onChange={(event) =>
-                      command("version.select", {
-                        itemId: item.id,
-                        versionId: event.target.value,
-                      })
-                    }
-                  >
-                    {!item.versions.length && (
-                      <option value="">No versions yet</option>
+                {editable && (
+                  <>
+                    <label className="field">
+                      Title
+                      <input
+                        aria-label={`${item.code || item.id} title`}
+                        disabled={busy}
+                        value={drafts[item.id]?.title ?? item.title}
+                        onChange={(event) =>
+                          edit(item.id, "title", event.target.value)
+                        }
+                      />
+                    </label>
+                    {item.kind === "shot" ? (
+                      <label className="field">
+                        Runtime (seconds)
+                        <input
+                          aria-label={`${item.code || item.id} runtime`}
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          disabled={busy}
+                          value={drafts[item.id]?.duration ?? item.duration}
+                          onChange={(event) =>
+                            edit(item.id, "duration", event.target.value)
+                          }
+                        />
+                      </label>
+                    ) : (
+                      <p className="muted">
+                        {shots.length} shots ·{" "}
+                        {shots
+                          .reduce(
+                            (sum, shot) => sum + Number(shot.duration || 0),
+                            0,
+                          )
+                          .toFixed(1)}
+                        s
+                      </p>
                     )}
-                    {item.versions.map((entry) => (
-                      <option value={entry.id} key={entry.id}>
-                        V{entry.number} · {REVIEW_LABELS[entry.review]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field">
-                  Approval status
-                  <select
-                    aria-label={`${item.title} approval`}
-                    className={`review-select ${version?.review}`}
-                    disabled={busy || !version}
-                    value={version?.review || "pending"}
-                    onChange={(event) =>
-                      command("version.review", {
-                        itemId: item.id,
-                        versionId: version.id,
-                        review: event.target.value,
-                      })
-                    }
-                  >
-                    {Object.entries(REVIEW_LABELS).map(([value, label]) => (
-                      <option value={value} key={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  </>
+                )}
+                {item.kind && (
+                  <>
+                    <label className="field">
+                      Selected version
+                      <select
+                        aria-label={`${item.title} version`}
+                        disabled={busy || !item.versions.length}
+                        value={item.selectedVersionId || ""}
+                        onChange={(event) =>
+                          command("version.select", {
+                            itemId: item.id,
+                            versionId: event.target.value,
+                          })
+                        }
+                      >
+                        {!item.versions.length && (
+                          <option value="">No versions yet</option>
+                        )}
+                        {item.versions.map((entry) => (
+                          <option value={entry.id} key={entry.id}>
+                            V{entry.number} · {REVIEW_LABELS[entry.review]}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field">
+                      Approval status
+                      <select
+                        aria-label={`${item.title} approval`}
+                        className={`review-select ${version?.review}`}
+                        disabled={busy || !version}
+                        value={version?.review || "pending"}
+                        onChange={(event) =>
+                          command("version.review", {
+                            itemId: item.id,
+                            versionId: version.id,
+                            review: event.target.value,
+                          })
+                        }
+                      >
+                        {Object.entries(REVIEW_LABELS).map(([value, label]) => (
+                          <option value={value} key={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </>
+                )}
                 {item.kind === "shot" && (
                   <div className="button-row">
                     <button
@@ -170,192 +260,7 @@ export function ReviewGrid({ items, busy, command, selectItem }) {
   );
 }
 
-export function HierarchyStrip({
-  project,
-  containerId,
-  selectedId,
-  onNavigate,
-  onInspect,
-  onShot,
-  onAdd,
-  onEdit,
-}) {
-  const container = project.nodes.find((node) => node.id === containerId);
-  const children =
-    container?.type === "scene"
-      ? sceneShots(project, containerId)
-      : project.nodes
-          .filter((node) => node.parentId === (containerId || null))
-          .sort((a, b) => a.order - b.order);
-  const descendantShots = (id) => {
-    const ids = new Set([id]);
-    let size;
-    do {
-      size = ids.size;
-      project.nodes
-        .filter((node) => ids.has(node.parentId))
-        .forEach((node) => ids.add(node.id));
-    } while (ids.size !== size);
-    return project.shots.filter((shot) => ids.has(shot.sceneId));
-  };
-  const addType =
-    { scene: "shot", sequence: "scene", act: "sequence" }[container?.type] ||
-    "act";
-  return (
-    <section
-      className="project-strip"
-      aria-label="Project strip"
-      data-scope={containerId || project.id}
-    >
-      <div className="project-strip-heading">
-        <h1 className="strip-project-title">{project.title}</h1>
-        <div className="button-row strip-actions">
-          <ProjectStatus project={project} onNavigate={onNavigate} />
-          <button
-            className="icon-button"
-            aria-label={`Add ${addType}`}
-            title={`Add ${addType}`}
-            onClick={() => onAdd(addType)}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.55"
-              aria-hidden="true"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
-          {container && (
-            <button
-              className="icon-button"
-              aria-label={`Edit ${container.type}`}
-              title={`Edit ${container.type}`}
-              onClick={() => onEdit(container)}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.55"
-                aria-hidden="true"
-              >
-                <path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="strip-track">
-        <button
-          type="button"
-          className="icon-button strip-up"
-          aria-label="Up one level"
-          title="Up one level"
-          disabled={!container}
-          onClick={() => onNavigate(container.parentId || null)}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            aria-hidden="true"
-          >
-            <path d="m6 10 6-6 6 6M12 4v16" />
-          </svg>
-        </button>
-        <div className="hierarchy-cards" key={containerId || project.id}>
-          {children.map((node) => {
-            const shots =
-              node.kind === "shot" ? [node] : descendantShots(node.id);
-            const take =
-              node.kind === "shot"
-                ? selectedVersion(node)
-                : shots
-                    .map(selectedVersion)
-                    .find((version) => version?.media?.url);
-            return (
-              <div className="hierarchy-entry" key={node.id}>
-                <button
-                  key={node.id}
-                  className={`hierarchy-card ${node.id === selectedId ? "selected" : ""}`}
-                  data-kind={node.type || "shot"}
-                  title={`${node.code || node.id} · ${node.title}`}
-                  aria-label={`${node.code || node.id} · ${node.title}`}
-                  aria-pressed={node.id === selectedId}
-                  onClick={() =>
-                    node.kind === "shot" ? onShot(node) : onInspect(node)
-                  }
-                >
-                  <div>
-                    {take?.media?.type === "image" ? (
-                      <img src={take.media.url} alt="" />
-                    ) : take?.media?.type === "video" ? (
-                      <video
-                        muted
-                        preload="metadata"
-                        src={take.media.url + "#t=0.1"}
-                      />
-                    ) : (
-                      <span aria-hidden="true">—</span>
-                    )}
-                  </div>
-                  <span className="strip-thumb-caption">
-                    <span>{node.code || node.id}</span>
-                    <span>
-                      {shots
-                        .reduce(
-                          (sum, shot) => sum + Number(shot.duration || 0),
-                          0,
-                        )
-                        .toFixed(1)}
-                      s
-                    </span>
-                  </span>
-                </button>
-                {node.kind !== "shot" && (
-                  <button
-                    type="button"
-                    className="strip-down"
-                    aria-label={`Open ${node.code || node.id} contents`}
-                    title={`Open ${node.title} contents`}
-                    onClick={() => onNavigate(node.id)}
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      aria-hidden="true"
-                    >
-                      <path d="M6 4v12h13m-5-5 5 5-5 5" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            );
-          })}
-          {!children.length && (
-            <p className="strip-empty">
-              No {container?.type === "scene" ? "shots" : "items"} here yet. Add
-              one to begin.
-            </p>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
+export { default as HierarchyStrip } from "./ProjectStrip";
 
 export function GuidesPanel({ project, busy, command }) {
   return (

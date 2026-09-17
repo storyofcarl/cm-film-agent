@@ -4,6 +4,10 @@ import reconcile from "../apps/studio/pages/api/jobs/reconcile";
 import { createAdminSupabase } from "../utils/server/supabase";
 import { reconcileBatch, runBatch } from "../apps/studio/lib/server/execute";
 import { createProject, batchFingerprint } from "../apps/studio/lib/domain";
+import { advanceCrewRun } from "../apps/studio/lib/server/crewRuns";
+jest.mock("../apps/studio/lib/server/crewRuns", () => ({
+  advanceCrewRun: jest.fn(),
+}));
 jest.mock("../utils/server/supabase", () => ({
   createAdminSupabase: jest.fn(),
 }));
@@ -123,5 +127,23 @@ test("paused batches still recover results without releasing new paid jobs", asy
   rows = [{ id: project.id, owner_id: "owner", document: project }];
   await tick(0);
   expect(reconcileBatch).toHaveBeenCalledWith(project.id, "paused");
+  expect(runBatch).not.toHaveBeenCalled();
+});
+
+test("scheduler continues saved chat work without an open browser or a generation batch", async () => {
+  const project = createProject({ id: "project" });
+  project.crewRuns = [
+    { id: "first", state: "queued" },
+    { id: "second", state: "running" },
+    { id: "stopped", state: "cancelled" },
+  ];
+  rows = [{ id: project.id, owner_id: "owner", document: project }];
+  advanceCrewRun.mockResolvedValue({ project, revision: 1 });
+  await tick(0);
+  await tick(1);
+  expect(advanceCrewRun.mock.calls).toEqual([
+    [project.id, "first"],
+    [project.id, "second"],
+  ]);
   expect(runBatch).not.toHaveBeenCalled();
 });
