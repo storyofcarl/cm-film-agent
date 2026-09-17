@@ -55,6 +55,17 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD48 — Explicit manual shot destination and consistent grid scope
+
+Manual shot creation shows its destination scene. Preselect the currently viewed
+scene; when opening a placeholder from a broader scope, require a scene choice
+instead of silently using the last scene in the project. Saving opens the created
+shot. Grid Add/Edit actions use the container whose contents are shown, including
+when returning from a shot to its scene grid. Loading or creating a project opens
+the root grid with matching parent scope. Empty containers remain accessible
+through their parent grids even before the all-shot strip can represent them.
+This is a correctness fix under D29/D46/D49, not a new generation approval gate.
+
 ### WD47 — Plan and assemble large preparation outputs
 
 Under D29, extend saved chat tasks with an ordered whole-project output plan.

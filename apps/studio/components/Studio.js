@@ -343,16 +343,13 @@ export default function Studio({
       );
       setProject(result.project);
       setRevision(result.revision);
-      setSceneId(
-        result.project.nodes.find((node) => node.type === "scene")?.id,
-      );
+      setSceneId(null);
       setItemId(null);
       setReviewVersionId(null);
-      setContainerId(
-        result.project.nodes.find((node) => node.type === "scene")?.id || null,
-      );
+      setContainerId(null);
       setSelectedShotId(null);
       setPropertyTargetId(result.project.id);
+      setTab("Review");
     });
   const newProject = (form) =>
     run(async () => {
@@ -373,12 +370,13 @@ export default function Studio({
         ]);
       }
       setProject(created);
-      setSceneId(created.nodes.find((node) => node.type === "scene").id);
+      setSceneId(null);
       setPropertyTargetId(created.id);
-      setContainerId(created.nodes.find((node) => node.type === "scene").id);
+      setContainerId(null);
       setSelectedShotId(null);
       setItemId(null);
       setModal(null);
+      setTab("Review");
     });
   const selectItem = (item) => {
     setPropertyTargetId(item.id);
@@ -861,15 +859,12 @@ export default function Studio({
                     ) ||
                     project.nodes.find(
                       (node) => node.id === sceneId && node.type === "scene",
-                    ) ||
-                    project.nodes
-                      .filter((node) => node.type === "scene")
-                      .at(-1);
-                  if (!target) {
+                    );
+                  if (!project.nodes.some((node) => node.type === "scene")) {
                     setModal("scene");
                     return;
                   }
-                  setSceneId(target.id);
+                  setSceneId(target?.id || null);
                   setModal("shot");
                 } else {
                   setNewContainerType(type);
@@ -1088,11 +1083,12 @@ export default function Studio({
                                   scene: "shot",
                                   sequence: "scene",
                                   act: "sequence",
-                                }[inspectedNode?.type] || "act";
+                                }[rollup?.type] || "act";
                               if (type === "shot") {
                                 setSceneId(rollupId);
                                 setModal("shot");
                               } else {
+                                setContainerId(rollup?.id || null);
                                 setNewContainerType(type);
                                 setModal("container");
                               }
@@ -1103,9 +1099,9 @@ export default function Studio({
                               scene: "shot",
                               sequence: "scene",
                               act: "sequence",
-                            }[inspectedNode?.type] || "act"}
+                            }[rollup?.type] || "act"}
                           </button>
-                          {inspectedNode && (
+                          {rollup && (
                             <button
                               className="text-button"
                               onClick={() => {
@@ -1113,7 +1109,7 @@ export default function Studio({
                                 setTab("Properties");
                               }}
                             >
-                              Edit {inspectedNode.type}
+                              Edit {rollup.type}
                             </button>
                           )}
                         </>
@@ -1744,6 +1740,7 @@ export default function Studio({
           projects={projects}
           container={project?.nodes.find((node) => node.id === containerId)}
           containerType={newContainerType}
+          defaultSceneId={sceneId}
           busy={busy}
           catalog={catalog}
           defaults={{ method, imageModel, videoModel, llmModel }}
@@ -1806,7 +1803,7 @@ export default function Studio({
                 title: form.title,
                 prompt: form.prompt,
                 duration: Number(form.duration),
-                sceneId,
+                sceneId: modal === "shot" ? form.sceneId : undefined,
                 assetType: form.assetType,
               });
             if (modal === "edit-shot")
@@ -1838,7 +1835,16 @@ export default function Studio({
                 prompt: form.prompt,
                 type: form.assetType,
               });
-            if (saved) setModal(null);
+            if (saved) {
+              setModal(null);
+              if (modal === "shot") {
+                const added = saved.shots.find(
+                  (shot) =>
+                    !project.shots.some((existing) => existing.id === shot.id),
+                );
+                if (added) selectItem(added);
+              }
+            }
             return null;
           }}
         />
@@ -1858,6 +1864,7 @@ function FormModal({
   onLoad,
   container,
   containerType,
+  defaultSceneId,
   catalog = [],
   defaults = {},
 }) {
@@ -2171,6 +2178,28 @@ function FormModal({
             )}
             {["shot", "asset", "edit-shot", "edit-asset"].includes(kind) && (
               <>
+                {kind === "shot" && (
+                  <label className="field">
+                    Scene
+                    <select
+                      name="sceneId"
+                      aria-label="Scene"
+                      defaultValue={defaultSceneId || ""}
+                      required
+                    >
+                      <option value="" disabled>
+                        Choose a scene
+                      </option>
+                      {project.nodes
+                        .filter((node) => node.type === "scene")
+                        .map((node) => (
+                          <option key={node.id} value={node.id}>
+                            {node.code || node.id} · {node.title}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                )}
                 <PromptField
                   label={
                     ["asset", "edit-asset"].includes(kind)

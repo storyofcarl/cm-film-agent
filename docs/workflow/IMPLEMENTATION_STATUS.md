@@ -30,6 +30,11 @@ The demo now contains 34 illustrated shots across three acts for panning review.
 Manual container add/edit controls are beside the center grid, outside the strip.
 D49 removes the duplicated left hierarchy tree. Small project metadata (type,
 scene/shot counts and planned runtime) is restored beneath the title.
+WD48 fixes manual creation scope: new shots have an explicit destination, saving
+opens the new shot, shot-to-grid Add/Edit actions use the scene, and new/loaded
+projects open the root grid. A browser check builds an empty act/sequence/scene,
+adds a shot to a deliberately different scene and verifies unchanged empty
+containers, correct parentage and no implicit record creation from placeholders.
 Chat copy follows D39: Chat, Message and Send, with no directing banner implying
 that the conversation is restricted to one object or task.
 
