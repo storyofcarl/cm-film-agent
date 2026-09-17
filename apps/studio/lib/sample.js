@@ -1,4 +1,4 @@
-import { createProject, compileSegments } from "./domain";
+import { createProject, compileSegments, ensureProductionIds } from "./domain";
 export function sampleProject() {
   const project = createProject({
     id: "sample_last_light",
@@ -209,5 +209,5 @@ export function sampleProject() {
       note: "Illustrated storyboard fixtures. No provider generation has run.",
     },
   ];
-  return project;
+  return ensureProductionIds(project);
 }

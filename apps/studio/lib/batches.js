@@ -10,6 +10,8 @@ import {
   sceneIsApproved,
   inputSignature,
   orderedScenes,
+  effectiveAssetIds,
+  inheritedDirection,
 } from "./domain";
 import { upscaleEstimate, UPSCALE_RATE_SOURCE } from "./upscalers";
 
@@ -18,9 +20,8 @@ const fail = (message) => {
 };
 const sourceRefs = (project, shot) => [
   ...project.assets
-    .filter(
-      (asset) =>
-        !Array.isArray(shot?.assetIds) || shot.assetIds.includes(asset.id),
+    .filter((asset) =>
+      effectiveAssetIds(project, shot?.id || project.id).includes(asset.id),
     )
     .map((asset) => {
       const version = selectedVersion(asset);
@@ -50,7 +51,7 @@ const makeJob = (fields) => ({
 });
 const seed = (project) =>
   Number.isSafeInteger(Number(project.settings.seed)) &&
-    project.settings.seed != null
+  project.settings.seed != null
     ? Number(project.settings.seed)
     : Math.floor(Math.random() * 2147483647);
 const silhouetteCast = (project) =>
@@ -122,11 +123,15 @@ export function prepareBatch(project, options, catalog) {
       request: {
         type: "image",
         model: imageModel.id,
-        prompt: [project.globalStyle, asset.prompt || asset.description]
+        prompt: [
+          project.globalStyle,
+          inheritedDirection(project, asset.id),
+          asset.prompt || asset.description,
+        ]
           .filter(Boolean)
           .join("\n\n"),
         size: "2K",
-        references: [],
+        references: asset.kind === "shot" ? sourceRefs(project, asset) : [],
         seed: seed(project),
       },
       ...extra,
@@ -398,7 +403,7 @@ export function prepareBatch(project, options, catalog) {
         group
           .map(
             (item, index) =>
-              `${((index * seconds) / group.length).toFixed(3)}-${(((index + 1) * seconds) / group.length).toFixed(3)}s: ${item.title}. ${item.prompt || item.description}`,
+              `${((index * seconds) / group.length).toFixed(3)}-${(((index + 1) * seconds) / group.length).toFixed(3)}s: ${item.title}. ${inheritedDirection(project, item.id)} ${item.prompt || item.description}`,
           )
           .join("\n");
       batch.jobs.push(
@@ -414,7 +419,18 @@ export function prepareBatch(project, options, catalog) {
           })),
           request: videoRequest(
             { prompt, duration: seconds, resolution: selected.resolution },
-            [],
+            kind === "burst-boards"
+              ? [
+                  ...new Map(
+                    group
+                      .flatMap((shot) => sourceRefs(project, shot))
+                      .map((reference) => [
+                        reference.assetId || reference.guideId || reference.url,
+                        reference,
+                      ]),
+                  ).values(),
+                ]
+              : [],
           ),
         }),
       );

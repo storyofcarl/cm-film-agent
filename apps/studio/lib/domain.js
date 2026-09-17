@@ -14,6 +14,35 @@ const assert = (condition, message) => {
 };
 const now = () => new Date().toISOString();
 const clone = (value) => JSON.parse(JSON.stringify(value));
+export function ensureProductionIds(project) {
+  project.idCounters ||= {};
+  const records = [
+    [project, "PRJ"],
+    ...project.nodes.map((node) => [
+      node,
+      { act: "ACT", sequence: "SEQ", scene: "SC" }[node.type],
+    ]),
+    ...project.shots.map((shot) => [shot, "SH"]),
+    ...project.assets.map((asset) => [asset, "AST"]),
+    ...(project.segments || []).map((segment) => [segment, "SEG"]),
+    ...(project.batches || []).flatMap((batch) => [
+      [batch, "BAT"],
+      ...batch.jobs.map((job) => [job, "JOB"]),
+    ]),
+  ];
+  const used = new Set(records.map(([record]) => record.code).filter(Boolean));
+  for (const [record, prefix] of records) {
+    if (record.code || !prefix) continue;
+    let number = Number(project.idCounters[prefix]) || 0;
+    do {
+      number += 1;
+    } while (used.has(`${prefix}-${String(number).padStart(3, "0")}`));
+    project.idCounters[prefix] = number;
+    record.code = `${prefix}-${String(number).padStart(3, "0")}`;
+    used.add(record.code);
+  }
+  return project;
+}
 const finite = (value) => Number.isFinite(Number(value));
 export const stable = (value) =>
   JSON.stringify(value, (_key, item) =>
@@ -36,7 +65,7 @@ export function createProject({
   const act = uid("act");
   const sequence = uid("seq");
   const scene = uid("scene");
-  return {
+  return ensureProductionIds({
     schemaVersion: SCHEMA_VERSION,
     id,
     title,
@@ -83,7 +112,7 @@ export function createProject({
     decisions: [],
     guides: [],
     deliveries: [],
-  };
+  });
 }
 
 export function validateProject(project) {
@@ -181,6 +210,22 @@ export function validateProject(project) {
       "Creative hierarchy contains an invalid parent.",
     );
   }
+  for (const object of [project, ...project.nodes, ...project.shots]) {
+    assert(
+      object.prompt == null ||
+        (typeof object.prompt === "string" && object.prompt.length <= 40000),
+      "Object direction must be text of up to 40,000 characters.",
+    );
+    assert(
+      object.assetIds == null ||
+        (Array.isArray(object.assetIds) &&
+          new Set(object.assetIds).size === object.assetIds.length &&
+          object.assetIds.every((id) =>
+            project.assets.some((asset) => asset.id === id),
+          )),
+      "Choose existing, unique asset references or inherit them.",
+    );
+  }
   for (const item of [...project.assets, ...project.shots]) {
     assert(
       typeof item.title === "string" &&
@@ -230,6 +275,47 @@ export function validateProject(project) {
 
 export const findItem = (project, id) =>
   [...project.assets, ...project.shots].find((item) => item.id === id);
+export function creativePath(project, id) {
+  const item = findItem(project, id);
+  const chain = item?.kind === "shot" ? [item] : [];
+  let node = project.nodes.find((entry) => entry.id === (item?.sceneId || id));
+  while (node) {
+    chain.unshift(node);
+    node = project.nodes.find((entry) => entry.id === node.parentId);
+  }
+  return [project, ...chain];
+}
+export function effectiveAssetIds(project, id) {
+  const source = creativePath(project, id)
+    .reverse()
+    .find((entry) => Array.isArray(entry.assetIds));
+  return source ? source.assetIds : project.assets.map((asset) => asset.id);
+}
+export function contextShots(project, id) {
+  const shot = project.shots.find((entry) => entry.id === id);
+  if (shot) return [shot];
+  return project.shots.filter((entry) =>
+    creativePath(project, entry.id).some((parent) => parent.id === id),
+  );
+}
+export function inheritedDirection(project, id) {
+  return creativePath(project, id)
+    .slice(1)
+    .filter((entry) => !entry.kind)
+    .map((node) =>
+      [
+        node.prompt ? `${node.type} direction: ${node.prompt}` : "",
+        node.type === "scene" && node.location
+          ? `Location: ${node.location}`
+          : "",
+        node.type === "scene" && node.time ? `Time: ${node.time}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    )
+    .filter(Boolean)
+    .join("\n\n");
+}
 export const selectedVersion = (item) =>
   item?.versions?.find((version) => version.id === item.selectedVersionId) ||
   null;
@@ -301,6 +387,19 @@ export const setupSignature = (project, sceneId = null) =>
       ),
     ),
     sceneId,
+    creativeContext:
+      sceneId === "assets"
+        ? undefined
+        : (sceneId
+            ? creativePath(project, sceneId)
+            : [project, ...project.nodes]
+          ).map(({ id, prompt, assetIds, location, time }) => ({
+            id,
+            prompt,
+            assetIds,
+            location,
+            time,
+          })),
     references:
       sceneId === "assets"
         ? []
@@ -465,6 +564,11 @@ export function compileSegments(
       continuationFromOrder: continuation ? index - 1 : null,
       prompt: [
         project.globalStyle,
+        inheritedDirection(project, sceneId),
+        ...[...new Set(group.parts.map((part) => part.shotId))]
+          .map((id) => project.shots.find((shot) => shot.id === id))
+          .filter((shot) => shot.beats?.length && shot.prompt)
+          .map((shot) => `Shot direction (${shot.title}): ${shot.prompt}`),
         ...group.parts.map(
           (part) =>
             `${part.start.toFixed(2)}–${part.end.toFixed(2)}s: ${part.text}`,
@@ -494,6 +598,18 @@ export const inputSignature = (project, ids) =>
         order: item?.order,
         sceneId: item?.sceneId,
         assetIds: item?.assetIds,
+        creativeContext:
+          item?.kind === "shot"
+            ? creativePath(project, item.id).map(
+                ({ id, prompt, assetIds, location, time }) => ({
+                  id,
+                  prompt,
+                  assetIds,
+                  location,
+                  time,
+                }),
+              )
+            : undefined,
         guides: item?.guideVersionIds,
       };
     }),
@@ -668,7 +784,7 @@ export function applyCommand(
   command,
   actor = { id: "director", role: "human" },
 ) {
-  const project = clone(input);
+  const project = ensureProductionIds(clone(input));
   const payload = command.payload || {};
   const time = now();
   const human = () =>
@@ -686,6 +802,7 @@ export function applyCommand(
     case "project.update":
       for (const key of ["title", "brief", "globalStyle"])
         if (typeof payload[key] === "string") project[key] = payload[key];
+      if (payload.assetIds !== undefined) project.assetIds = payload.assetIds;
       if (payload.settings) {
         human();
         assert(
@@ -731,13 +848,23 @@ export function applyCommand(
         order: project.nodes.length,
         location: payload.location || "",
         time: payload.time || "",
+        prompt: payload.prompt || "",
+        assetIds: payload.assetIds ?? null,
       });
       break;
     }
     case "node.update": {
       const node = project.nodes.find((entry) => entry.id === payload.id);
       assert(node, "Creative container not found.");
-      for (const key of ["title", "parentId", "location", "time", "order"])
+      for (const key of [
+        "title",
+        "parentId",
+        "location",
+        "time",
+        "order",
+        "prompt",
+        "assetIds",
+      ])
         if (payload[key] !== undefined) node[key] = payload[key];
       event("node.updated", { nodeId: node.id });
       break;
@@ -811,6 +938,28 @@ export function applyCommand(
         "Choose an unapplied crew proposal.",
       );
       const proposal = artifact.proposal;
+      const assetIds = new Map(
+        project.assets.map((asset) => [asset.id, asset.id]),
+      );
+      for (const asset of proposal.assets || []) {
+        const key = asset.id || uid("proposed_asset");
+        assert(
+          !assetIds.has(key),
+          "A proposed asset duplicates an existing identifier.",
+        );
+        assetIds.set(key, uid("asset"));
+        asset.id = key;
+      }
+      const resolveAssets = (ids) =>
+        ids == null
+          ? null
+          : ids.map((id) => {
+              assert(
+                assetIds.has(id),
+                "A proposed reference refers to an unknown asset.",
+              );
+              return assetIds.get(id);
+            });
       const ids = new Map(project.nodes.map((node) => [node.id, node.id]));
       for (const node of proposal.nodes || []) {
         assert(
@@ -827,11 +976,13 @@ export function applyCommand(
           title: String(node.title || "Untitled"),
           location: String(node.location || ""),
           time: String(node.time || ""),
+          prompt: String(node.prompt || ""),
+          assetIds: resolveAssets(node.assetIds),
           order: project.nodes.length,
         });
       for (const asset of proposal.assets || [])
         project.assets.push({
-          id: uid("asset"),
+          id: assetIds.get(asset.id),
           kind: "asset",
           type: asset.type || "character",
           title: String(asset.title || "Untitled"),
@@ -853,6 +1004,7 @@ export function applyCommand(
           sceneId: ids.get(shot.sceneId),
           prompt: String(shot.prompt || ""),
           description: String(shot.description || ""),
+          assetIds: resolveAssets(shot.assetIds),
           duration: Number(shot.duration),
           beats: shot.beats || [],
           versions: [],
@@ -880,9 +1032,54 @@ export function applyCommand(
           "duration",
           "beats",
           "assetIds",
+          "type",
         ])
           if (update[key] !== undefined) item[key] = update[key];
         event("item.updated", { itemId: item.id, artifactId: artifact.id });
+      }
+      for (const update of proposal.nodeUpdates || []) {
+        const node = project.nodes.find((entry) => entry.id === update.id);
+        assert(node, "A proposed update refers to an unknown container.");
+        assert(
+          !update.baseSignature || stable(node) === update.baseSignature,
+          "This container changed after the crew proposal. Request an updated proposal.",
+        );
+        for (const key of ["title", "prompt", "location", "time"])
+          if (typeof update[key] === "string") node[key] = update[key];
+        if (update.assetIds !== undefined)
+          node.assetIds = resolveAssets(update.assetIds);
+        event("node.updated", { nodeId: node.id, artifactId: artifact.id });
+      }
+      if (proposal.project) {
+        const change = proposal.project;
+        assert(
+          !change.baseSignature ||
+            change.baseSignature ===
+              stable({
+                title: project.title,
+                brief: project.brief,
+                globalStyle: project.globalStyle,
+                settings: project.settings,
+              }),
+          "Project settings changed after the crew proposal. Request an updated proposal.",
+        );
+        for (const key of ["title", "brief", "globalStyle"])
+          if (typeof change[key] === "string") project[key] = change[key];
+        for (const key of [
+          "llmModel",
+          "imageModel",
+          "videoModel",
+          "aspectRatio",
+          "draftResolution",
+          "deliveryResolution",
+          "seed",
+          "audio",
+          "lookdevMode",
+          "methodDefaults",
+        ])
+          if (change.settings?.[key] !== undefined)
+            project.settings[key] = change.settings[key];
+        event("project.updated", { artifactId: artifact.id });
       }
       artifact.appliedAt = time;
       artifact.review = "approved";
@@ -1272,5 +1469,5 @@ export function applyCommand(
       throw new Error("Unsupported studio command.");
   }
   project.updatedAt = time;
-  return validateProject(project);
+  return validateProject(ensureProductionIds(project));
 }

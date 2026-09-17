@@ -117,6 +117,17 @@ async function main() {
       prompt: "A gray card held still.",
       duration: 2,
     });
+    await command("node.update", {
+      id: sceneId,
+      prompt: "Keep the camera locked off in this scene.",
+      assetIds: [],
+    });
+    assert.equal(
+      (await call(owner, `/api/studio/projects?id=${id}`)).project.nodes.find(
+        (node) => node.id === sceneId,
+      ).prompt,
+      "Keep the camera locked off in this scene.",
+    );
     await call(
       owner,
       "/api/studio/projects",
@@ -144,6 +155,15 @@ async function main() {
       model: video.id,
     });
     const batchId = current.project.batches[0].id;
+    assert.ok(
+      current.project.batches[0].jobs[0].request.prompt.includes(
+        "Keep the camera locked off in this scene.",
+      ),
+    );
+    assert.deepEqual(current.project.batches[0].jobs[0].request.references, []);
+    findings.push(
+      "Persistent container direction and explicit empty asset scope reach the compiled production request.",
+    );
     await call(
       owner,
       "/api/studio/batches",
@@ -339,6 +359,8 @@ async function main() {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(base);
+    await page.getByRole("region", { name: "Persistent crew chat" }).waitFor();
+    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page
       .getByRole("heading", { name: "Scene 01", exact: true })
       .waitFor();
@@ -376,6 +398,7 @@ async function main() {
       fullPage: true,
     });
     await page.goto(base + "/demo");
+    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page
       .getByRole("heading", { name: "The observatory", exact: true })
       .waitFor();
@@ -410,6 +433,8 @@ async function main() {
       "Hierarchy edits, nested creation and keyboard dialog dismissal passed.",
     );
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
+    await page.getByRole("button", { name: "The keeper", exact: true }).click();
+    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page
       .getByRole("button", { name: "Edit asset intent", exact: true })
       .click();

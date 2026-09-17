@@ -1,6 +1,6 @@
 import { createAdminSupabase } from "../../../../utils/server/supabase";
 import { requestContext } from "../../../../utils/server/requestContext";
-import { validateProject, stable } from "../domain";
+import { validateProject, stable, ensureProductionIds } from "../domain";
 import { fault } from "./errors";
 
 export { fault } from "./errors";
@@ -16,7 +16,10 @@ export async function loadProject(id) {
     .maybeSingle();
   if (error) throw fault("Project store unavailable.", 503);
   if (!data) throw fault("Production not found.", 404);
-  return { project: data.document, revision: data.revision };
+  return {
+    project: ensureProductionIds(data.document),
+    revision: data.revision,
+  };
 }
 export async function listProjects() {
   const { data, error } = await createAdminSupabase()
@@ -28,6 +31,7 @@ export async function listProjects() {
   return data;
 }
 export async function insertProject(project) {
+  ensureProductionIds(project);
   validateProject(project);
   const { error } = await createAdminSupabase().from("studio_projects").insert({
     id: project.id,
@@ -52,6 +56,7 @@ export function assertRevision(actual, expected) {
     );
 }
 export async function saveProject(project, revision) {
+  ensureProductionIds(project);
   validateProject(project);
   if (JSON.stringify(project).length > 12 * 1024 * 1024)
     throw fault(

@@ -154,13 +154,15 @@ Deliverable: verified production workflow, delivery package, and migration plan.
 
 ## Current review artifact
 
-2026-09-17: implement the owner's persistent top-strip correction across every
-project view, validate desktop/mobile navigation and retained selection, then
-complete the now-approved separate Vercel preview and hosted checks.
+2026-09-17: the persistent project strip and separate Vercel preview are delivered.
+The chat-first workflow, shared properties, source inspection, stable codes and
+status snapshot are deployed and verified. Review
+[COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for requirement evidence, real-production
+acceptance still needed, and the legacy migration path.
 
 Implementation has progressed into the separate Studio application. See
 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for evidence, known limits
-and remaining deployment work. Phases 1–5 have a working local implementation;
+and remaining acceptance work. Phases 1–5 have a working implementation;
 phase 6 has verified synthetic finishing/export locally and on the separate hosted
 preview. The next production-readiness milestone is a director-approved real pilot.
 This does not mean all future

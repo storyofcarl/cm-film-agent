@@ -19,6 +19,26 @@ async function main() {
       exact: true,
     });
     await strip.waitFor();
+    const chat = page.getByRole("region", { name: "Persistent crew chat" });
+    await chat
+      .getByRole("textbox", { name: "Message the crew", exact: true })
+      .fill("Keep this direction while I inspect the production.");
+    assert.ok(await chat.isVisible());
+    assert.equal(await page.locator("main.workspace").isVisible(), false);
+    fs.mkdirSync("artifacts", { recursive: true });
+    await page.screenshot({
+      path: "artifacts/studio-chat-workspace.png",
+      animations: "disabled",
+      fullPage: true,
+    });
+    await strip.getByRole("button", { name: /^Project status:/ }).click();
+    const status = page.getByRole("dialog", { name: "Production status" });
+    await status
+      .getByText("0 of 3 scenes approved for the current selected versions.", {
+        exact: true,
+      })
+      .waitFor();
+    await status.getByRole("button", { name: "Close", exact: true }).click();
     const sidebar = await page.locator(".project-nav").boundingBox();
     const stripBounds = await strip.boundingBox();
     assert.ok(
@@ -42,6 +62,24 @@ async function main() {
       "Scene workspace",
     ]) {
       await page.getByRole("button", { name, exact: true }).click();
+      assert.ok(
+        await chat.isVisible(),
+        "Crew chat remains visible beside manual views.",
+      );
+      const chatBounds = await chat.boundingBox();
+      const sendBounds = await chat
+        .getByRole("button", { name: "Send to crew", exact: true })
+        .boundingBox();
+      assert.ok(
+        sendBounds.y + sendBounds.height <= chatBounds.y + chatBounds.height,
+        "Chat send control must not be clipped by the properties panel.",
+      );
+      assert.equal(
+        await chat
+          .getByRole("textbox", { name: "Message the crew", exact: true })
+          .inputValue(),
+        "Keep this direction while I inspect the production.",
+      );
       assert.equal(await strip.count(), 1);
       assert.ok(await strip.isVisible());
       assert.equal(await strip.getByRole("navigation").textContent(), crumbs);
@@ -58,6 +96,12 @@ async function main() {
     }
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
     await strip.getByRole("navigation").getByRole("button").first().click();
+    const properties = page.getByRole("region", {
+      name: "Selected object properties",
+    });
+    await properties
+      .getByRole("heading", { name: "The Last Light", exact: true })
+      .waitFor();
     for (const type of ["act", "sequence", "scene"]) {
       assert.equal(
         await strip.locator(".hierarchy-card small").first().textContent(),
@@ -65,13 +109,94 @@ async function main() {
       );
       await strip.locator(".hierarchy-card").first().click();
       assert.ok(
+        (await properties.locator(".eyebrow").textContent()).includes(type),
+      );
+      assert.ok(
         await page
           .getByRole("heading", { name: "Assets", exact: true })
           .isVisible(),
         "Hierarchy browsing must not change the active view.",
       );
+      if (type !== "scene") {
+        await page
+          .getByRole("button", { name: "Scene workspace", exact: true })
+          .click();
+        await page
+          .getByRole("heading", { name: `${type} workspace`, exact: true })
+          .waitFor();
+        assert.equal(
+          await page
+            .getByRole("button", { name: "Approve scene", exact: true })
+            .count(),
+          0,
+          "Container selection must not expose approval for a previously selected scene.",
+        );
+        await page
+          .getByRole("button", { name: "Assets 3", exact: true })
+          .click();
+      }
     }
+    await properties
+      .getByRole("textbox", { name: "Object prompt / direction", exact: true })
+      .fill("Cool dawn light; deliberate camera movement.");
+    await properties
+      .getByRole("button", { name: "Save object properties" })
+      .click();
+    await properties.getByRole("status").waitFor();
+    await properties
+      .getByRole("button", {
+        name: "Expand Object prompt / direction",
+        exact: true,
+      })
+      .click();
+    const promptDialog = page.getByRole("dialog", {
+      name: "Object prompt / direction",
+      exact: true,
+    });
+    const longDirection = "Deliberate camera movement. ".repeat(150);
+    await promptDialog
+      .getByRole("textbox", { name: "Object prompt / direction expanded" })
+      .fill(longDirection);
+    await promptDialog
+      .getByRole("button", { name: "Close", exact: true })
+      .click();
+    assert.equal(
+      await properties
+        .getByRole("textbox", {
+          name: "Object prompt / direction",
+          exact: true,
+        })
+        .inputValue(),
+      longDirection,
+    );
+    await properties
+      .getByRole("textbox", { name: "Object prompt / direction", exact: true })
+      .fill("Cool dawn light; deliberate camera movement.");
+    await page.getByRole("button", { name: "History", exact: true }).click();
+    assert.equal(
+      await properties
+        .getByRole("textbox", {
+          name: "Object prompt / direction",
+          exact: true,
+        })
+        .inputValue(),
+      "Cool dawn light; deliberate camera movement.",
+    );
+    await properties
+      .getByRole("heading", { name: "The observatory", exact: true })
+      .waitFor();
     await strip.locator(".hierarchy-card").nth(1).click();
+    await properties
+      .getByRole("heading", { name: "Crossing the ridge", exact: true })
+      .waitFor();
+    await properties.getByText("Inherited direction", { exact: true }).click();
+    assert.ok(
+      await properties
+        .getByText("Cool dawn light; deliberate camera movement.", {
+          exact: true,
+        })
+        .isVisible(),
+    );
     assert.ok(
       (await strip
         .locator(".hierarchy-card")
@@ -82,12 +207,30 @@ async function main() {
       .getByRole("heading", { name: "The observatory", exact: true })
       .waitFor();
     fs.mkdirSync("artifacts", { recursive: true });
+    await page.locator(".inspector-object").evaluate((element) => {
+      element.scrollTop = 0;
+    });
     await page.screenshot({
       path: "artifacts/studio-desktop.png",
       animations: "disabled",
       fullPage: true,
     });
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
+    await page.getByRole("button", { name: "Details", exact: true }).click();
+    await page
+      .getByRole("button", { name: /^View segments & references/ })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByText(
+        "This demo version is an illustrated storyboard. No video segment was generated.",
+        { exact: true },
+      )
+      .waitFor();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "Close", exact: true })
+      .click();
     await page.screenshot({
       path: "artifacts/studio-assets-top-strip.png",
       animations: "disabled",
@@ -121,7 +264,7 @@ async function main() {
     });
     assert.deepEqual(errors, []);
     console.log(
-      "Persistent top strip verified across all six desktop/mobile views; hierarchy browsing, shot selection and return from Assets passed.",
+      "Shared strip and object properties verified across desktop/mobile views; inheritance, persistent selection and stale scene-control protection passed.",
     );
   } finally {
     await browser.close();

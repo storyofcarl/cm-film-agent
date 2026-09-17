@@ -339,8 +339,50 @@ asset references, prompts and creative direction. Screens expose and manipulate
 these properties; they do not define separate page-specific production objects.
 The project strip chooses the creative context, which persists across screens.
 Keep authored intent distinct from derived values (such as aggregate runtime)
-and immutable historical version recipes. A future UX pass must make the selected
-container's properties directly inspectable, not only show its descendant shots.
+and immutable historical version recipes. The selected container's properties
+must be directly inspectable, not only represented by its descendant shots.
+
+### D31 — Crew conversation is the primary workflow
+
+Confirmed 2026-09-17. Persistent crew chat is the primary way to direct production.
+Manual sections remain available for inspection, approvals and precise edits.
+Chat is present while using those sections, not hidden behind a temporary command
+form. The crew chooses appropriate available methods/tools from the request and
+production state; ordinary conversation does not require selecting a method.
+Keep method provenance in history and an advanced override for optional methods.
+Established model/job defaults belong in project settings, not chat controls.
+
+### D32 — Start from a concept or supplied completed work
+
+The crew guides concept-only work through writing, direction, typed asset planning,
+job preparation and the agreed review gates, with the user directing creative
+choices. Alternatively upload completed elements, have the crew inventory and
+validate them, and use conversation to fill the gaps. Do not recreate complete work
+or require the user to build every object manually. Proposals must be actionable
+and inspectable; chat does not bypass generation costs or human approval gates.
+
+### D33 — Direct access to long prompts, references and source segments
+
+Prompts can exceed 3,500 characters. Provide a usable expanded reading/editing
+surface. Show versions, the references actually used, full generated source
+segments and the ranges used by each shot. A trimmed shot and its original segment
+are distinct. Never replace missing historical references with current selections.
+
+### D34 — Typed assets, stable IDs and reusable scoped strip
+
+The crew must recognize characters, locations, props and other asset types using
+the Film Agent craft prompts and the OCC methodology/tools as applicable. Retain
+the agreed reuse/design-control rule. The strip is one component scoped to the
+project, act, sequence or scene. Scenes, shots, assets and other production objects
+need stable identifiers shared by chat, manual views, prompts and job records;
+renaming or reordering does not change their identity.
+
+### D35 — Clickable production status snapshot
+
+Show a compact project status indicator, such as a ring meter, with the number of
+internally approved scenes (for example four of six). Clicking reveals detailed
+scene and production status. Derive the count from approvals of current selected
+versions, not obsolete approvals or the mere existence of generated footage.
 
 ## Superseded proposals and interpretations
 

@@ -1,6 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import Head from "next/head";
 import BatchPanel from "./BatchPanel";
+import ObjectProperties from "./ObjectProperties";
+import PromptField from "./PromptField";
+import GenerationDetails from "./GenerationDetails";
+import CrewConversation from "./CrewConversation";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { getBrowserSupabase } from "../../../utils/supabase/browser";
@@ -97,24 +101,36 @@ export default function Studio({
   const [tab, setTab] = useState("Cut");
   const [containerId, setContainerId] = useState(sceneId);
   const [selectedShotId, setSelectedShotId] = useState(itemId);
+  const [propertyTargetId, setPropertyTargetId] = useState(
+    itemId || sceneId || initialProject?.id || null,
+  );
   const [newContainerType, setNewContainerType] = useState("act");
-  const [panel, setPanel] = useState("Details");
+  const [panel, setPanel] = useState("Crew");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [modal, setModal] = useState(null);
   const closeModal = useCallback(() => setModal(null), []);
-  const [method, setMethod] = useState("film.shots");
-  const [instruction, setInstruction] = useState("");
+  const [drafts, setDrafts] = useState({});
+  const instruction = drafts[project?.id || "new"] || "";
+  const setInstruction = (value) =>
+    setDrafts((current) => ({ ...current, [project?.id || "new"]: value }));
   const [note, setNote] = useState("");
   const [noteVersionId, setNoteVersionId] = useState(null);
   const [uploadPurpose, setUploadPurpose] = useState("take");
   const [models, setModels] = useState({});
   const [catalog, setCatalog] = useState([]);
-  const [imageModel, setImageModel] = useState("");
-  const [llmModel, setLlmModel] = useState("");
-  const [videoModel, setVideoModel] = useState("");
+  const method = project?.settings.methodDefaults?.crew || "auto";
+  const llmModel = project?.settings.llmModel || models.reasoner || "";
+  const imageModel =
+    project?.settings.imageModel ||
+    models.seedreamPro ||
+    catalog.find((entry) => entry.kind === "image")?.id ||
+    "";
+  const videoModel =
+    project?.settings.videoModel || models.seedance25 || models.seedance || "";
   const [revisionRoute, setRevisionRoute] = useState("frames");
   const importInput = useRef(null);
+  const chatUploadInput = useRef(null);
   const mediaInput = useRef(null);
   const pollCursor = useRef(0);
 
@@ -130,15 +146,6 @@ export default function Studio({
         setProjects(data.items || []);
         setModels(config.models || {});
         setCatalog(config.catalog || []);
-        setImageModel(
-          config.models?.seedreamPro ||
-            config.catalog?.find((entry) => entry.kind === "image")?.id ||
-            "",
-        );
-        setLlmModel(config.models?.reasoner || "");
-        setVideoModel(
-          config.models?.seedance25 || config.models?.seedance || "",
-        );
         if (data.items?.length)
           return jsonFetch(
             `/api/studio/projects?id=${encodeURIComponent(data.items[0].id)}`,
@@ -155,6 +162,12 @@ export default function Studio({
                   ?.id || null,
               );
               setSelectedShotId(loaded.project.shots[0]?.id || null);
+              setPropertyTargetId(
+                loaded.project.shots[0]?.id ||
+                  loaded.project.nodes.find((node) => node.type === "scene")
+                    ?.id ||
+                  loaded.project.id,
+              );
             }
           });
         return undefined;
@@ -273,6 +286,7 @@ export default function Studio({
         result.project.nodes.find((node) => node.type === "scene")?.id || null,
       );
       setSelectedShotId(null);
+      setPropertyTargetId(result.project.id);
     });
   const newProject = (form) =>
     run(async () => {
@@ -294,12 +308,14 @@ export default function Studio({
       }
       setProject(created);
       setSceneId(created.nodes.find((node) => node.type === "scene").id);
+      setPropertyTargetId(created.id);
       setContainerId(created.nodes.find((node) => node.type === "scene").id);
       setSelectedShotId(null);
       setItemId(null);
       setModal(null);
     });
   const selectItem = (item) => {
+    setPropertyTargetId(item.id);
     setItemId(item.id);
     setReviewVersionId(null);
     setNoteVersionId(null);
@@ -320,6 +336,51 @@ export default function Studio({
     anchor.click();
     URL.revokeObjectURL(url);
   };
+  const uploadDocuments = (files) =>
+    run(async () => {
+      if (!files.length) return;
+      if (demo)
+        throw new Error(
+          "Open your studio to upload existing work and talk to the crew.",
+        );
+      let current = project
+        ? { project, revision }
+        : await jsonFetch(
+            "/api/studio/projects",
+            post({
+              action: "create",
+              project: createProject({
+                title: files[0].name.replace(/\.[^.]+$/, ""),
+              }),
+            }),
+          );
+      for (const file of files) {
+        const content = await file.text();
+        current = await jsonFetch(
+          "/api/studio/projects",
+          post({
+            action: "command",
+            id: current.project.id,
+            revision: current.revision,
+            command: {
+              type: "artifact.add",
+              payload: { title: file.name, content },
+            },
+          }),
+        );
+        setProject(current.project);
+        setRevision(current.revision);
+      }
+      setPanel("Crew");
+      setPropertyTargetId(current.project.id);
+      setContainerId(null);
+      setSceneId(null);
+      setSelectedShotId(null);
+      setItemId(null);
+      setMessage(
+        `Uploaded ${files.length} documents. Tell the crew what is complete and what you want help filling in.`,
+      );
+    });
   const importProject = (file) =>
     run(async () => {
       if (!file) return;
@@ -404,6 +465,7 @@ export default function Studio({
           model: llmModel,
           sceneId,
           itemId,
+          contextId: propertyTargetId,
         }),
       );
       setProject(result.project);
@@ -434,6 +496,7 @@ export default function Studio({
       setProject(result.project);
       setRevision(result.revision);
       setTab("Batches");
+      setPanel((current) => (current === "Crew" ? "Details" : current));
     });
 
   const deliveryAction = (action, extra = {}) =>
@@ -454,28 +517,21 @@ export default function Studio({
     });
   const navigate = (id) => {
     setContainerId(id);
+    setPropertyTargetId(id || project.id);
+    setPanel((current) => (current === "Crew" ? "Crew" : "Properties"));
+    setSelectedShotId(null);
+    setItemId(null);
+    setReviewVersionId(null);
     if (project.nodes.find((node) => node.id === id)?.type === "scene") {
       setSceneId(id);
-      const first = sceneShots(project, id)[0];
-      setSelectedShotId(first?.id || null);
-      if (tab !== "Assets") {
-        setItemId(first?.id || null);
-        setReviewVersionId(null);
-      }
-    }
+    } else setSceneId(null);
   };
   const switchTab = (next) => {
     setTab(next);
-    if (next === "Assets") {
-      setItemId(project?.assets[0]?.id || null);
-      setReviewVersionId(null);
-    }
-    if (next === "Cut") {
-      setItemId(selectedShotId || sceneShots(project, sceneId)[0]?.id || null);
-      setReviewVersionId(null);
-    }
+    setPanel((current) => (current === "Crew" ? "Details" : current));
   };
   const scene = project?.nodes.find((node) => node.id === sceneId);
+  const navigationNode = project?.nodes.find((node) => node.id === containerId);
   const shots = project ? sceneShots(project, sceneId) : [];
   const item =
     project &&
@@ -616,20 +672,17 @@ export default function Studio({
                         {project.nodes
                           .filter((node) => node.parentId === sequence.id)
                           .sort((a, b) => a.order - b.order)
-                          .map((entry, index) => (
+                          .map((entry) => (
                             <button
                               key={entry.id}
                               className={`tree-scene ${entry.id === sceneId ? "active" : ""}`}
                               onClick={() => {
                                 navigate(entry.id);
                                 setTab("Cut");
-                                const first = sceneShots(project, entry.id)[0];
-                                setItemId(first?.id || null);
-                                setReviewVersionId(null);
                               }}
                             >
                               <span className="scene-number">
-                                {String(index + 1).padStart(2, "0")}
+                                {entry.code || entry.id}
                               </span>
                               <span>{entry.title}</span>
                               <span
@@ -712,7 +765,9 @@ export default function Studio({
               }}
             />
           )}
-          <div className="project-content">
+          <div
+            className={`project-content ${project && panel === "Crew" ? "chat-workspace" : ""}`}
+          >
             <main className="workspace">
               {message && (
                 <div className="notice" role="status">
@@ -764,13 +819,15 @@ export default function Studio({
                       </div>
                       <h1>
                         {tab === "Cut"
-                          ? scene?.title || "Select a scene"
+                          ? scene?.title ||
+                            navigationNode?.title ||
+                            project.title
                           : tab === "Overview"
                             ? project.title
                             : tab}
                       </h1>
                       <p>
-                        {tab === "Cut"
+                        {tab === "Cut" && scene
                           ? `${shots.length} shots · ${duration(shots.reduce((sum, shot) => sum + Number(shot.duration || 0), 0))} planned · ${scene?.time || "Time not set"}`
                           : tab === "Assets"
                             ? "Reusable identities, worlds, and the details that make them yours."
@@ -830,14 +887,10 @@ export default function Studio({
                       value={sceneId || ""}
                       onChange={(event) => {
                         navigate(event.target.value);
-                        setItemId(
-                          project.shots.find(
-                            (shot) => shot.sceneId === event.target.value,
-                          )?.id || null,
-                        );
                         setTab("Cut");
                       }}
                     >
+                      {!sceneId && <option value="">Choose a scene</option>}
                       {project.nodes
                         .filter((node) => node.type === "scene")
                         .map((node) => (
@@ -868,13 +921,22 @@ export default function Studio({
                       {revisions.length} need revision
                     </span>
                   </div>
-                  {tab === "Cut" && (
+                  {tab === "Cut" && !scene && (
+                    <section className="overview-card">
+                      <h2>{navigationNode?.type || project.scope} workspace</h2>
+                      <p>
+                        Use the project strip to open a scene or shot. Edit this
+                        object’s direction and references in Properties.
+                      </p>
+                    </section>
+                  )}
+                  {tab === "Cut" && scene && (
                     <>
                       <div className="viewer-top">
                         <span>
                           <b>
                             {item?.kind === "shot"
-                              ? `SHOT ${String(project.shots.indexOf(item) + 1).padStart(3, "0")}`
+                              ? item.code || item.id
                               : "SCENE REVIEW"}
                           </b>
                           <span className="muted"> / </span>
@@ -900,7 +962,11 @@ export default function Studio({
                         ) : (
                           <div className="viewer-empty">
                             <Icon name="film" size={42} />
-                            <h2>Give this scene its first frame.</h2>
+                            <h2>
+                              {shots.length
+                                ? "Select a shot to direct."
+                                : "Give this scene its first frame."}
+                            </h2>
                             <p>
                               Add your shots, bring in existing media, or
                               prepare a generation batch.
@@ -931,6 +997,9 @@ export default function Studio({
                         )}
                       </div>
                       <div className="viewer-toolbar">
+                        {item && version && (
+                          <GenerationDetails {...{ project, item, version }} />
+                        )}
                         <div className="button-row">
                           <button
                             className="secondary compact"
@@ -1172,162 +1241,227 @@ export default function Studio({
                 </>
               )}
             </main>
-            <aside className="inspector">
-              <div className="inspector-tabs">
-                {["Details", "Crew"].map((entry) => (
+            <aside
+              className={`inspector ${panel === "Crew" ? "chat-focused" : ""}`}
+            >
+              <section className="crew-dock" aria-label="Persistent crew chat">
+                <div className="crew-dock-heading">
+                  <h2>Crew chat</h2>
                   <button
-                    className={panel === entry ? "active" : ""}
-                    key={entry}
-                    onClick={() => setPanel(entry)}
+                    type="button"
+                    className="text-button"
+                    onClick={() => setPanel("Crew")}
                   >
-                    {entry === "Crew" && <Icon name="spark" size={15} />}
-                    {entry}
+                    Focus chat
                   </button>
-                ))}
-              </div>
-              {panel === "Details" ? (
-                item ? (
-                  <>
-                    <div className="inspector-title">
-                      <span className="eyebrow">
-                        {item.kind === "asset" ? item.type : "SHOT DETAILS"}
-                      </span>
-                      <h2>{item.title}</h2>
-                    </div>
-                    <label className="field">
-                      Reviewing version
-                      <select
-                        value={version?.id || ""}
-                        onChange={(event) => {
-                          setReviewVersionId(event.target.value);
-                          setNoteVersionId(null);
-                          setNote(
-                            item.versions.find(
-                              (candidate) =>
-                                candidate.id === event.target.value,
-                            )?.note || "",
-                          );
-                        }}
-                      >
-                        {!item.versions.length && (
-                          <option value="">No versions yet</option>
-                        )}
-                        {item.versions.map((entry) => (
-                          <option key={entry.id} value={entry.id}>
-                            V{entry.number} · {REVIEW_LABELS[entry.review]}
-                            {entry.id === item.selectedVersionId
-                              ? " · selected"
-                              : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="field">
-                      Approval status
-                      <select
-                        aria-label="Approval status"
-                        className={`review-select ${version?.review || ""}`}
-                        disabled={!version || busy}
-                        value={version?.review || "pending"}
-                        onChange={(event) =>
-                          command("version.review", {
-                            itemId: item.id,
-                            versionId: version.id,
-                            review: event.target.value,
-                            note: displayNote,
-                          })
-                        }
-                      >
-                        {Object.entries(REVIEW_LABELS).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <div className="selected-version-note">
-                      {item.versions
-                        .filter((entry) => entry.review === "approved")
-                        .map((entry) => `V${entry.number}`)
-                        .join(", ") || "No version"}{" "}
-                      approved ·{" "}
-                      {selectedVersion(item)
-                        ? `V${selectedVersion(item).number} selected`
-                        : "nothing selected"}
-                    </div>
-                    {version && version.id !== item.selectedVersionId && (
-                      <button
-                        className="secondary full"
-                        disabled={busy}
-                        onClick={() =>
-                          command("version.select", {
-                            itemId: item.id,
-                            versionId: version.id,
-                          })
-                        }
-                      >
-                        Select V{version.number} for this item
-                      </button>
-                    )}
-                    <div className="inspector-rule" />
-                    <label className="field">
-                      Revision notes
-                      <textarea
-                        rows={3}
-                        placeholder="What should change in the next batch?"
-                        value={displayNote}
-                        onChange={(event) => {
-                          setNote(event.target.value);
-                          setNoteVersionId(version?.id || null);
-                        }}
-                      />
-                    </label>
-                    {item.kind === "shot" && version && (
+                </div>
+                {project && (
+                  <CrewConversation
+                    {...{ project, busy, command }}
+                    contextId={propertyTargetId}
+                    prepare={(kind) => batchAction("prepare", { kind })}
+                  />
+                )}
+                <PromptField
+                  label="Message the crew"
+                  rows={3}
+                  placeholder="Direct the production, ask a question, or refine this object…"
+                  value={instruction}
+                  onChange={(event) => setInstruction(event.target.value)}
+                />
+                <div className="crew-compose-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => chatUploadInput.current.click()}
+                  >
+                    Upload work
+                  </button>
+                  <button
+                    className="primary full"
+                    disabled={busy || !project || !instruction.trim()}
+                    onClick={crew}
+                  >
+                    <Icon name="spark" />{" "}
+                    {busy ? "Crew is working…" : "Send to crew"}
+                  </button>
+                </div>
+                <small className="crew-send-note">
+                  {demo
+                    ? "Illustrated demo · sign in to talk to your crew."
+                    : "Replies use the project's reasoning model. Paid generation batches still need your approval."}
+                </small>
+              </section>
+              <div className="inspector-object">
+                <div className="inspector-tabs">
+                  {["Properties", "Details", "Crew"].map((entry) => (
+                    <button
+                      className={panel === entry ? "active" : ""}
+                      key={entry}
+                      onClick={() => setPanel(entry)}
+                    >
+                      {entry === "Crew" && <Icon name="spark" size={15} />}
+                      {entry}
+                    </button>
+                  ))}
+                </div>
+                {panel === "Properties" && project ? (
+                  <ObjectProperties
+                    key={`${project.id}:${propertyTargetId || project.id}`}
+                    project={project}
+                    targetId={propertyTargetId}
+                    busy={busy}
+                    command={command}
+                  />
+                ) : panel === "Details" ? (
+                  item ? (
+                    <>
+                      <div className="inspector-title">
+                        <span className="eyebrow">
+                          {item.kind === "asset" ? item.type : "SHOT DETAILS"}
+                        </span>
+                        <h2>{item.title}</h2>
+                      </div>
                       <label className="field">
-                        Repair method for this version
+                        Reviewing version
                         <select
-                          disabled={busy}
-                          value={version.repairRoute || ""}
+                          value={version?.id || ""}
+                          onChange={(event) => {
+                            setReviewVersionId(event.target.value);
+                            setNoteVersionId(null);
+                            setNote(
+                              item.versions.find(
+                                (candidate) =>
+                                  candidate.id === event.target.value,
+                              )?.note || "",
+                            );
+                          }}
+                        >
+                          {!item.versions.length && (
+                            <option value="">No versions yet</option>
+                          )}
+                          {item.versions.map((entry) => (
+                            <option key={entry.id} value={entry.id}>
+                              V{entry.number} · {REVIEW_LABELS[entry.review]}
+                              {entry.id === item.selectedVersionId
+                                ? " · selected"
+                                : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <GenerationDetails
+                        key={version?.id || item.id}
+                        {...{ project, item, version }}
+                      />
+                      <label className="field">
+                        Approval status
+                        <select
+                          aria-label="Approval status"
+                          className={`review-select ${version?.review || ""}`}
+                          disabled={!version || busy}
+                          value={version?.review || "pending"}
                           onChange={(event) =>
                             command("version.review", {
                               itemId: item.id,
                               versionId: version.id,
-                              review: version.review,
+                              review: event.target.value,
                               note: displayNote,
-                              repairRoute: event.target.value,
                             })
                           }
                         >
-                          <option value="">Use batch method</option>
-                          <option value="frames">
-                            Extract & revise frames
-                          </option>
-                          <option value="video-edit">
-                            Targeted video edit
-                          </option>
-                          <option value="rerun">Full clip rerun</option>
+                          {Object.entries(REVIEW_LABELS).map(
+                            ([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ),
+                          )}
                         </select>
                       </label>
-                    )}
-                    <button
-                      className="secondary full"
-                      disabled={!version || busy}
-                      onClick={() =>
-                        command("version.review", {
-                          itemId: item.id,
-                          versionId: version.id,
-                          review: "revision",
-                          note: displayNote,
-                        })
-                      }
-                    >
-                      Add to revision batch
-                    </button>
-                    <div className="inspector-rule" />
-                    <span className="eyebrow">GENERATION RECIPE</span>
-                    <label className="field">
-                      Exact prompt
-                      <textarea
+                      <div className="selected-version-note">
+                        {item.versions
+                          .filter((entry) => entry.review === "approved")
+                          .map((entry) => `V${entry.number}`)
+                          .join(", ") || "No version"}{" "}
+                        approved ·{" "}
+                        {selectedVersion(item)
+                          ? `V${selectedVersion(item).number} selected`
+                          : "nothing selected"}
+                      </div>
+                      {version && version.id !== item.selectedVersionId && (
+                        <button
+                          className="secondary full"
+                          disabled={busy}
+                          onClick={() =>
+                            command("version.select", {
+                              itemId: item.id,
+                              versionId: version.id,
+                            })
+                          }
+                        >
+                          Select V{version.number} for this item
+                        </button>
+                      )}
+                      <div className="inspector-rule" />
+                      <label className="field">
+                        Revision notes
+                        <textarea
+                          rows={3}
+                          placeholder="What should change in the next batch?"
+                          value={displayNote}
+                          onChange={(event) => {
+                            setNote(event.target.value);
+                            setNoteVersionId(version?.id || null);
+                          }}
+                        />
+                      </label>
+                      {item.kind === "shot" && version && (
+                        <label className="field">
+                          Repair method for this version
+                          <select
+                            disabled={busy}
+                            value={version.repairRoute || ""}
+                            onChange={(event) =>
+                              command("version.review", {
+                                itemId: item.id,
+                                versionId: version.id,
+                                review: version.review,
+                                note: displayNote,
+                                repairRoute: event.target.value,
+                              })
+                            }
+                          >
+                            <option value="">Use batch method</option>
+                            <option value="frames">
+                              Extract & revise frames
+                            </option>
+                            <option value="video-edit">
+                              Targeted video edit
+                            </option>
+                            <option value="rerun">Full clip rerun</option>
+                          </select>
+                        </label>
+                      )}
+                      <button
+                        className="secondary full"
+                        disabled={!version || busy}
+                        onClick={() =>
+                          command("version.review", {
+                            itemId: item.id,
+                            versionId: version.id,
+                            review: "revision",
+                            note: displayNote,
+                          })
+                        }
+                      >
+                        Add to revision batch
+                      </button>
+                      <div className="inspector-rule" />
+                      <span className="eyebrow">GENERATION RECIPE</span>
+                      <PromptField
+                        label="Exact prompt"
                         readOnly
                         rows={7}
                         value={
@@ -1335,191 +1469,77 @@ export default function Studio({
                         }
                         placeholder="Original prompt is unknown for this imported version."
                       />
-                    </label>
-                    <dl className="recipe-meta">
-                      <dt>Method</dt>
-                      <dd>{methodLabel(version?.method)}</dd>
-                      <dt>Model</dt>
-                      <dd>{version?.model || "Not recorded"}</dd>
-                      <dt>Seed</dt>
-                      <dd>{version?.seed ?? "Not recorded"}</dd>
-                      <dt>Duration</dt>
-                      <dd>
-                        {item.kind === "shot"
-                          ? `${item.duration}s`
-                          : "Still image"}
-                      </dd>
-                    </dl>
-                    <button
-                      className="secondary full"
-                      disabled={busy}
-                      onClick={() => mediaInput.current.click()}
-                    >
-                      <Icon name="plus" />{" "}
-                      {uploadPurpose === "take" || item.kind === "asset"
-                        ? "Import a new version"
-                        : "Import guide media"}
-                    </button>
-                    {item.kind === "shot" && (
-                      <label className="field">
-                        Import media as
-                        <select
-                          value={uploadPurpose}
-                          onChange={(event) =>
-                            setUploadPurpose(event.target.value)
-                          }
+                      <dl className="recipe-meta">
+                        <dt>Method</dt>
+                        <dd>{methodLabel(version?.method)}</dd>
+                        <dt>Model</dt>
+                        <dd>{version?.model || "Not recorded"}</dd>
+                        <dt>Seed</dt>
+                        <dd>{version?.seed ?? "Not recorded"}</dd>
+                        <dt>Duration</dt>
+                        <dd>
+                          {item.kind === "shot"
+                            ? `${item.duration}s`
+                            : "Still image"}
+                        </dd>
+                      </dl>
+                      <button
+                        className="secondary full"
+                        disabled={busy}
+                        onClick={() => mediaInput.current.click()}
+                      >
+                        <Icon name="plus" />{" "}
+                        {uploadPurpose === "take" || item.kind === "asset"
+                          ? "Import a new version"
+                          : "Import guide media"}
+                      </button>
+                      {item.kind === "shot" && (
+                        <label className="field">
+                          Import media as
+                          <select
+                            value={uploadPurpose}
+                            onChange={(event) =>
+                              setUploadPurpose(event.target.value)
+                            }
+                          >
+                            <option value="take">Shot version</option>
+                            <option value="board">
+                              Storyboard / production frame
+                            </option>
+                            <option value="previs">
+                              Previs video reference
+                            </option>
+                          </select>
+                        </label>
+                      )}
+                      {item.kind === "shot" && (
+                        <button
+                          className="text-button full"
+                          onClick={() => setModal("edit-shot")}
                         >
-                          <option value="take">Shot version</option>
-                          <option value="board">
-                            Storyboard / production frame
-                          </option>
-                          <option value="previs">Previs video reference</option>
-                        </select>
-                      </label>
-                    )}
-                    {item.kind === "shot" && (
-                      <button
-                        className="text-button full"
-                        onClick={() => setModal("edit-shot")}
-                      >
-                        Edit shot intent
-                      </button>
-                    )}
-                    {item.kind === "asset" && (
-                      <button
-                        className="text-button full"
-                        onClick={() => setModal("edit-asset")}
-                      >
-                        Edit asset intent
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <div className="inspector-empty">
-                    <Icon name="film" size={30} />
-                    <p>
-                      Select an asset or shot to review its versions, prompts,
-                      and production details.
-                    </p>
-                  </div>
-                )
-              ) : (
-                <div className="crew-panel">
-                  <span className="eyebrow">YOUR PRODUCTION CREW</span>
-                  <h2>What are we making?</h2>
-                  <p>
-                    Give direction across the project or focus on the selected
-                    scene and shot.
-                  </p>
-                  <label className="field">
-                    Method
-                    <select
-                      value={method}
-                      onChange={(event) => setMethod(event.target.value)}
-                    >
-                      {METHODS.map((entry) => (
-                        <option key={entry.id} value={entry.id}>
-                          {entry.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <p className="method-description">
-                    {METHODS.find((entry) => entry.id === method)?.description}
-                  </p>
-                  <label className="field">
-                    Director’s instruction
-                    <textarea
-                      rows={7}
-                      placeholder="Develop the next sequence, analyze this script, or refine the selected shot…"
-                      value={instruction}
-                      onChange={(event) => setInstruction(event.target.value)}
-                    />
-                  </label>
-                  <button
-                    className="primary full"
-                    disabled={busy || !project || !instruction.trim()}
-                    onClick={crew}
-                  >
-                    <Icon name="spark" /> Prepare with crew
-                  </button>
-                  <div className="inspector-rule" />
-                  <label className="field">
-                    Reasoning model
-                    <select
-                      value={llmModel}
-                      onChange={(event) => setLlmModel(event.target.value)}
-                    >
-                      {catalog
-                        .filter((entry) => entry.kind === "llm")
-                        .map((entry) => (
-                          <option key={entry.id} value={entry.id}>
-                            {entry.label}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    Image model
-                    <select
-                      value={imageModel}
-                      onChange={(event) => setImageModel(event.target.value)}
-                    >
-                      {catalog
-                        .filter((entry) => entry.kind === "image")
-                        .map((entry) => (
-                          <option key={entry.id} value={entry.id}>
-                            {entry.label}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    Video model
-                    <select
-                      value={videoModel}
-                      onChange={(event) => setVideoModel(event.target.value)}
-                    >
-                      <option value="">Select a configured model</option>
-                      {Object.entries(models)
-                        .filter(([key]) => /seedance|minimax/i.test(key))
-                        .map(([key, value]) => (
-                          <option key={key} value={value}>
-                            {key} · {value}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                  <button
-                    className="secondary full"
-                    disabled={busy || !sceneId || !videoModel}
-                    onClick={() =>
-                      command("segments.compile", {
-                        sceneId,
-                        profile: {
-                          model: videoModel,
-                          minDuration:
-                            catalog.find((entry) => entry.id === videoModel)
-                              ?.minDuration || 5,
-                          maxDuration:
-                            catalog.find((entry) => entry.id === videoModel)
-                              ?.maxDuration || 15,
-                          resolution: project.settings.draftResolution,
-                        },
-                      })
-                    }
-                  >
-                    Compile scene segments
-                  </button>
-                  <div className="crew-footnote">
-                    <Icon name="layers" />
-                    <p>
-                      Preparation produces reviewable work. Generation batches
-                      have their own approval gates.
-                    </p>
-                  </div>
-                </div>
-              )}
+                          Edit shot intent
+                        </button>
+                      )}
+                      {item.kind === "asset" && (
+                        <button
+                          className="text-button full"
+                          onClick={() => setModal("edit-asset")}
+                        >
+                          Edit asset intent
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="inspector-empty">
+                      <Icon name="film" size={30} />
+                      <p>
+                        Select an asset or shot to review its versions, prompts,
+                        and production details.
+                      </p>
+                    </div>
+                  )
+                ) : null}
+              </div>
             </aside>
           </div>
         </div>
@@ -1538,6 +1558,17 @@ export default function Studio({
           <span className="footer-divider">/</span>DIRECTOR + CREW
         </span>
       </footer>
+      <input
+        ref={chatUploadInput}
+        hidden
+        type="file"
+        multiple
+        accept="text/plain,.txt,.md,.fountain"
+        onChange={(event) => {
+          uploadDocuments(Array.from(event.target.files || []));
+          event.target.value = "";
+        }}
+      />
       <input
         ref={importInput}
         hidden
@@ -1591,6 +1622,8 @@ export default function Studio({
           container={project?.nodes.find((node) => node.id === containerId)}
           containerType={newContainerType}
           busy={busy}
+          catalog={catalog}
+          defaults={{ method, imageModel, videoModel, llmModel }}
           onClose={closeModal}
           onLoad={(id) => {
             load(id);
@@ -1621,6 +1654,13 @@ export default function Studio({
                 brief: form.brief,
                 globalStyle: form.style,
                 settings: {
+                  llmModel: form.llmModel,
+                  imageModel: form.imageModel,
+                  videoModel: form.videoModel,
+                  methodDefaults: {
+                    ...project.settings.methodDefaults,
+                    crew: form.method,
+                  },
                   lookdevMode: form.lookdev,
                   aspectRatio: form.ratio,
                   draftResolution: form.draftResolution,
@@ -1695,11 +1735,14 @@ function FormModal({
   onLoad,
   container,
   containerType,
+  catalog = [],
+  defaults = {},
 }) {
   const dialog = useRef(null);
   useEffect(() => {
     const previous = document.activeElement;
     const keyboard = (event) => {
+      if (document.querySelector("dialog[open]")) return;
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
@@ -1826,14 +1869,54 @@ function FormModal({
             )}
             {kind === "settings" && (
               <>
-                <label className="field">
-                  Global style
-                  <textarea
-                    name="style"
-                    rows={5}
-                    defaultValue={project.globalStyle}
-                  />
-                </label>
+                <PromptField
+                  label="Global style"
+                  name="style"
+                  rows={5}
+                  defaultValue={project.globalStyle}
+                />
+                <details>
+                  <summary>Advanced method override</summary>
+                  <label className="field">
+                    Crew methodology
+                    <select
+                      name="method"
+                      defaultValue={
+                        project.settings.methodDefaults?.crew || defaults.method
+                      }
+                    >
+                      {METHODS.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </details>
+                {[
+                  ["llmModel", "Reasoning model", "llm"],
+                  ["imageModel", "Image model", "image"],
+                  ["videoModel", "Video model", "video"],
+                ].map(([key, label, kind]) => (
+                  <label className="field" key={key}>
+                    {label}
+                    <select
+                      name={key}
+                      defaultValue={
+                        project.settings[key] || defaults[key] || ""
+                      }
+                    >
+                      <option value="">Use configured default</option>
+                      {catalog
+                        .filter((entry) => entry.kind === kind)
+                        .map((entry) => (
+                          <option key={entry.id} value={entry.id}>
+                            {entry.label}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                ))}
                 <label className="field">
                   Lookdev coverage
                   <select
@@ -1965,21 +2048,21 @@ function FormModal({
             )}
             {["shot", "asset", "edit-shot", "edit-asset"].includes(kind) && (
               <>
-                <label className="field">
-                  {["asset", "edit-asset"].includes(kind)
-                    ? "Design description"
-                    : "Shot intent / prompt"}
-                  <textarea
-                    name="prompt"
-                    rows={5}
-                    defaultValue={
-                      ["edit-shot", "edit-asset"].includes(kind)
-                        ? item.prompt || item.description || ""
-                        : ""
-                    }
-                    required
-                  />
-                </label>
+                <PromptField
+                  label={
+                    ["asset", "edit-asset"].includes(kind)
+                      ? "Design description"
+                      : "Shot intent / prompt"
+                  }
+                  name="prompt"
+                  rows={5}
+                  defaultValue={
+                    ["edit-shot", "edit-asset"].includes(kind)
+                      ? item.prompt || item.description || ""
+                      : ""
+                  }
+                  required
+                />
                 {["asset", "edit-asset"].includes(kind) ? (
                   <label className="field">
                     Asset type
@@ -1991,6 +2074,9 @@ function FormModal({
                       <option value="location">Location</option>
                       <option value="prop">Prop</option>
                       <option value="creature">Creature</option>
+                      <option value="vehicle">Vehicle</option>
+                      <option value="wardrobe">Wardrobe</option>
+                      <option value="other">Other</option>
                     </select>
                   </label>
                 ) : (

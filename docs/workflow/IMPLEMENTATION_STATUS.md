@@ -1,13 +1,28 @@
 # Studio implementation status
 
-Updated 2026-09-16. Local implementation and release checks are complete. The
-active goal is not complete: separate hosted deployment and its verification remain.
+Updated 2026-09-17. The separate private preview is deployed and verified.
+The chat-first workspace update is deployed and passed hosted release verification.
+A director-reviewed real creative pilot remains outstanding.
 
 ## Implemented
 
 - Separate `apps/studio` application; legacy remains at the repository root.
+- Persistent crew conversation as the default wide workspace, docked beside manual
+  views. Saved replies, project-specific drafts, selected object context, readable
+  proposals, and non-executing batch-preparation actions. Automatic method routing
+  retains source provenance; model/method defaults live in project settings.
+- Stable project-local object codes and explicit project/act/sequence/scene strip
+  scope. Clickable approval ring counts current scene approvals, with asset, shot,
+  scene and active-job details. Asset types are editable in Properties.
+- Expanded prompt editors/readers, exact-version reference inspection, full source
+  segment playback and per-shot source ranges. Illustrative demo frames are clearly
+  identified as having no generated video segment.
 - Film/episode/act/sequence/scene/shot navigation, nested thumbnails, editable
   hierarchy, shot ordering, searchable full-batch review, desktop and mobile layouts.
+- Persistent object Properties inspector: editable direction and asset references,
+  shot runtime and aggregated container runtime, visible inherited direction,
+  and selection shared with crew requests. Changes affect future requests and
+  flag stale plans while historical generation recipes remain intact.
 - Exact-version approval dropdowns, independent selection, repair notes/methods,
   prompt/seed/model history, decision events and immutable database snapshots.
 - Deliverable-wide segment compilation, complete timed beats, continuation
@@ -18,7 +33,7 @@ active goal is not complete: separate hosted deployment and its verification rem
   revised prompt). Source video references are trimmed to the intended shot range.
 - Storyboards, faceless color-coded previs, burst-frame extraction, candidate
   promotion and explicit guide review/reference selection.
-- Six supplied methodology packages plus original Film Agent alternatives. Crew
+- Six supplied methodology packages, the OCC methodology, and original Film Agent alternatives. Crew
   artifacts retain exact compiled instructions and source hashes. Explicitly
   applied proposals can add production items or update future intent.
 - Supplied text/Studio manifests/media intake. Decode and timing checks precede
@@ -33,7 +48,13 @@ active goal is not complete: separate hosted deployment and its verification rem
 
 ## Evidence
 
-- Complete automated regression: **82 passing tests across 14 suites**.
+- Complete automated regression: **91 passing tests across 17 suites**.
+- New regressions cover automatic method selection, conversation context, stable
+  IDs, typed asset/reference proposals, exact historical source inspection, and the
+  4-of-6 scene approval count changing to 3-of-6 after an approved selection changes.
+- Browser checks cover persistent chat across all six manual views, retained draft
+  text, visible Send control, expanded 4,000-character editing, status details and
+  source inspection. Authenticated Supabase checks passed without paid AI calls.
 - Real synthetic FFmpeg media tests cover trims, mixed audio, dimensions, local
   delivery rendering and parsing exported OTIO with the official Python library.
 - Mocked-provider execution covers pilot reuse, human gates, dependent frame repair,
@@ -70,6 +91,11 @@ active goal is not complete: separate hosted deployment and its verification rem
   exact dialogue, sound quality or every instant of a continuous action.
 - Direct document intake accepts text/Markdown/Fountain or a Studio JSON manifest.
   PDF/DOCX extraction and legacy-project conversion are not automated.
+- Chat's multi-file Upload work entry currently accepts text/Markdown/Fountain.
+  Media and Studio manifests retain their existing dedicated intake controls.
+  A general unassigned mixed-media/document upload inbox is still outstanding.
+- Automatic crew method routing and proposals have mocked-provider coverage;
+  conversational quality and autonomous end-to-end production need the real pilot.
 - Hosted renders are capped at 180 seconds/30 shots. Longer edits use local render
   or OTIO. There is no full DAW, advanced color grade, caption/title editor or automatic
   lip-sync/master-audio timing system in this release.
@@ -105,3 +131,11 @@ view. Desktop/mobile checks verified the sidebar placement, all six views, hiera
 changing the active view, retained shot selection, and return from Assets to the
 selected shot. The updated authenticated smoke also passed; temporary fixtures
 were cleaned up and no provider generation was submitted.
+
+The subsequent D31–D35 release is live on the same Studio domain. Hosted checks
+verified the persistent wide/docked chat, unchanged drafts during navigation,
+long-prompt expansion, status details, source-inspection access, object properties,
+and all existing authentication/ownership checks. Temporary fixtures were cleaned
+up. The release did not run paid reasoning or generation; automatic craft routing
+was verified with mocked provider responses. General mixed-media/document intake
+and the real director-reviewed production pilot remain open.

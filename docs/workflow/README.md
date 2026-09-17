@@ -11,6 +11,8 @@ It was created on 2026-09-16 from the design discussion with the project owner.
 - [WORKFLOW_MATRIX.md](WORKFLOW_MATRIX.md): reviewable stage inputs/outputs,
   dependencies, proposed gates/authority, intake evidence, objects, and change rules.
 - [BUILD_PLAN.md](BUILD_PLAN.md): phased delivery plan for the separate new application.
+- [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md): requirement evidence, remaining real
+  production acceptance, and the deliberate legacy migration path.
 - [WORKING_DECISIONS.md](WORKING_DECISIONS.md): delegated choices awaiting owner review,
   with rationale and change impact; development proceeds under D29.
 - [SKILL_CATALOG.md](SKILL_CATALOG.md): reviewed owner-supplied writing, direction,

@@ -1,0 +1,158 @@
+import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { InspectDialog } from "./PromptField";
+import { crewNextActions } from "../lib/crewActions";
+import ProposalReview from "./ProposalReview";
+
+export function directorMessage(artifact) {
+  return (
+    artifact.instruction ||
+    (artifact.prompt?.startsWith("DIRECTOR'S REQUEST\n")
+      ? artifact.prompt
+          .split("\n\nCURRENT PRODUCTION")[0]
+          .slice("DIRECTOR'S REQUEST\n".length)
+      : null)
+  );
+}
+
+export default function CrewConversation({
+  project,
+  contextId,
+  busy,
+  command,
+  prepare,
+}) {
+  const log = useRef(null);
+  const [expanded, setExpanded] = useState(null);
+  const messages = project.artifacts.filter((artifact) =>
+    directorMessage(artifact),
+  );
+  const context =
+    [...project.nodes, ...project.shots, ...project.assets, project].find(
+      (entry) => entry.id === contextId,
+    ) || project;
+  useEffect(() => {
+    if (log.current) log.current.scrollTop = log.current.scrollHeight;
+  }, [messages.length]);
+  const reply = (artifact) => (
+    <>
+      <div className="crew-reply">
+        <ReactMarkdown>{artifact.content}</ReactMarkdown>
+      </div>
+      {artifact.decisions?.length > 0 && (
+        <p className="gate-message">
+          Working decisions: {artifact.decisions.join(" · ")}
+        </p>
+      )}
+      {artifact.proposal && (
+        <>
+          <details>
+            <summary>Review proposed changes</summary>
+            <ProposalReview {...{ project }} proposal={artifact.proposal} />
+          </details>
+          <button
+            type="button"
+            className="secondary full"
+            disabled={busy || Boolean(artifact.appliedAt)}
+            onClick={() => command("artifact.apply", { id: artifact.id })}
+          >
+            {artifact.appliedAt
+              ? "Proposal applied"
+              : "Apply proposed production changes"}
+          </button>
+        </>
+      )}
+      {crewNextActions(artifact.nextActions).map((action, index) => (
+        <div key={`${action.kind}:${index}`} className="crew-next-action">
+          <p>{action.reason}</p>
+          <button
+            type="button"
+            className="secondary full"
+            disabled={busy}
+            onClick={() => prepare(action.kind)}
+          >
+            {action.title}
+          </button>
+          <small>Prepare for review · no generation submitted</small>
+        </div>
+      ))}
+    </>
+  );
+  return (
+    <>
+      <p className="crew-context">
+        Directing:{" "}
+        <strong>
+          {context.code || context.id} · {context.title}
+        </strong>
+        <br />
+        <small>The crew also sees the full production.</small>
+      </p>
+      {project.artifacts.some((entry) => entry.origin === "imported") && (
+        <details className="crew-uploads">
+          <summary>
+            Supplied work ·{" "}
+            {
+              project.artifacts.filter((entry) => entry.origin === "imported")
+                .length
+            }{" "}
+            documents
+          </summary>
+          {project.artifacts
+            .filter((entry) => entry.origin === "imported")
+            .map((entry) => (
+              <p key={entry.id}>
+                {entry.title} ·{" "}
+                {entry.review === "approved"
+                  ? "Approved"
+                  : "Needs completeness review"}
+              </p>
+            ))}
+        </details>
+      )}
+      <div
+        ref={log}
+        className="crew-conversation"
+        role="log"
+        aria-label="Crew conversation"
+        aria-live="polite"
+      >
+        {!messages.length && (
+          <p>
+            Start with your vision, ask about the production, or direct the next
+            batch. Replies and reviewable proposals will appear here.
+          </p>
+        )}
+        {messages.map((artifact) => (
+          <article key={artifact.id}>
+            <div className="crew-message director-message">
+              <b>You</b>
+              <p className="crew-message-text">{directorMessage(artifact)}</p>
+            </div>
+            <div className="crew-message">
+              <b>Crew</b>
+              {artifact.context?.title && (
+                <small>{artifact.context.title}</small>
+              )}
+              {reply(artifact)}
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => setExpanded(artifact.id)}
+              >
+                Expand reply
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+      {expanded && (
+        <InspectDialog title="Crew reply" onClose={() => setExpanded(null)}>
+          {reply(
+            project.artifacts.find((artifact) => artifact.id === expanded),
+          )}
+        </InspectDialog>
+      )}
+    </>
+  );
+}

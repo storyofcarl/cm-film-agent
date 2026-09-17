@@ -1,5 +1,26 @@
 export const METHODS = [
   {
+    id: "auto",
+    name: "Crew chooses",
+    stage: "all",
+    description:
+      "Choose the appropriate available craft methods for the director's request and current production.",
+  },
+  {
+    id: "film.crew",
+    name: "Film Agent · Production crew",
+    stage: "all",
+    description:
+      "Integrated writing, direction, cast/world and shot preparation.",
+  },
+  {
+    id: "occ-production",
+    name: "OCC · Production methodology",
+    stage: "direction",
+    description:
+      "Source-faithful batch planning, typed reusable assets, reference discipline, staging and model-specific prompt assembly.",
+  },
+  {
     id: "film.develop",
     name: "Film Agent · Develop",
     stage: "writing",

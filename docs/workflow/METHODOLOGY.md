@@ -3,6 +3,26 @@
 Design baseline: 2026-09-16. See DECISIONS.md for authority and corrections.
 This describes the intended workflow, not capabilities already implemented.
 
+## Direct the crew through persistent conversation
+
+Chat is the primary workspace. Start with a concept or upload existing work and
+describe what is complete, what should be preserved and what remains. The crew
+inventories the production, chooses appropriate available craft methods, and guides
+the next meaningful creative decisions. It prepares actionable writing, hierarchy,
+asset, settings and batch proposals; the director can inspect and refine them in
+chat or use the manual views. Human media and cost gates continue to apply.
+
+The conversation stays with the project and remains available beside manual views.
+Established defaults live in project settings. Method provenance stays in history,
+with an advanced override available rather than a method selector in ordinary chat.
+Use stable object codes when referring to scenes, shots and assets. The top strip
+can scope itself to the project, act, sequence or scene without changing object
+identity. The status snapshot reports current scene approvals and opens details.
+
+Long prompts need an expanded reading/editing surface. Version inspection must
+show recorded references and the full source segments, including the trim ranges
+used for a shot. Missing provenance remains explicitly unknown.
+
 ## Work at the deliverable's scope
 
 An assignment to produce a scene, episode, or film creates a batch at that scope.
@@ -290,6 +310,13 @@ object with properties. Runtime, asset references, prompts and direction belong
 to that object; each screen exposes different properties or actions for it.
 Changing screens preserves the selected context. Derived aggregate values and
 immutable version recipes remain distinct from editable creative intent.
+
+The Properties inspector exposes film/episode, act, sequence, scene, shot and asset
+records from the same selection. Shared direction is included in descendant
+requests. Reference scope can inherit or explicitly override its parent, including
+an empty reference selection; source-version approval gates still apply. Container
+runtime is derived from its shots rather than an independently drifting value.
+These inheritance defaults are WD29 and remain open to owner revision.
 
 ## OCC principles to retain in the pipeline draft
 

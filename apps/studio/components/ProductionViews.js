@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
+import ProjectStatus from "./ProjectStatus";
 import {
   REVIEW_LABELS,
   selectedVersion,
@@ -223,6 +224,22 @@ export function HierarchyStrip({
           ))}
         </nav>
         <div className="button-row">
+          <ProjectStatus project={project} onNavigate={onNavigate} />
+          <label className="strip-scope">
+            View scope
+            <select
+              aria-label="Strip scope"
+              value={containerId || ""}
+              onChange={(event) => onNavigate(event.target.value || null)}
+            >
+              <option value="">Full project · {project.title}</option>
+              {project.nodes.map((node) => (
+                <option key={node.id} value={node.id}>
+                  {node.code || node.type} · {node.title}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             className="secondary compact"
             onClick={() =>
@@ -288,6 +305,7 @@ export function HierarchyStrip({
                 )}
               </div>
               <small>{node.type || "Shot"}</small>
+              <span className="object-code">{node.code || node.id}</span>
               <h3>{node.title}</h3>
               <p>
                 {node.kind === "shot"

@@ -1,13 +1,22 @@
 # Owner-supplied creative and production methods
 
-Reviewed: 2026-09-16. Design integration only; no skills have been installed into
-the application and no generation jobs were run during this review.
+Initial review: 2026-09-16. The following source inventory began as design work.
+As of 2026-09-17 the six supplied packages are bundled in Studio alongside original
+Film Agent prompt templates. Automatic crew routing chooses relevant methods;
+advanced overrides remain available. No paid generation was run during review.
 All six supplied `.skill` files are ZIP packages. Their main `SKILL.md` files
 were read. Additional Studio references read: `foundation-process.md`,
 `execution-engine.md`, and `coherence-specificity-gate.md`.
 Other bundled references/scripts are inventoried, not fully audited or executed.
 
 ## Sources and roles
+
+The owner's OCC `METHODOLOGY.md` is also bundled as `occ-production`, with a
+source hash retained for each use. It supplies reference discipline, staging,
+source fidelity and model-specific prompt assembly. Original OCC CLI commands
+are not thereby installed as callable Studio tools; the Studio contract and
+verified provider adapters govern execution. Automatic routing is recorded with
+the resulting method sources and full conversation request in crew history.
 
 All paths below are relative to:
 `D:\Google Drive\My Drive\AI Tools\Claude Skills\`

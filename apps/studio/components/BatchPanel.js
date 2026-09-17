@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
 import { jobBlockers } from "../lib/domain";
+import PromptField from "./PromptField";
 
 function BatchCard({ project, batch, busy, command, action, catalog }) {
   const [amount, setAmount] = useState(batch.estimate?.total ?? "");
@@ -84,7 +85,12 @@ function BatchCard({ project, batch, busy, command, action, catalog }) {
             <dt>Source version</dt>
             <dd>{job.sourceVersionId || "None"}</dd>
           </dl>
-          <pre>{job.request.prompt}</pre>
+          <PromptField
+            label="Generation prompt"
+            value={job.request.prompt || ""}
+            readOnly
+            rows={6}
+          />
           {batch.jobs.every((entry) => entry.state === "planned") &&
             batch.state !== "superseded" && (
               <details>
@@ -115,15 +121,13 @@ function BatchCard({ project, batch, busy, command, action, catalog }) {
                     });
                   }}
                 >
-                  <label className="field">
-                    Exact prompt
-                    <textarea
-                      name="prompt"
-                      rows={7}
-                      defaultValue={job.request.prompt}
-                      required
-                    />
-                  </label>
+                  <PromptField
+                    label="Exact prompt"
+                    name="prompt"
+                    rows={7}
+                    defaultValue={job.request.prompt}
+                    required
+                  />
                   <label className="field">
                     Model
                     <select name="model" defaultValue={job.request.model}>

@@ -11,6 +11,10 @@ import {
   sceneIsApproved,
   revisionItems,
   validateProject,
+  creativePath,
+  contextShots,
+  effectiveAssetIds,
+  inputSignature,
 } from "../apps/studio/lib/domain";
 import { sampleProject } from "../apps/studio/lib/sample";
 import { prepareBatch } from "../apps/studio/lib/batches";
@@ -29,6 +33,122 @@ const profiles = [
   },
   { id: "image", kind: "image", references: 10 },
 ];
+
+test("container properties shape descendant requests and explicit asset overrides", () => {
+  let { project, sceneId } = fixture();
+  for (const title of ["Keeper", "Observatory"])
+    project = applyCommand(project, {
+      type: "item.add",
+      payload: { kind: "asset", title },
+    });
+  const act = project.nodes.find((node) => node.type === "act");
+  const shot = project.shots[0];
+  project = applyCommand(project, {
+    type: "node.update",
+    payload: {
+      id: act.id,
+      prompt: "Use restrained motion.",
+      assetIds: [project.assets[0].id],
+    },
+  });
+  project = applyCommand(project, {
+    type: "node.update",
+    payload: {
+      id: sceneId,
+      prompt: "Cold blue light.",
+      location: "Ridge station",
+      time: "Dawn",
+    },
+  });
+  expect(creativePath(project, shot.id).map((entry) => entry.id)).toEqual([
+    project.id,
+    ...project.nodes.map((node) => node.id),
+    shot.id,
+  ]);
+  expect(contextShots(project, act.id)).toHaveLength(1);
+  expect(effectiveAssetIds(project, shot.id)).toEqual([project.assets[0].id]);
+  const result = prepareBatch(
+    project,
+    { kind: "production", model: "video" },
+    profiles,
+  );
+  const job = result.batches.at(-1).jobs[0];
+  expect(job.request.prompt).toContain("Use restrained motion.");
+  expect(job.request.prompt).toContain("Cold blue light.");
+  expect(job.request.prompt).toContain("Location: Ridge station");
+  expect(job.request.references.map((ref) => ref.assetId)).toEqual([
+    project.assets[0].id,
+  ]);
+  for (const kind of ["boards", "burst-boards"]) {
+    const planned = prepareBatch(
+      project,
+      { kind, model: "video" },
+      profiles,
+    ).batches.at(-1).jobs[0];
+    expect(planned.request.prompt).toContain("Cold blue light.");
+    expect(planned.request.references.map((ref) => ref.assetId)).toEqual([
+      project.assets[0].id,
+    ]);
+  }
+  const changed = applyCommand(result, {
+    type: "node.update",
+    payload: { id: sceneId, prompt: "Warm evening light." },
+  });
+  expect(
+    jobBlockers(
+      changed,
+      result.batches.find((batch) => batch.jobs.includes(job)),
+      job,
+    ).some((reason) => reason.includes("shared setup changed")),
+  ).toBe(true);
+  project = applyCommand(project, {
+    type: "item.update",
+    payload: { id: shot.id, assetIds: [] },
+  });
+  expect(effectiveAssetIds(project, shot.id)).toEqual([]);
+  project = applyCommand(project, {
+    type: "item.update",
+    payload: { id: shot.id, assetIds: null },
+  });
+  expect(effectiveAssetIds(project, shot.id)).toEqual([project.assets[0].id]);
+});
+
+test("changed container direction invalidates prepared work without rewriting historical recipes", () => {
+  let { project, sceneId } = fixture();
+  const shot = project.shots[0];
+  project = version(project, shot.id);
+  const originalRecipe = project.shots[0].versions[0].prompt;
+  const signature = inputSignature(project, [shot.id]);
+  const setup = setupSignature(project, sceneId);
+  project = applyCommand(project, {
+    type: "node.update",
+    payload: { id: sceneId, prompt: "New lighting direction." },
+  });
+  expect(inputSignature(project, [shot.id])).not.toBe(signature);
+  expect(setupSignature(project, sceneId)).not.toBe(setup);
+  expect(project.shots[0].versions[0].prompt).toBe(originalRecipe);
+  expect(() =>
+    applyCommand(project, {
+      type: "node.update",
+      payload: { id: sceneId, assetIds: ["missing"] },
+    }),
+  ).toThrow("existing, unique asset");
+});
+
+test("shot prompt edits remain effective when timed beats exist", () => {
+  let { project, sceneId } = fixture();
+  project = applyCommand(project, {
+    type: "item.update",
+    payload: {
+      id: project.shots[0].id,
+      prompt: "A slow dolly toward the keeper.",
+      beats: [{ text: "The keeper turns.", duration: 8 }],
+    },
+  });
+  const compiled = compileSegments(project, sceneId, { model: "video" });
+  expect(compiled[0].prompt).toContain("A slow dolly toward the keeper.");
+  expect(compiled[0].prompt).toContain("The keeper turns.");
+});
 test("public sample remains a valid editable Studio project", () => {
   const project = sampleProject();
   expect(validateProject(project)).toBe(project);
