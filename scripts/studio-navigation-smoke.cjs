@@ -24,7 +24,26 @@ async function main() {
       .getByRole("textbox", { name: "Message the crew", exact: true })
       .fill("Keep this direction while I inspect the production.");
     assert.ok(await chat.isVisible());
-    assert.equal(await page.locator("main.workspace").isVisible(), false);
+    assert.ok(
+      await page.locator("main.workspace").isVisible(),
+      "The project remains visible while directing the crew.",
+    );
+    const normalChat = await page.locator(".inspector").boundingBox();
+    const normalWorkspace = await page.locator("main.workspace").boundingBox();
+    assert.ok(
+      normalWorkspace.width > normalChat.width,
+      "The work area is larger than the default chat dock.",
+    );
+    await chat.getByRole("button", { name: "Widen chat", exact: true }).click();
+    const widerChat = await page.locator(".inspector").boundingBox();
+    assert.ok(widerChat.width > normalChat.width);
+    assert.ok(
+      await page.locator("main.workspace").isVisible(),
+      "Widening chat must not hide the production.",
+    );
+    await chat
+      .getByRole("button", { name: "Narrow chat", exact: true })
+      .click();
     fs.mkdirSync("artifacts", { recursive: true });
     await page.screenshot({
       path: "artifacts/studio-chat-workspace.png",
@@ -264,7 +283,7 @@ async function main() {
     });
     assert.deepEqual(errors, []);
     console.log(
-      "Shared strip and object properties verified across desktop/mobile views; inheritance, persistent selection and stale scene-control protection passed.",
+      "Docked chat, widening without hiding the work, persistent drafts and desktop/mobile layout checks passed. Strip placement checks do not establish acceptance of its level-view interaction.",
     );
   } finally {
     await browser.close();

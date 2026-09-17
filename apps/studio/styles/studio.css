@@ -501,24 +501,15 @@ button:hover:not(:disabled) {
   min-width: 0;
   min-height: 0;
 }
-.project-content.chat-workspace > .workspace {
-  display: none;
+@media (min-width: 951px) {
+  .inspector.crew-expanded {
+    width: min(520px, 45%);
+  }
 }
-.project-content.chat-workspace > .inspector {
-  width: 100%;
-  border-left: 0;
-}
-.chat-workspace .crew-dock {
-  width: min(100%, 1000px);
-  margin: 0 auto;
-  padding: 24px 36px;
-}
-.chat-workspace .crew-conversation {
-  font-size: 14px;
-}
-.chat-workspace .inspector-object {
-  width: min(100%, 1000px);
-  margin: 0 auto;
+@media (max-width: 950px) {
+  .crew-dock-heading > button {
+    display: none;
+  }
 }
 .crew-next-action {
   margin-top: 12px;

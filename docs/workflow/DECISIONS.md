@@ -384,6 +384,22 @@ internally approved scenes (for example four of six). Clicking reveals detailed
 scene and production status. Derive the count from approvals of current selected
 versions, not obsolete approvals or the mere existence of generated footage.
 
+### D36 — Strip interaction rejected; level-view module required
+
+The owner rejected the deployed strip's breadcrumb-driven interaction. The strip
+must be a module for viewing the production at different levels. Placement and
+navigation tests do not establish acceptance of that interaction. The owner's
+description ended at "it should be"; the replacement controls and presentation
+await the rest of that clarification. Do not infer a new interaction or deploy a
+strip redesign from that unfinished sentence.
+
+### D37 — Persistent chat must not consume the workspace
+
+The owner clarified that chat should not take up the entire workspace. Keep the
+project work visible alongside the persistent conversation. Opening crew chat,
+uploading supplied work or selecting the Crew tab must not hide the work area.
+The prior default full-width chat interpretation is superseded.
+
 ## Superseded proposals and interpretations
 
 ### D26 — Earlier duration-threshold interpretation, replaced by D27

@@ -53,6 +53,13 @@ cost authorization. Read-only connectivity checks and preview inspection are fin
 Do not represent fixtures as real generated production media. Keep deployment
 credentials server-side and out of logs, docs, fixtures, browser bundles and Git.
 
+## Owner corrections to working choices
+
+D37 supersedes WD30's default wide chat layout: keep chat docked alongside the
+visible project, with optional modest widening. D36 rejects the current strip
+interaction; its replacement remains unresolved. Do not treat prior passing
+navigation checks as owner acceptance or resolve this through more unrelated pilot work.
+
 ## Review on return
 
 Give the owner the working preview, implementation/validation status, this decision

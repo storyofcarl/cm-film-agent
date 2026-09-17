@@ -108,6 +108,7 @@ export default function Studio({
   );
   const [newContainerType, setNewContainerType] = useState("act");
   const [panel, setPanel] = useState("Crew");
+  const [chatExpanded, setChatExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [modal, setModal] = useState(null);
@@ -792,9 +793,7 @@ export default function Studio({
               </button>
             </div>
           )}
-          <div
-            className={`project-content ${project && panel === "Crew" ? "chat-workspace" : ""}`}
-          >
+          <div className="project-content">
             <main className="workspace">
               {!project ? (
                 <div className="welcome">
@@ -1257,7 +1256,7 @@ export default function Studio({
               )}
             </main>
             <aside
-              className={`inspector ${panel === "Crew" ? "chat-focused" : ""}`}
+              className={`inspector ${panel === "Crew" ? "chat-focused" : ""} ${chatExpanded ? "crew-expanded" : ""}`}
             >
               <section className="crew-dock" aria-label="Persistent crew chat">
                 <div className="crew-dock-heading">
@@ -1265,9 +1264,13 @@ export default function Studio({
                   <button
                     type="button"
                     className="text-button"
-                    onClick={() => setPanel("Crew")}
+                    aria-pressed={chatExpanded}
+                    onClick={() => {
+                      setPanel("Crew");
+                      setChatExpanded((current) => !current);
+                    }}
                   >
-                    Focus chat
+                    {chatExpanded ? "Narrow chat" : "Widen chat"}
                   </button>
                 </div>
                 {project && (

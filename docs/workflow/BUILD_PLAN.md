@@ -154,7 +154,9 @@ Deliverable: verified production workflow, delivery package, and migration plan.
 
 ## Current review artifact
 
-2026-09-17: the persistent project strip and separate Vercel preview are delivered.
+2026-09-17: the separate Vercel preview is delivered. The strip's persistent placement
+is implemented, but its breadcrumb-driven interaction was rejected by the owner
+(D36). The required level-view module remains incomplete pending clarification.
 The chat-first workflow, shared properties, source inspection, stable codes and
 status snapshot are deployed and verified. Review
 [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for requirement evidence, real-production

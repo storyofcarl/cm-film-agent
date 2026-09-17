@@ -1,18 +1,26 @@
 # Studio implementation status
 
 Updated 2026-09-17. The separate private preview is deployed and verified.
-The chat-first workspace update is deployed and passed hosted release verification.
+The owner rejected the breadcrumb-driven strip interaction (D36); the required
+level-view module remains unresolved pending the rest of their clarification.
+Passing placement/navigation checks did not establish interaction acceptance.
 A director-reviewed real creative pilot remains outstanding.
+
+Latest owner correction: D37 is deployed. Crew chat stays in the right dock and
+never hides the main production workspace, including when widened. Live desktop
+and mobile checks passed, with draft retention through navigation. D36 remains
+unresolved: do not present the strip's current interaction as accepted or complete.
 
 ## Implemented
 
 - Separate `apps/studio` application; legacy remains at the repository root.
-- Persistent crew conversation as the default wide workspace, docked beside manual
-  views. Saved replies, project-specific drafts, selected object context, readable
+- Persistent crew conversation docked beside the visible production workspace
+  (D37). Optional widening keeps the work visible. Saved replies, project-specific
+  drafts, selected object context, readable
   proposals, and non-executing batch-preparation actions. Automatic method routing
   retains source provenance; model/method defaults live in project settings.
-- Stable project-local object codes and explicit project/act/sequence/scene strip
-  scope. Clickable approval ring counts current scene approvals, with asset, shot,
+- Stable project-local object codes. The current scoped strip is implemented but
+  its breadcrumb-driven interaction is rejected (D36). Clickable approval ring counts current scene approvals, with asset, shot,
   scene and active-job details. Asset types are editable in Properties.
 - Expanded prompt editors/readers, exact-version reference inspection, full source
   segment playback and per-shot source ranges. Illustrative demo frames are clearly
@@ -53,7 +61,9 @@ A director-reviewed real creative pilot remains outstanding.
 
 ## Evidence
 
-- Complete automated regression: **95 passing tests across 18 suites**.
+- Complete automated regression: **96 passing tests across 18 suites**.
+- WaveSpeed image plans record a null seed because the adapter does not submit
+  a seed to that provider; an untransmitted seed must not imply reproducibility.
 - Combined crew proposals resolve newly created assets in updates to existing shots
   and assign supplied artwork in the same operation. Cross-type temporary ID
   collisions are rejected; regression tests preserve historical versions and
