@@ -78,6 +78,7 @@ let revision;
 let rows;
 let providerRows;
 let completed;
+let beforeUpdate;
 const clone = (value) => JSON.parse(JSON.stringify(value));
 const context = (fn) =>
   runWithRequest(
@@ -112,6 +113,11 @@ function query(table) {
       return builder;
     },
     update(value) {
+      if (beforeUpdate) {
+        const action = beforeUpdate;
+        beforeUpdate = null;
+        action();
+      }
       patch = value;
       return builder;
     },
@@ -128,7 +134,9 @@ function query(table) {
       return builder;
     },
     async maybeSingle() {
-      return { data: clone(matching()[0] || null), error: null };
+      const data = matching();
+      if (patch) data.forEach((row) => Object.assign(row, clone(patch)));
+      return { data: clone(data[0] || null), error: null };
     },
     then(resolve, reject) {
       try {
@@ -152,6 +160,7 @@ beforeEach(() => {
   rows = [];
   providerRows = [];
   completed = false;
+  beforeUpdate = null;
   loadProject.mockImplementation(async () => ({
     project: clone(project),
     revision,
@@ -173,6 +182,8 @@ beforeEach(() => {
           project_id: project.id,
           state: "claimed",
           request: job.request,
+          updated_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
         }));
       rows.push(...clone(claims));
       return { data: claims, error: null };
@@ -449,4 +460,38 @@ test("manual resolution records a provider check and still requires a new batch 
       "No approved jobs",
     );
     expect(seedanceHandler).toHaveBeenCalledTimes(1);
+  }));
+
+test("a late successful provider result wins over a concurrent manual close", async () =>
+  context(async () => {
+    shots(1);
+    project = prepareBatch(
+      project,
+      { kind: "production", model: "video" },
+      catalog,
+    );
+    const batch = project.batches[0];
+    approve(batch);
+    seedanceHandler.mockRejectedValueOnce(
+      new Error("Submission result unknown"),
+    );
+    await runBatch(project.id, batch.id);
+    const jobId = rows[0].id;
+    beforeUpdate = () => {
+      rows[0].state = "succeeded";
+      rows[0].result = {
+        url: "https://example.com/recovered.mp4",
+        type: "video",
+      };
+    };
+    await expect(
+      resolveUncertainJob(project.id, batch.id, jobId, {
+        confirmedStopped: true,
+        note: "Provider dashboard was checked.",
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(rows[0].state).toBe("succeeded");
+    expect(project.events.some((event) => event.kind === "job.resolved")).toBe(
+      false,
+    );
   }));

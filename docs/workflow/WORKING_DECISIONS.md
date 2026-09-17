@@ -40,6 +40,7 @@ D01–D25 and D27–D28 take precedence. D26 is superseded.
 | WD25 | Pause stops remaining submissions without cancelling tasks already running. Closing an unconfirmed attempt requires a human provider-check record; another attempt needs a newly approved batch. | Provides operational control without silent paid retries. Pending claims have a five-minute grace period. | Pending owner review |
 | WD26 | Applied crew proposals can update future shot/asset intent, with source-signature conflict checks. They cannot rewrite historical media recipes, approvals or selections. | Makes prompt revision actionable across the production while preserving history. | Pending owner review |
 | WD27 | Private-preview finishing includes picture assembly, source audio, JSON/OTIO and local long-film rendering. DAW, advanced grading, captions/titles, speech timing, team roles and automatic legacy conversion remain extensions. | Keeps the release boundary honest while retaining professional downstream interchange. | Pending owner review |
+| WD28 | Rotate scheduler project pages and batch selection; condition manual recovery closure on the exact database state read. | Prevents blocked/older work from starving ready productions and prevents a late successful result being overwritten by manual closure. No additional credentials or database migration are needed. | Pending owner review |
 
 Use deterministic local fixtures and mocked provider executions to verify paid
 paths. Real provider submission requires an approved production batch and actual

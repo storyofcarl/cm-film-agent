@@ -225,10 +225,28 @@ export async function resolveUncertainJob(
     throw fault(
       "This submission may still be active. Wait five minutes and refresh before resolving it.",
     );
-  await updateJob(job.id, {
-    state: "failed",
-    error: `Closed after director provider check: ${String(note).slice(0, 2000)}`,
-  });
+  // A provider result may arrive while the director checks the dashboard. Never
+  // close over that newer result or erase the opportunity to recover its media.
+  const { data: closed, error: closeError } = await createAdminSupabase()
+    .from("studio_jobs")
+    .update({
+      state: "failed",
+      error: `Closed after director provider check: ${String(note).slice(0, 2000)}`,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", job.id)
+    .eq("owner_id", ownerId())
+    .eq("state", job.state)
+    .eq("updated_at", job.updated_at)
+    .select("id")
+    .maybeSingle();
+  if (closeError)
+    throw fault("The attempt could not be closed. Refresh its results.", 503);
+  if (!closed)
+    throw fault(
+      "This attempt changed during your provider check. Refresh and review the recovered result before resolving it.",
+      409,
+    );
   await mergeProject(id, (project) => {
     project.events.push({
       id: uid("event"),

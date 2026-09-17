@@ -33,17 +33,20 @@ active goal is not complete: separate hosted deployment and its verification rem
 
 ## Evidence
 
-- Complete automated regression: **77 passing tests across 13 suites**.
+- Complete automated regression: **82 passing tests across 14 suites**.
 - Real synthetic FFmpeg media tests cover trims, mixed audio, dimensions, local
   delivery rendering and parsing exported OTIO with the official Python library.
 - Mocked-provider execution covers pilot reuse, human gates, dependent frame repair,
   duplicate claims, uncertain submissions and trimmed video-edit references.
+- A continuation audit found and fixed scheduler starvation and a manual-recovery
+  race. Dedicated regressions verify access beyond 50 projects, later ready batches,
+  pause enforcement and preservation of a concurrent successful provider result.
 - Real Supabase smoke checks passed: invitation access, ownership, client-write
   denial, stale edits, upload namespace, snapshots, concurrent atomic claims and
   idempotency. Temporary users/media were cleaned up; no provider jobs were submitted.
 - Studio and legacy production builds passed. Studio source lint has zero warnings;
   repository-wide lint passes with 94 existing legacy warnings.
-- Source plus Studio browser-bundle scan: **319 files, zero configured-secret matches**.
+- Source plus Studio browser-bundle scan: **zero configured-secret matches**.
 - Desktop/mobile browser checks pass, including nested hierarchy creation/editing,
   keyboard dialog dismissal, and asset-intent edits that preserve historical prompts.
   Screenshots are retained in ignored `artifacts/studio-*.png`; no browser runtime

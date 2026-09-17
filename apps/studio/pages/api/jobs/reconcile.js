@@ -17,16 +17,28 @@ export default async function reconcile(req, res) {
   )
     return res.status(401).end();
   const db = createAdminSupabase();
+  // Rotate a bounded page over a stable ordering. A fixed oldest-50 query can
+  // starve newer productions behind completed or blocked projects forever.
+  const tick = Math.floor(Date.now() / 60000);
+  const { count, error: countError } = await db
+    .from("studio_projects")
+    .select("id", { count: "exact", head: true });
+  if (countError)
+    return res.status(503).json({ error: "Production store unavailable." });
+  const pages = Math.max(1, Math.ceil(count / 50));
+  const offset = (tick % pages) * 50;
   const { data, error } = await db
     .from("studio_projects")
     .select("id,owner_id,document")
-    .order("updated_at")
-    .limit(50);
+    .order("id")
+    .range(offset, offset + 49);
   if (error)
     return res.status(503).json({ error: "Production store unavailable." });
   const started = Date.now();
   const results = [];
-  for (const row of data) {
+  const first = data.length ? Math.floor(tick / pages) % data.length : 0;
+  const rows = [...data.slice(first), ...data.slice(0, first)];
+  for (const row of rows) {
     if (Date.now() - started > 180000) break;
     const { data: account } = await db.auth.admin.getUserById(row.owner_id);
     if (!isApprovedUser(account?.user)) continue;
@@ -35,7 +47,12 @@ export default async function reconcile(req, res) {
         batch.approval &&
         ["approved", "running", "attention"].includes(batch.state),
     );
-    for (const batch of candidates.slice(0, 2)) {
+    const cursor = candidates.length ? tick % candidates.length : 0;
+    const selected = [
+      ...candidates.slice(cursor),
+      ...candidates.slice(0, cursor),
+    ].slice(0, 2);
+    for (const batch of selected) {
       if (Date.now() - started > 180000) break;
       try {
         const status = await runWithRequest(
