@@ -905,35 +905,6 @@ export default function Studio({
                       {tab === "Overview" ? "Production overview" : tab}
                     </h1>
                   )}
-                  {["Cut", "Review"].includes(tab) && item?.kind === "shot" && (
-                    <div
-                      className="workspace-view-switch"
-                      role="group"
-                      aria-label="Footage view"
-                    >
-                      <button
-                        type="button"
-                        className="icon-button"
-                        title="Shot view"
-                        aria-label="Shot view"
-                        aria-pressed={tab === "Cut"}
-                        onClick={() => switchTab("Cut")}
-                      >
-                        <Icon name="film" />
-                      </button>
-                      <button
-                        type="button"
-                        className="icon-button"
-                        title="Shot grid"
-                        aria-label="Shot grid"
-                        aria-pressed={tab === "Review"}
-                        onClick={() => switchTab("Review")}
-                      >
-                        <Icon name="grid" />
-                      </button>
-                    </div>
-                  )}
-
                   {tab === "Cut" && !scene && (
                     <section className="overview-card">
                       <h2>{inspectedNode?.title || project.title}</h2>

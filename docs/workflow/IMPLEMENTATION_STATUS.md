@@ -18,7 +18,8 @@ no Details toggle and add contextual Footage, Scripts, Production docs and Audio
 D46/WD44 keep the project title above compact ID/runtime thumbnails inside the
 strip module. Object details sit below the image, with no middle sidebar.
 Project overview/export live in the left bar;
-the center's compact shot/grid toggle replaces the extra workspace tab row.
+D50 removes the shot/grid toggle: shots open their viewer and mechanics, while
+strip range labels open rollup grids. The version dropdown remains below the image.
 Chat remains the primary direction interface;
 the center provides manual inspection and adjustment. Browser checks cover both
 sidebar states, draft retention, below-image controls and continuous strip panning.

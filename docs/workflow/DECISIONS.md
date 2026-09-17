@@ -517,6 +517,14 @@ areas, settings and export. The owner also asks for the small project details
 that disappeared during header simplification. Restore compact project metadata
 beneath the title while retaining D48's removal of the ring/add/edit cluster.
 
+### D50 — Single shots use the viewer; grids show collections
+
+The owner says a grid layout is unnecessary for a single shot unless it shows
+versions. Remove the shot/grid toggle from the shot workspace. Clicking a shot
+opens its media and version-bound mechanics below; clicking a scene, sequence or
+act label opens its contents grid. The existing version dropdown remains. This
+does not request a new version-grid feature.
+
 ## Superseded proposals and interpretations
 
 ### D26 — Earlier duration-threshold interpretation, replaced by D27

@@ -162,17 +162,6 @@
   font-size: 21px;
   margin: 0 0 20px;
 }
-.workspace-view-switch {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-  margin: -12px 0 4px;
-}
-.workspace-view-switch [aria-pressed="true"] {
-  background: #332b20;
-  color: var(--accent);
-  border-radius: 4px;
-}
 .nav-bottom {
   gap: 8px;
 }

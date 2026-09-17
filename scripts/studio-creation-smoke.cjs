@@ -76,8 +76,11 @@ async function main() {
       strip.locator(`[data-range-id="${emptySceneId}"]`),
     ).toHaveCount(0);
     await expect(strip.locator(".hierarchy-card")).toHaveCount(35);
-    // Shot -> grid must retain its scene scope even though the inspected object is a shot.
-    await page.getByRole("button", { name: "Shot grid", exact: true }).click();
+    // Rollup grids are reached through their strip labels, not a single-shot grid toggle.
+    await strip
+      .locator('[data-range-id="sc2"]')
+      .getByRole("button", { name: /^View scene/ })
+      .click();
     await expect(
       page.getByRole("button", { name: "Add shot", exact: true }),
     ).toBeVisible();

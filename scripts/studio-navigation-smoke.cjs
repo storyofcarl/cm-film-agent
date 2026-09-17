@@ -325,17 +325,19 @@ async function main() {
       "History",
       "Production overview",
       "Shot view",
-      "Shot grid",
     ]) {
       if (name === "Shot view")
         await strip.locator(".hierarchy-card[aria-pressed=true]").click();
       else await page.getByRole("button", { name, exact: true }).click();
-      if (name === "Shot grid")
-        assert.equal(
-          await page.locator(".review-card").count(),
-          4,
-          "Shot grid follows the scene scope.",
-        );
+      if (name === "Shot view") {
+        await expect(page.locator(".media-viewer")).toBeVisible();
+        await expect(
+          page.getByRole("group", { name: "Footage view" }),
+        ).toHaveCount(0);
+        await expect(
+          page.getByRole("button", { name: "Shot grid", exact: true }),
+        ).toHaveCount(0);
+      }
       assert.ok(
         await chat.isVisible(),
         "Crew chat remains visible beside manual views.",
