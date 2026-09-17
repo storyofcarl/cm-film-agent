@@ -512,6 +512,17 @@ async function main() {
     assert.ifError(seededWriting.error);
     assert.equal(seededWriting.data.length, 1);
     current = await call(owner, `/api/studio/projects?id=${id}`);
+    current = await call(owner, "/api/studio/batches", {
+      action: "prepare",
+      id,
+      revision: current.revision,
+      kind: "lookdev",
+    });
+    const reusedLookdevId = current.project.batches[0].id;
+    assert.equal(current.project.batches[0].samples.length, 1);
+    assert.equal(current.project.batches[0].jobs.length, 0);
+    assert.equal(current.project.batches[0].estimate.total, 0);
+    assert.equal(current.project.lookdev.length, 0);
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
       viewport: { width: 1600, height: 1100 },
@@ -816,6 +827,75 @@ async function main() {
     await page
       .getByRole("heading", { name: /versions need attention/ })
       .waitFor();
+    const reusedLookdevCard = page
+      .locator(".batch-card")
+      .filter({
+        has: page.getByRole("heading", {
+          name: "Studio validation fixture · lookdev",
+          exact: true,
+        }),
+      });
+    await reusedLookdevCard
+      .getByRole("region", { name: "Existing lookdev versions" })
+      .waitFor();
+    assert.equal(
+      await reusedLookdevCard
+        .getByRole("button", { name: "Run approved jobs", exact: true })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await reusedLookdevCard
+        .getByRole("button", { name: "Record estimate", exact: true })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await reusedLookdevCard
+        .getByRole("textbox", {
+          name: "Recorded prompt for Supplied keeper",
+          exact: true,
+        })
+        .inputValue(),
+      "Original prompt not recorded.",
+    );
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/api/studio/projects") &&
+          response.request().postDataJSON()?.command?.type ===
+            "lookdev.approve",
+      ),
+      reusedLookdevCard
+        .getByRole("button", { name: "Approve lookdev results", exact: true })
+        .click(),
+    ]);
+    const afterLookdev = await call(owner, `/api/studio/projects?id=${id}`);
+    assert.ok(
+      afterLookdev.project.lookdev.some(
+        (entry) =>
+          entry.batchId === reusedLookdevId &&
+          entry.scope === "assets" &&
+          entry.review === "approved",
+      ),
+    );
+    assert.equal(
+      afterLookdev.project.assets.find((entry) => entry.id === inboxTarget)
+        .versions[0].review,
+      "pending",
+    );
+    assert.equal(
+      afterLookdev.project.batches.find((entry) => entry.id === reusedLookdevId)
+        .jobs.length,
+      0,
+    );
+    await page.screenshot({
+      path: "artifacts/studio-reused-lookdev.png",
+      fullPage: true,
+    });
+    findings.push(
+      "Existing asset lookdev reused the uploaded version with zero provider jobs, displayed unknown provenance honestly, required a human lookdev action, and retained separate pending asset approval.",
+    );
     fs.mkdirSync("artifacts", { recursive: true });
     await page.screenshot({
       path: "artifacts/studio-authenticated-batches.png",

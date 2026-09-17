@@ -12,6 +12,8 @@ import {
   orderedScenes,
   effectiveAssetIds,
   inheritedDirection,
+  stable,
+  assetLookdevIsApproved,
 } from "./domain.js";
 import { upscaleEstimate, UPSCALE_RATE_SOURCE } from "./upscalers.js";
 
@@ -267,12 +269,7 @@ export function prepareBatch(project, options, catalog) {
       )
       .map((asset) => imageJob(asset));
   } else if (kind === "lookdev") {
-    const assetsApproved = project.lookdev.some(
-      (entry) =>
-        entry.scope === "assets" &&
-        entry.review === "approved" &&
-        entry.signature === setupSignature(project, "assets"),
-    );
+    const assetsApproved = assetLookdevIsApproved(project);
     if (
       !assetsApproved &&
       project.assets.length &&
@@ -284,7 +281,46 @@ export function prepareBatch(project, options, catalog) {
         .map((type) => project.assets.find((asset) => asset.type === type))
         .filter(Boolean);
       if (!representative.length) representative.push(project.assets[0]);
-      batch.jobs = representative.map((asset) => imageJob(asset));
+      batch.samples = [];
+      for (const asset of representative) {
+        const selected = selectedVersion(asset);
+        const usable =
+          selected ||
+          asset.versions.findLast(
+            (version) =>
+              version.media?.type === "image" &&
+              version.media.url &&
+              version.review !== "revision",
+          );
+        if (
+          usable?.media?.type === "image" &&
+          usable.media.url &&
+          usable.review !== "revision"
+        ) {
+          batch.samples.push({
+            targetId: asset.id,
+            title: asset.title,
+            sourceVersionId: usable.id,
+            selectedVersionId: asset.selectedVersionId || null,
+            number: usable.number || 1,
+            media: structuredClone(usable.media),
+            prompt: usable.prompt ?? null,
+            model: usable.model ?? null,
+            seed: usable.seed ?? null,
+            sourceSignature: stable({
+              input: inputSignature(project, [asset.id]),
+              description: asset.description,
+              type: asset.type,
+            }),
+            versionSignature: stable({
+              media: usable.media,
+              prompt: usable.prompt,
+              model: usable.model,
+              seed: usable.seed,
+            }),
+          });
+        } else batch.jobs.push(imageJob(asset));
+      }
       batch.scopes = [
         { scope: "assets", signature: setupSignature(project, "assets") },
       ];
@@ -674,7 +710,7 @@ export function prepareBatch(project, options, catalog) {
         }
       }
   } else fail("Choose an available production batch type.");
-  if (!batch.jobs.length)
+  if (!batch.jobs.length && !batch.samples?.length)
     fail(
       "No work is missing for this batch. Review existing versions or prepare the prerequisites shown in the workspace.",
     );
@@ -690,14 +726,26 @@ export function prepareBatch(project, options, catalog) {
     ];
     job.sourceSignature = inputSignature(project, job.sourceItemIds);
   }
-  const targets = new Set(batch.jobs.flatMap((job) => job.sourceItemIds));
+  if (!batch.jobs.length) {
+    batch.state = "completed";
+    batch.estimate = {
+      total: 0,
+      currency: "USD",
+      basis: "Review existing versions; no new generations.",
+    };
+  }
+  const targets = new Set([
+    ...batch.jobs.flatMap((job) => job.sourceItemIds),
+    ...(batch.samples || []).map((sample) => sample.targetId),
+  ]);
   for (const previous of project.batches.filter(
     (entry) =>
       entry.kind === kind &&
       entry.state !== "superseded" &&
-      entry.jobs.some((job) =>
+      (entry.jobs.some((job) =>
         job.sourceItemIds?.some((id) => targets.has(id)),
-      ),
+      ) ||
+        entry.samples?.some((sample) => targets.has(sample.targetId))),
   )) {
     if (
       previous.jobs.some((job) =>

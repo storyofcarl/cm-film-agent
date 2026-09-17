@@ -55,6 +55,34 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD37 — Reuse existing representative assets in human lookdev
+
+Under the owner's reuse and supplied-work requirements, asset lookdev now retains
+an existing selected usable representative version, or the latest usable version
+when none is selected. It does not fall back from a selected Needs revision version
+to an older accepted design. Generate only missing representatives. Store reused
+version IDs, media and recorded prompt/model/seed separately from new provider jobs.
+
+A batch containing only existing versions is a review with zero new generation
+jobs and zero generation cost. It still requires the human lookdev action, and
+does not approve individual asset versions or the full asset batch. Mixed batches
+retain normal cost approval for their new jobs. Changes to a reused version,
+selection, asset direction/type or global setup invalidate its review; rejecting
+a reused look after approval blocks remaining asset work until lookdev is reviewed
+again. Original unknown provenance stays unknown.
+
+This is a delegated implementation choice for review. Local domain tests and an
+authenticated browser check use synthetic uploads; no real lookdev acceptance is
+claimed. Deliverable-wide preparation was also rechecked: incidental scene
+selection does not reduce an episode's production batch.
+
+Chat now receives current batch/job states, recorded estimates, effective spend
+approval, blockers, reused lookdev version IDs, and scene/lookdev review state.
+Historical review records are distinguished from a still-valid current approval.
+Scene lookdev counts are labeled unprepared until segment planning exists.
+Completed historical jobs use summaries; active/failed preparation keeps its
+request available for diagnosis. This context does not grant execution authority.
+
 ### WD36 — Writing deliverables have versioned homes and chat context
 
 Under D29, save actual writing deliverables returned by chat as separate pending

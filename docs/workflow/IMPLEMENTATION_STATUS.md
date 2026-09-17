@@ -24,6 +24,15 @@ that the conversation is restricted to one object or task.
 
 ## Implemented
 
+- Asset lookdev reuses existing representative versions (WD37) and generates only
+  missing representatives. Review-only batches create zero provider jobs; mixed
+  batches keep normal cost approval. Human lookdev and full asset approval remain
+  separate. Rejected or changed reused evidence blocks approval and remaining asset
+  release. A visible Lookdev approved state confirms the human review.
+  Chat receives current batches, requests needing attention, estimates, effective
+  approvals, gate blockers and reused-version IDs, so guidance can use operational
+  state as well as the asset/shot inventory.
+
 - Versioned writing documents (WD36): chat deliverables have separate Scripts or
   Production docs homes, stable DOC codes, source-reply links, full text and
   recorded prompts. Inline editing appends a pending version; earlier text and
@@ -94,8 +103,10 @@ that the conversation is restricted to one object or task.
   navigation, V1/V2 approvals, and persistence after reload. Model requests in the
   browser are intercepted; synthetic writing is clearly labeled test content.
 
-- Latest Studio regression: **66 passing tests across 12 suites**, including the
-  existing PDF/DOCX extraction checks and the new writing/version/import checks.
+- Latest Studio regression: **74 passing tests across 13 suites**, including
+  PDF/DOCX extraction, writing/version/import, lookdev reuse/invalidation and current
+  batch-state chat context. Authenticated browser checks verify a zero-job reused
+  lookdev review without conflating it with individual asset approval.
   Studio build, changed-source lint and authenticated browser smoke pass; changed
   source and browser build contain zero configured-secret matches. The earlier
   broader regression run recorded **96 passing tests across 18 suites**.

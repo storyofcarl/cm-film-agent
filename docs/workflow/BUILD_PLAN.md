@@ -171,6 +171,9 @@ their contextual file area with independent document versions, recorded prompts,
 manual editing and exact-version chat context. Its mechanics are tested using
 synthetic writing and intercepted reasoning requests; real creative output and
 the overall interaction design still need director review.
+WD37 removes unnecessary asset regeneration from lookdev by presenting existing
+representative versions alongside any missing work. The director still approves
+lookdev and the full asset batch separately; reuse does not waive those gates.
 The chat-first workflow, shared properties, source inspection, stable codes and
 status snapshot are deployed and verified. Review
 [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for requirement evidence, real-production

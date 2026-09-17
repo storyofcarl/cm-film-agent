@@ -691,6 +691,7 @@ export function batchFingerprint(batch) {
     kind: batch.kind,
     scope: batch.scope,
     scopes: batch.scopes,
+    samples: batch.samples,
     setupSignature: batch.setupSignature,
     jobs: batch.jobs.map(
       ({
@@ -732,6 +733,75 @@ export function batchFingerprint(batch) {
     estimate: batch.estimate,
   });
 }
+export function lookdevReviewBlockers(project, batch) {
+  if (
+    batch?.kind !== "lookdev" ||
+    (!batch.jobs.length && !batch.samples?.length) ||
+    batch.jobs.some((job) => job.state !== "succeeded" || !job.output?.url)
+  )
+    return ["A completed lookdev batch is required."];
+  const reasons = [];
+  if (batch.state === "superseded")
+    reasons.push("This lookdev plan was replaced by a newer batch.");
+  for (const sample of batch.samples || []) {
+    const asset = project.assets.find((entry) => entry.id === sample.targetId);
+    const version = asset?.versions.find(
+      (entry) => entry.id === sample.sourceVersionId,
+    );
+    if (
+      !version?.media?.url ||
+      version.media.type !== "image" ||
+      version.review === "revision" ||
+      stable({
+        media: version.media,
+        prompt: version.prompt,
+        model: version.model,
+        seed: version.seed,
+      }) !== sample.versionSignature ||
+      stable({
+        input: inputSignature(project, [sample.targetId]),
+        description: asset.description,
+        type: asset.type,
+      }) !== sample.sourceSignature ||
+      ((asset.selectedVersionId || null) !== sample.selectedVersionId &&
+        asset.selectedVersionId !== sample.sourceVersionId)
+    )
+      reasons.push(
+        `${sample.title}: the reused version or its direction changed. Prepare lookdev again to review the current version.`,
+      );
+  }
+  for (const entry of batch.scopes || [
+    { scope: batch.scope, signature: batch.setupSignature },
+  ]) {
+    if (
+      entry.signature !==
+      setupSignature(project, entry.scope === "picture" ? null : entry.scope)
+    )
+      reasons.push(
+        "The setup changed after this lookdev was prepared. Review a test for the current setup.",
+      );
+  }
+  return [...new Set(reasons)];
+}
+
+export function assetLookdevIsApproved(project) {
+  return project.lookdev.some((entry) => {
+    if (
+      entry.scope !== "assets" ||
+      entry.review !== "approved" ||
+      entry.signature !== setupSignature(project, "assets")
+    )
+      return false;
+    const batch = project.batches.find(
+      (candidate) => candidate.id === entry.batchId,
+    );
+    return (
+      !batch?.samples?.length ||
+      lookdevReviewBlockers(project, batch).length === 0
+    );
+  });
+}
+
 export function jobBlockers(project, batch, job) {
   const reasons = [];
   if (batch.paused)
@@ -798,15 +868,7 @@ export function jobBlockers(project, batch, job) {
     if (version?.review !== "approved")
       reasons.push("A required asset version is not approved.");
   }
-  if (
-    batch.kind === "assets" &&
-    !project.lookdev.some(
-      (entry) =>
-        entry.scope === "assets" &&
-        entry.review === "approved" &&
-        entry.signature === setupSignature(project, "assets"),
-    )
-  )
+  if (batch.kind === "assets" && !assetLookdevIsApproved(project))
     reasons.push("Approve representative asset lookdev first.");
   if (
     ["production", "finishing"].includes(batch.kind) &&
@@ -1456,24 +1518,14 @@ export function applyCommand(
       const batch = project.batches.find(
         (candidate) => candidate.id === payload.batchId,
       );
-      assert(
-        batch?.kind === "lookdev" &&
-          batch.jobs.length &&
-          batch.jobs.every(
-            (job) => job.state === "succeeded" && job.output?.url,
-          ),
-        "A completed lookdev batch is required.",
-      );
+      const blockers = lookdevReviewBlockers(project, batch);
+      assert(!blockers.length, blockers.join(" "));
       for (const entry of batch.scopes || [
         { scope: batch.scope, signature: batch.setupSignature },
       ]) {
         const signature = setupSignature(
           project,
           entry.scope === "picture" ? null : entry.scope,
-        );
-        assert(
-          entry.signature === signature,
-          "The setup changed after this lookdev was prepared. Review a test for the current setup.",
         );
         project.lookdev.push({
           scope: entry.scope,

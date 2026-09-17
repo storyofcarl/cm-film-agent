@@ -1,9 +1,29 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
-import { jobBlockers } from "../lib/domain";
+import {
+  jobBlockers,
+  lookdevReviewBlockers,
+  REVIEW_LABELS,
+} from "../lib/domain";
 import PromptField from "./PromptField";
 
 function BatchCard({ project, batch, busy, command, action, catalog }) {
+  const lookdevBlockers =
+    batch.kind === "lookdev" ? lookdevReviewBlockers(project, batch) : [];
+  const lookdevApproved =
+    batch.kind === "lookdev" &&
+    !lookdevBlockers.length &&
+    (
+      batch.scopes || [{ scope: batch.scope, signature: batch.setupSignature }]
+    ).every((scope) =>
+      project.lookdev.some(
+        (entry) =>
+          entry.batchId === batch.id &&
+          entry.scope === scope.scope &&
+          entry.signature === scope.signature &&
+          entry.review === "approved",
+      ),
+    );
   const [amount, setAmount] = useState(batch.estimate?.total ?? "");
   const [basis, setBasis] = useState(batch.estimate?.basis || "");
   const canRun = batch.jobs.some(
@@ -17,7 +37,15 @@ function BatchCard({ project, batch, busy, command, action, catalog }) {
           <span className="eyebrow">{batch.kind}</span>
           <h3>{batch.title}</h3>
         </div>
-        <span className="badge">{batch.paused ? "paused" : batch.state}</span>
+        <span className="badge">
+          {lookdevApproved
+            ? "Lookdev approved"
+            : batch.kind === "lookdev" && !lookdevBlockers.length
+              ? "Ready for lookdev review"
+              : batch.paused
+                ? "paused"
+                : batch.state}
+        </span>
       </header>
       <p>
         {batch.jobs.length} jobs ·{" "}
@@ -25,46 +53,91 @@ function BatchCard({ project, batch, busy, command, action, catalog }) {
           ? "Estimate required before approval"
           : `$${batch.estimate.total.toFixed(2)} estimated · ${batch.estimate.currency}`}
       </p>
-      <div className="estimate-form">
-        <label className="field">
-          Estimated total (USD)
-          <input
-            aria-label={`Estimate for ${batch.title}`}
-            type="number"
-            min="0"
-            step="0.01"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
-        </label>
-        <label className="field">
-          Quote / calculation basis
-          <input
-            aria-label={`Estimate basis for ${batch.title}`}
-            value={basis}
-            onChange={(event) => setBasis(event.target.value)}
-            placeholder="Provider quote, rate × seconds, date"
-          />
-        </label>
-        <button
-          className="secondary"
-          disabled={
-            busy ||
-            amount === "" ||
-            !basis.trim() ||
-            batch.jobs.some((job) => job.state !== "planned")
-          }
-          onClick={() =>
-            command("batch.estimate", {
-              id: batch.id,
-              total: Number(amount),
-              basis,
-            })
-          }
+      {!!batch.samples?.length && (
+        <section
+          className="lookdev-existing"
+          aria-label="Existing lookdev versions"
         >
-          Record estimate
-        </button>
-      </div>
+          <h4>Existing versions for lookdev</h4>
+          <p>
+            Review these with any new results below. These versions will not be
+            regenerated.
+          </p>
+          {batch.samples.map((sample) => {
+            const asset = project.assets.find(
+              (entry) => entry.id === sample.targetId,
+            );
+            const version = asset?.versions.find(
+              (entry) => entry.id === sample.sourceVersionId,
+            );
+            return (
+              <article key={`${sample.targetId}:${sample.sourceVersionId}`}>
+                <h4>
+                  {asset?.code} · {sample.title} · V{sample.number}
+                </h4>
+                <p>
+                  {REVIEW_LABELS[version?.review] || "Version unavailable"} ·{" "}
+                  {sample.model || "Original model not recorded"}
+                </p>
+                <div className="batch-result">
+                  <img
+                    src={sample.media.url}
+                    alt={`${sample.title} existing V${sample.number}`}
+                  />
+                </div>
+                <PromptField
+                  label={`Recorded prompt for ${sample.title}`}
+                  value={sample.prompt || "Original prompt not recorded."}
+                  readOnly
+                  rows={4}
+                />
+              </article>
+            );
+          })}
+        </section>
+      )}
+      {!!batch.jobs.length && (
+        <div className="estimate-form">
+          <label className="field">
+            Estimated total (USD)
+            <input
+              aria-label={`Estimate for ${batch.title}`}
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            Quote / calculation basis
+            <input
+              aria-label={`Estimate basis for ${batch.title}`}
+              value={basis}
+              onChange={(event) => setBasis(event.target.value)}
+              placeholder="Provider quote, rate × seconds, date"
+            />
+          </label>
+          <button
+            className="secondary"
+            disabled={
+              busy ||
+              amount === "" ||
+              !basis.trim() ||
+              batch.jobs.some((job) => job.state !== "planned")
+            }
+            onClick={() =>
+              command("batch.estimate", {
+                id: batch.id,
+                total: Number(amount),
+                basis,
+              })
+            }
+          >
+            Record estimate
+          </button>
+        </div>
+      )}
       {batch.jobs.map((job) => (
         <details key={job.id} open={Boolean(job.error)}>
           <summary>
@@ -273,50 +346,55 @@ function BatchCard({ project, batch, busy, command, action, catalog }) {
         </details>
       ))}
       <div className="button-row">
-        {batch.approval &&
-          batch.state !== "superseded" &&
-          batch.state !== "completed" && (
+        {!!batch.jobs.length && (
+          <>
+            {batch.approval &&
+              batch.state !== "superseded" &&
+              batch.state !== "completed" && (
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    command("batch.pause", {
+                      id: batch.id,
+                      paused: !batch.paused,
+                    })
+                  }
+                >
+                  {batch.paused ? "Resume batch" : "Pause remaining jobs"}
+                </button>
+              )}
+            <button
+              className="secondary"
+              disabled={
+                busy ||
+                batch.estimate?.total == null ||
+                batch.jobs.some((job) => job.state !== "planned")
+              }
+              onClick={() => command("batch.approve", { id: batch.id })}
+            >
+              Approve & queue batch
+            </button>
+            <button
+              className="primary"
+              disabled={busy || !canRun}
+              onClick={() => action("run", { batchId: batch.id })}
+            >
+              Run approved jobs
+            </button>
             <button
               className="secondary"
               disabled={busy}
-              onClick={() =>
-                command("batch.pause", { id: batch.id, paused: !batch.paused })
-              }
+              onClick={() => action("reconcile", { batchId: batch.id })}
             >
-              {batch.paused ? "Resume batch" : "Pause remaining jobs"}
+              Refresh results
             </button>
-          )}
-        <button
-          className="secondary"
-          disabled={
-            busy ||
-            batch.estimate?.total == null ||
-            batch.jobs.some((job) => job.state !== "planned")
-          }
-          onClick={() => command("batch.approve", { id: batch.id })}
-        >
-          Approve & queue batch
-        </button>
-        <button
-          className="primary"
-          disabled={busy || !canRun}
-          onClick={() => action("run", { batchId: batch.id })}
-        >
-          Run approved jobs
-        </button>
-        <button
-          className="secondary"
-          disabled={busy}
-          onClick={() => action("reconcile", { batchId: batch.id })}
-        >
-          Refresh results
-        </button>
+          </>
+        )}
         {batch.kind === "lookdev" && (
           <button
             className="secondary"
-            disabled={
-              busy || batch.jobs.some((job) => job.state !== "succeeded")
-            }
+            disabled={busy || lookdevBlockers.length > 0 || lookdevApproved}
             onClick={() =>
               command("lookdev.approve", {
                 batchId: batch.id,
@@ -324,10 +402,16 @@ function BatchCard({ project, batch, busy, command, action, catalog }) {
               })
             }
           >
-            Approve lookdev results
+            {lookdevApproved ? "Lookdev approved" : "Approve lookdev results"}
           </button>
         )}
       </div>
+      {batch.kind === "lookdev" &&
+        lookdevBlockers.map((reason) => (
+          <p className="gate-message" key={reason}>
+            {reason}
+          </p>
+        ))}
     </article>
   );
 }

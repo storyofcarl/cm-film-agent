@@ -6,7 +6,20 @@ import { getModel } from "../../../../utils/film/suiteConfig";
 import { seedHandler } from "../../../../pages/api/seed";
 import { METHODS } from "../methods";
 import { crewNextActions } from "../crewActions";
-import { uid, inputSignature, findItem, stable } from "../domain";
+import {
+  uid,
+  inputSignature,
+  findItem,
+  stable,
+  assetLookdevIsApproved,
+  batchFingerprint,
+  jobBlockers,
+  lookdevRequirement,
+  lookdevIsApproved,
+  lookdevReviewBlockers,
+  sceneIsApproved,
+  selectedVersion,
+} from "../domain";
 import { versionSources } from "../provenance";
 import { FILE_AREAS, fileArea } from "../fileAreas";
 import { appendDocument, documentArea } from "../documents";
@@ -276,6 +289,7 @@ Give each proposed new asset a temporary id, and supply each proposed shot's ass
 The upload inbox contains supplied work before it has been assigned to production objects. Inventory it and name actual gaps. Text extraction and media decoding do not establish creative completeness. You may propose inboxAssignments:[{inboxId,targetId,purpose:"version|board|previs"}] inside proposal, using existing or new temporary asset/shot IDs. Give proposed shots temporary IDs when assigning uploads to them. Reuse supplied media, never fabricate its historical prompt/model/seed or approvals. Images listed in visualEvidenceIds are provided for inspection; all other media has metadata only in this conversation. Do not claim to have watched or heard unprovided media. Full completeness checks use the intake batch after assignments.
 The inspection object records the version currently shown in the center and historical recipes for that object's versions. Use inspection.versionId to resolve "this version"; selectedVersionId is the separate production selection. Inspecting a version does not select it, approve it, or authorize a generation. Compare recorded prompts, sources, references and settings without substituting current intent or asset selections for history. A source URL alone is not evidence that you watched or heard media. Selection is context, not a restriction: follow the director's request across the full project. activeFileArea and each inbox entry's area describe where files live, not whether they are complete or approved.
 documentInspection identifies the saved document version being discussed. Resolve its full text in documents by id. If unsavedDraft is non-null, it is the director's current unsaved edit, not a new saved or approved version. Use it when the request concerns current edits, and retain the inspected saved id as revisesId for a resulting draft. Never claim unsaved edits have already been saved or approved.
+productionState is the current operational evidence: existing batches, spend approval, job states/blockers, scene approvals and lookdev readiness. Reuse ready work and direct the user to the specific next human review instead of preparing duplicate work. reusedLookdevVersions are existing assets shown for human lookdev, not newly generated results; a review-only batch has zero provider jobs. Lookdev approval and individual/full asset approval remain separate. A scene with segmentPlanning="not-prepared" has not yet established its segment-based lookdev requirement. Recorded media URLs do not imply visual inspection. Never infer paid execution or human approval from a conversation message alone.
 The Studio contract overrides methodology interaction mechanics: return the complete requested preparation as one reviewable batch. The user can choose overlapping methods. Do not stop for routine approval questions. State assumptions in decisions. You may NOT approve generated media, lookdev, scenes, delivery, or paid generation plans. Do not call providers or fabricate media, measurements, prices, seeds, checks or job results.
 Hierarchy: film/episode > act > sequence > scene > shot. Scene changes time/location. Segments are execution units; shots are independently revised. Assets are recurring or needed for design control, not every incidental object. Preserve approved work. For long shots, supply complete timed action/sentence beats summing to shot duration. Silhouette previs may use faceless, color-coded character shapes before final asset approval. Burst boards use up to 20 discrete stable compositions in a five-second video, with an extraction map. Lookdev is human-reviewed; one character/location, and one technical test for each scene above three segments by default, with director override.
 Return ONLY valid JSON with {"title":"...","content":"complete useful document in Markdown","decisions":["assumption and rationale"],"proposal":{"nodes":[{"id":"temporary-id","type":"act|sequence|scene","parentId":"existing-or-temporary-id-or-null","title":"...","location":"...","time":"..."}],"assets":[{"title":"...","type":"character|location|prop|creature","prompt":"...","description":"..."}],"shots":[{"title":"...","sceneId":"existing-or-temporary-id","prompt":"...","description":"...","duration":5,"beats":[{"text":"complete action or sentence","duration":5}]}]}}. Proposal is optional; use empty arrays for analysis or documents. Do not duplicate existing assets or shots. Put prompt refinements and guidance into content unless new items are requested. Do not put generated files or executable code into fields.
@@ -295,6 +309,83 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
     inspection,
     documentInspection,
     activeFileArea: activeFileArea || null,
+    productionState: {
+      assetLookdevApproved: assetLookdevIsApproved(project),
+      approvedAssets: project.assets.filter(
+        (asset) => selectedVersion(asset)?.review === "approved",
+      ).length,
+      totalAssets: project.assets.length,
+      scenes: project.nodes
+        .filter((node) => node.type === "scene")
+        .map((scene) => {
+          const requirement = lookdevRequirement(project, scene.id);
+          return {
+            id: scene.id,
+            code: scene.code,
+            title: scene.title,
+            approved: sceneIsApproved(project, scene.id),
+            segmentPlanning:
+              project.segmentProfiles?.[scene.id] ||
+              project.segments.some((segment) => segment.sceneId === scene.id)
+                ? "prepared"
+                : "not-prepared",
+            lookdev: {
+              required: requirement.required,
+              scope: requirement.scope,
+              segments: requirement.count ?? null,
+              planningError: requirement.planningError || null,
+              satisfied: lookdevIsApproved(project, scene.id),
+            },
+          };
+        }),
+      batches: project.batches.map((batch) => ({
+        id: batch.id,
+        code: batch.code,
+        title: batch.title,
+        kind: batch.kind,
+        state: batch.state,
+        paused: Boolean(batch.paused),
+        estimate: batch.estimate || null,
+        spendApproved:
+          batch.state !== "superseded" &&
+          batch.approval?.fingerprint === batchFingerprint(batch),
+        lookdevReviewBlockers:
+          batch.kind === "lookdev"
+            ? lookdevReviewBlockers(project, batch)
+            : null,
+        reusedLookdevVersions: (batch.samples || []).map(
+          ({ targetId, sourceVersionId, number, title }) => ({
+            targetId,
+            sourceVersionId,
+            number,
+            title,
+          }),
+        ),
+        jobs: batch.jobs.map((job) => ({
+          id: job.id,
+          code: job.code,
+          title: job.title,
+          state: job.state,
+          targetId: job.targetId,
+          sceneId: job.sceneId,
+          sourceVersionId: job.sourceVersionId,
+          dependsOn: job.dependsOn || [],
+          error: job.error || null,
+          request:
+            batch.state !== "superseded" && job.state !== "succeeded"
+              ? job.request
+              : undefined,
+          blockers:
+            job.state === "planned" ? jobBlockers(project, batch, job) : [],
+        })),
+      })),
+      lookdevReviews: project.lookdev.map(({ scope, batchId, review, at }) => ({
+        scope,
+        batchId,
+        review,
+        at,
+      })),
+    },
     availableModels: modelCatalog().map(({ id, label, kind, provider }) => ({
       id,
       label,

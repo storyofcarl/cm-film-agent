@@ -1,5 +1,10 @@
 /** @jest-environment node */
-import { createProject, ensureProductionIds } from "../apps/studio/lib/domain";
+import {
+  createProject,
+  ensureProductionIds,
+  applyCommand,
+} from "../apps/studio/lib/domain";
+import { prepareBatch } from "../apps/studio/lib/batches";
 import { documentGroups, documentSource } from "../apps/studio/lib/documents";
 import { runCrew } from "../apps/studio/lib/server/crew";
 import { invokeHandler } from "../apps/studio/lib/server/invoke";
@@ -18,6 +23,94 @@ jest.mock("../apps/studio/lib/server/store", () => ({
   fault: (message) => new Error(message),
 }));
 beforeEach(() => jest.clearAllMocks());
+
+test("chat sees current batch gates and reused lookdev evidence without mistaking historical review for current approval", async () => {
+  let project = createProject();
+  project = applyCommand(project, {
+    type: "item.add",
+    payload: { kind: "asset", assetType: "character", title: "Keeper" },
+  });
+  const assetId = project.assets[0].id;
+  project = applyCommand(project, {
+    type: "version.add",
+    payload: {
+      itemId: assetId,
+      media: { type: "image", url: "https://example.test/keeper.png" },
+    },
+  });
+  project = applyCommand(project, {
+    type: "item.add",
+    payload: { kind: "asset", assetType: "prop", title: "Missing receiver" },
+  });
+  const catalog = [{ id: "image", kind: "image" }];
+  project = prepareBatch(
+    project,
+    { kind: "lookdev", imageModel: "image" },
+    catalog,
+  );
+  const lookdevId = project.batches[0].id;
+  project = applyCommand(project, {
+    type: "lookdev.approve",
+    payload: { batchId: lookdevId },
+  });
+  project = prepareBatch(
+    project,
+    { kind: "assets", imageModel: "image" },
+    catalog,
+  );
+  project = applyCommand(project, {
+    type: "version.review",
+    payload: {
+      itemId: assetId,
+      versionId: project.assets[0].selectedVersionId,
+      review: "revision",
+    },
+  });
+  const before = JSON.stringify(project.batches);
+  invokeHandler.mockResolvedValue({
+    content: JSON.stringify({
+      title: "Next review",
+      content: "Review the changed representative look.",
+    }),
+  });
+  mergeProject.mockImplementation(async (_id, update) => ({
+    project: update(project),
+  }));
+  await runCrew(project, {
+    method: "film.crew",
+    model: "mock",
+    instruction: "What is ready, and what needs my approval?",
+  });
+  const request = invokeHandler.mock.calls[0][1];
+  const context = JSON.parse(
+    request.prompt.split(
+      "CURRENT PRODUCTION (complete preparation context)\n",
+    )[1],
+  );
+  expect(context.productionState.assetLookdevApproved).toBe(false);
+  expect(context.productionState.lookdevReviews[0].review).toBe("approved");
+  const assets = context.productionState.batches.find(
+    (batch) => batch.kind === "assets",
+  );
+  expect(assets.spendApproved).toBe(false);
+  expect(assets.estimate.total).toBeNull();
+  expect(assets.jobs[0].blockers).toContain(
+    "Approve representative asset lookdev first.",
+  );
+  expect(assets.jobs[0].request.type).toBe("image");
+  const lookdev = context.productionState.batches.find(
+    (batch) => batch.id === lookdevId,
+  );
+  expect(lookdev.jobs).toEqual([]);
+  expect(lookdev.reusedLookdevVersions[0].sourceVersionId).toBe(
+    project.assets[0].selectedVersionId,
+  );
+  expect(lookdev.lookdevReviewBlockers.join(" ")).toContain("reused version");
+  expect(context.productionState.scenes[0].segmentPlanning).toBe(
+    "not-prepared",
+  );
+  expect(JSON.stringify(project.batches)).toBe(before);
+});
 
 test("chat files complete writing deliverables separately and retains invalid siblings for recovery", async () => {
   const project = createProject();
