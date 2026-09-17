@@ -500,7 +500,7 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
   const prompt = `DIRECTOR'S REQUEST\n${instruction}\n\nCURRENT PRODUCTION (complete preparation context)\n${JSON.stringify(context)}`;
   if (prompt.length + systemPrompt.length > 650000)
     throw fault(
-      "This production exceeds a single crew context. Select a scene or archive superseded development documents before preparing this task.",
+      "This production is too large for the current chat limit. Its full history is preserved.",
     );
   const result = await invokeHandler(seedHandler, {
     modelId: selected,

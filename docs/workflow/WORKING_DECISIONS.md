@@ -55,6 +55,27 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD38 — Portable document identity and explicit scale limits
+
+Preserve document family codes, explicit version numbers (including gaps), revision
+parents and full recorded prompts when importing a Studio project. Remap internal
+IDs into the new project while retaining source identifiers and declared statuses
+in a visible Import history. A subsequent import preserves the earlier import
+trail. Current approvals remain pending; supplied claims are not human decisions
+in the new production. Reject conflicting identifiers, family codes, numbering or
+parentage rather than silently changing the history.
+
+Unnumbered legacy root records receive an available version number without
+overwriting an explicit supplied number. This compatibility choice is reviewable.
+The original file remains the source of record if an ambiguous import is rejected.
+
+Scale audit: chat currently rejects a request above 650,000 combined prompt and
+instruction characters. Selecting a scene does not narrow that complete context,
+and there is no archive control that resolves this. Remove the misleading error
+advice. Preserve all data on rejection and record the limitation. Large-project
+context retrieval and whole-deliverable partitioning are the next engineering
+priority; the limit is not an acceptable final definition of film support.
+
 ### WD37 — Reuse existing representative assets in human lookdev
 
 Under the owner's reuse and supplied-work requirements, asset lookdev now retains

@@ -161,6 +161,21 @@ export default function DocumentCard({
           ; earlier drafts are retained.
         </p>
       )}
+      {!!version.suppliedMetadata?.importHistory?.length && (
+        <details className="document-source">
+          <summary>Import history</summary>
+          <ul>
+            {version.suppliedMetadata.importHistory.map((entry, index) => (
+              <li key={index}>
+                {entry.code || "Document code not recorded"} · V
+                {entry.number || "?"} ·{" "}
+                {REVIEW_LABELS[entry.review] || "Status not recorded"} (supplied
+                status)
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       {source && (
         <details className="document-source">
           <summary>Source prompt and method</summary>

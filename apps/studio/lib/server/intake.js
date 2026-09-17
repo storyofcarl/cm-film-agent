@@ -3,7 +3,7 @@ import {
   readStoreBytes,
 } from "../../../../utils/server/mediaStore";
 import { validateProject, uid } from "../domain";
-import { documentArea, documentSource } from "../documents";
+import { importDocuments } from "./importDocuments";
 import { fault } from "./errors";
 import { inspectStoredMedia } from "./media";
 
@@ -49,6 +49,7 @@ export async function importManifest(input) {
   project.segments = [];
   project.createdAt = new Date().toISOString();
   project.updatedAt = project.createdAt;
+  project.artifacts = importDocuments(input, project.createdAt);
   const report = {
     approved: 0,
     gaps: [],
@@ -146,54 +147,6 @@ export async function importManifest(input) {
       report.gaps.push(`${supplied.title || "Guide"}: ${error.message}`);
     }
   }
-  const artifactIds = new Map(
-    input.artifacts.map((entry) => [entry.id, uid("artifact")]),
-  );
-  const familyCounts = new Map();
-  project.artifacts = input.artifacts.map((artifact) => {
-    const area = documentArea(input, artifact) || "documents";
-    const root = input.artifacts.find(
-      (entry) =>
-        entry.id === artifact.documentId && documentArea(input, entry) === area,
-    );
-    const familyId = artifactIds.get(root?.id || artifact.id);
-    const parent = input.artifacts.find(
-      (entry) =>
-        entry.id === artifact.revisesId &&
-        (entry.documentId || entry.id) === (root?.id || artifact.id),
-    );
-    const source = documentSource(input, artifact) || artifact;
-    const number = (familyCounts.get(familyId) || 0) + 1;
-    familyCounts.set(familyId, number);
-    return {
-      id: artifactIds.get(artifact.id),
-      kind: "document",
-      documentId: familyId,
-      documentArea: area,
-      number,
-      revisesId: parent ? artifactIds.get(parent.id) : null,
-      title: String(artifact.title || "Supplied document"),
-      content: String(artifact.content || ""),
-      method: "import",
-      origin: "imported",
-      review: "pending",
-      prompt: null,
-      seed: null,
-      suppliedMetadata: {
-        review: artifact.review ?? null,
-        number: artifact.number ?? null,
-        origin: artifact.origin ?? null,
-        prompt: source.prompt ?? null,
-        systemPrompt: source.systemPrompt ?? null,
-        method: source.method ?? null,
-        methodVersion: source.methodVersion ?? null,
-        model: source.model ?? null,
-        seed: source.seed ?? null,
-        createdAt: artifact.createdAt ?? null,
-      },
-      createdAt: project.createdAt,
-    };
-  });
   project.artifacts.push({
     id: uid("artifact"),
     title: "Intake validation report",

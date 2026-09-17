@@ -24,6 +24,12 @@ that the conversation is restricted to one object or task.
 
 ## Implemented
 
+- Portable document identity (WD38): imports preserve family codes, explicit
+  version numbers and gaps, revision links and full source prompts even when
+  records arrive out of order. Repeated imports retain their declared review
+  history, visible in the document center, without importing active approval.
+  Ambiguous identifiers/numbering/parentage fail before media copying.
+
 - Asset lookdev reuses existing representative versions (WD37) and generates only
   missing representatives. Review-only batches create zero provider jobs; mixed
   batches keep normal cost approval. Human lookdev and full asset approval remain
@@ -103,10 +109,12 @@ that the conversation is restricted to one object or task.
   navigation, V1/V2 approvals, and persistence after reload. Model requests in the
   browser are intercepted; synthetic writing is clearly labeled test content.
 
-- Latest Studio regression: **74 passing tests across 13 suites**, including
+- Latest Studio regression: **78 passing tests across 13 suites**, including
   PDF/DOCX extraction, writing/version/import, lookdev reuse/invalidation and current
   batch-state chat context. Authenticated browser checks verify a zero-job reused
   lookdev review without conflating it with individual asset approval.
+  New import tests cover out-of-order/gapped versions, repeated import, immutable
+  full prompts, legacy numbering, conflicting identities and unchanged originals.
   Studio build, changed-source lint and authenticated browser smoke pass; changed
   source and browser build contain zero configured-secret matches. The earlier
   broader regression run recorded **96 passing tests across 18 suites**.
@@ -150,6 +158,12 @@ that the conversation is restricted to one object or task.
   no unreviewed breaking SDK replacement was made.
 
 ## Release boundary and limits
+
+- Large-project chat remains incomplete. The server loads the full preparation
+  context and rejects combined prompt/instructions above 650,000 characters;
+  selecting a scene does not reduce it. The error now reports the limit honestly,
+  with data retained. Whole-film retrieval/partitioning is still required; local
+  long-film rendering does not prove large-project conversational support.
 
 - No arbitrary paid Studio generations were run. Provider adapters are reused and
   exercised with mocks; a director-approved real pilot is still required to assess

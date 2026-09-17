@@ -1,6 +1,11 @@
 /** @jest-environment node */
 import { importManifest } from "../apps/studio/lib/server/intake";
-import { createProject, applyCommand } from "../apps/studio/lib/domain";
+import {
+  createProject,
+  applyCommand,
+  ensureProductionIds,
+} from "../apps/studio/lib/domain";
+import { importDocuments } from "../apps/studio/lib/server/importDocuments";
 import {
   appendDocument,
   documentGroups,
@@ -16,6 +21,162 @@ jest.mock("../utils/server/mediaStore", () => ({
 jest.mock("../apps/studio/lib/server/media", () => ({
   inspectStoredMedia: async (media) => ({ ...media, width: 512, height: 512 }),
 }));
+
+test("out-of-order portable versions keep their codes, gaps, parent links and full prompts through repeated imports", async () => {
+  const project = createProject();
+  const longPrompt = "Preserve the complete source direction. ".repeat(120);
+  project.artifacts = [
+    {
+      id: "v3",
+      documentId: "v1",
+      documentArea: "scripts",
+      code: "DOC-042",
+      number: 3,
+      revisesId: "v1",
+      title: "Feature screenplay",
+      content: "Alternate third draft",
+      review: "approved",
+      prompt: longPrompt,
+      systemPrompt: "Recorded instructions",
+    },
+    {
+      id: "v1",
+      documentId: "v1",
+      documentArea: "scripts",
+      code: "DOC-042",
+      number: 1,
+      title: "Feature screenplay",
+      content: "Original draft",
+      review: "approved",
+    },
+  ];
+  const before = JSON.stringify(project);
+  let imported = ensureProductionIds((await importManifest(project)).project);
+  let versions = documentGroups(imported, "scripts")[0].versions;
+  expect(versions.map((entry) => entry.number)).toEqual([1, 3]);
+  expect(
+    versions.every(
+      (entry) => entry.code === "DOC-042" && entry.review === "pending",
+    ),
+  ).toBe(true);
+  expect(versions[1].revisesId).toBe(versions[0].id);
+  expect(documentSource(imported, versions[1])).toMatchObject({
+    prompt: longPrompt,
+    systemPrompt: "Recorded instructions",
+    supplied: true,
+  });
+  expect(versions[1].suppliedMetadata.importHistory[0]).toMatchObject({
+    artifactId: "v3",
+    code: "DOC-042",
+    number: 3,
+    review: "approved",
+  });
+  const firstImportedIds = versions.map((entry) => entry.id);
+  imported = ensureProductionIds((await importManifest(imported)).project);
+  versions = documentGroups(imported, "scripts")[0].versions;
+  expect(versions.map((entry) => entry.number)).toEqual([1, 3]);
+  expect(versions.map((entry) => entry.code)).toEqual(["DOC-042", "DOC-042"]);
+  expect(versions.map((entry) => entry.id)).not.toEqual(firstImportedIds);
+  expect(versions[1].revisesId).toBe(versions[0].id);
+  expect(
+    versions[1].suppliedMetadata.importHistory.map((entry) => entry.review),
+  ).toEqual(["approved", "pending"]);
+  expect(documentSource(imported, versions[1]).prompt).toBe(longPrompt);
+  imported = applyCommand(imported, {
+    type: "document.revise",
+    payload: { id: versions[1].id, content: "Fourth draft" },
+  });
+  expect(documentGroups(imported, "scripts")[0].versions.at(-1)).toMatchObject({
+    number: 4,
+    code: "DOC-042",
+  });
+  expect(JSON.stringify(project)).toBe(before);
+});
+
+test("legacy unnumbered roots reserve V1 even when serialized after their numbered revisions", () => {
+  const project = createProject();
+  project.artifacts = [
+    {
+      id: "later",
+      documentId: "root",
+      documentArea: "scripts",
+      number: 2,
+      revisesId: "root",
+      content: "Second",
+      title: "Script",
+    },
+    { id: "root", documentArea: "scripts", content: "First", title: "Script" },
+  ];
+  const artifacts = importDocuments(project, "2026-09-17T00:00:00Z");
+  expect(artifacts.map((entry) => entry.number)).toEqual([2, 1]);
+  expect(artifacts[0].revisesId).toBe(artifacts[1].id);
+});
+
+test("ambiguous document identifiers, codes, numbering or parentage fail without silently rewriting history", () => {
+  const valid = createProject();
+  valid.artifacts = [
+    {
+      id: "root",
+      documentId: "root",
+      documentArea: "scripts",
+      code: "DOC-001",
+      number: 1,
+      content: "First",
+    },
+    {
+      id: "second",
+      documentId: "root",
+      documentArea: "scripts",
+      code: "DOC-001",
+      number: 2,
+      revisesId: "root",
+      content: "Second",
+    },
+    {
+      id: "other",
+      documentArea: "documents",
+      code: "DOC-002",
+      number: 1,
+      content: "Direction",
+    },
+  ];
+  const changes = [
+    (p) => {
+      p.artifacts[1].id = "root";
+    },
+    (p) => {
+      p.artifacts[1].number = 1;
+    },
+    (p) => {
+      p.artifacts[1].number = -3;
+    },
+    (p) => {
+      p.artifacts[1].documentId = "missing";
+    },
+    (p) => {
+      p.artifacts[1].documentId = "other";
+    },
+    (p) => {
+      p.artifacts[1].revisesId = "other";
+    },
+    (p) => {
+      p.artifacts[0].revisesId = "second";
+    },
+    (p) => {
+      p.artifacts[1].code = "DOC-004";
+    },
+    (p) => {
+      p.artifacts[2].code = "DOC-001";
+    },
+  ];
+  for (const change of changes) {
+    const project = structuredClone(valid);
+    change(project);
+    const before = JSON.stringify(project);
+    expect(() => importDocuments(project, "2026-09-17T00:00:00Z")).toThrow();
+    expect(JSON.stringify(project)).toBe(before);
+  }
+});
 
 test("portable writing retains version lineage and supplied prompts without importing approvals or executable proposals", async () => {
   const project = createProject();

@@ -154,6 +154,17 @@ Deliverable: verified production workflow, delivery package, and migration plan.
 
 ## Current review artifact
 
+Next engineering priority from WD38: support large-film preparation without loading
+all historical text into every reasoning request. Keep the full deliverable scope
+and stable IDs visible, resolve exact versions from retained records, and partition
+work only at valid scene/document boundaries when it exceeds a model's capacity.
+Aggregate complete outputs before the existing human review gates. Do not silently
+truncate scripts/prompts, narrow a batch to the selected scene, or ask the director
+to perform the agent's partitioning manually. Validate this with long-film fixtures,
+multiple long versions and mocked model requests before any paid production run.
+Also address the 12 MB project-store limit so retained provenance can scale with
+the production; do not solve context size by deleting required history.
+
 2026-09-17: the separate Vercel preview is delivered. The strip's persistent placement
 is implemented, and its rejected breadcrumb interaction has been replaced by
 direct level controls using the owner's earlier description (D36). Owner review

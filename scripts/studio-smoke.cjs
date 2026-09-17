@@ -80,6 +80,41 @@ async function main() {
         "utf8",
       ),
     );
+    const portablePrompt = "Synthetic portable direction. ".repeat(150);
+    pilot.artifacts.push(
+      {
+        id: "portable-v3",
+        documentId: "portable-root",
+        documentArea: "scripts",
+        code: "DOC-902",
+        number: 3,
+        revisesId: "portable-root",
+        title: "Portable writing fixture",
+        content: "Synthetic third draft.",
+        prompt: portablePrompt,
+        review: "approved",
+      },
+      {
+        id: "portable-root",
+        documentId: "portable-root",
+        documentArea: "scripts",
+        code: "DOC-902",
+        number: 1,
+        title: "Portable writing fixture",
+        content: "Synthetic first draft.",
+        review: "approved",
+      },
+    );
+    const invalidHistory = structuredClone(pilot);
+    invalidHistory.artifacts.find(
+      (entry) => entry.id === "portable-v3",
+    ).number = 1;
+    await call(
+      owner,
+      "/api/studio/projects",
+      { action: "import", project: invalidHistory },
+      400,
+    );
     const importedPilot = await call(
       owner,
       "/api/studio/projects",
@@ -100,6 +135,15 @@ async function main() {
     assert.equal(importedPilot.project.sceneApprovals.length, 0);
     assert.equal(importedPilot.project.lookdev.length, 0);
     assert.equal(importedPilot.project.artifacts[0].review, "pending");
+    const portableVersions = importedPilot.project.artifacts
+      .filter((entry) => entry.code === "DOC-902")
+      .sort((a, b) => a.number - b.number);
+    assert.deepEqual(
+      portableVersions.map((entry) => entry.number),
+      [1, 3],
+    );
+    assert.equal(portableVersions[1].revisesId, portableVersions[0].id);
+    assert.equal(portableVersions[1].suppliedMetadata.prompt, portablePrompt);
     await call(
       other,
       `/api/studio/projects?id=${importedPilot.project.id}`,
@@ -827,14 +871,12 @@ async function main() {
     await page
       .getByRole("heading", { name: /versions need attention/ })
       .waitFor();
-    const reusedLookdevCard = page
-      .locator(".batch-card")
-      .filter({
-        has: page.getByRole("heading", {
-          name: "Studio validation fixture · lookdev",
-          exact: true,
-        }),
-      });
+    const reusedLookdevCard = page.locator(".batch-card").filter({
+      has: page.getByRole("heading", {
+        name: "Studio validation fixture · lookdev",
+        exact: true,
+      }),
+    });
     await reusedLookdevCard
       .getByRole("region", { name: "Existing lookdev versions" })
       .waitFor();
@@ -899,6 +941,74 @@ async function main() {
     fs.mkdirSync("artifacts", { recursive: true });
     await page.screenshot({
       path: "artifacts/studio-authenticated-batches.png",
+      fullPage: true,
+    });
+    await page.locator(".project-switch button").click();
+    await page
+      .getByRole("dialog", { name: "Your productions" })
+      .getByRole("button", { name: pilot.title, exact: true })
+      .click();
+    await page
+      .locator(".project-switch button")
+      .filter({ hasText: pilot.title })
+      .waitFor();
+    await page.getByTitle("Scripts", { exact: true }).click();
+    const portableCard = page.getByRole("article", {
+      name: "Portable writing fixture document",
+      exact: true,
+    });
+    await portableCard
+      .getByRole("button", { name: "Download V3", exact: true })
+      .waitFor();
+    assert.equal(
+      await portableCard.locator(".object-code").textContent(),
+      "DOC-902",
+    );
+    assert.equal(
+      await portableCard
+        .getByRole("textbox", { name: "Document text", exact: true })
+        .inputValue(),
+      "Synthetic third draft.",
+    );
+    assert.equal(
+      await portableCard
+        .getByRole("combobox", { name: "Document approval", exact: true })
+        .inputValue(),
+      "pending",
+    );
+    await portableCard.getByText("Import history", { exact: true }).click();
+    await portableCard
+      .getByText("Source prompt and method", { exact: true })
+      .click();
+    assert.equal(
+      await portableCard
+        .getByRole("textbox", { name: "Document source prompt", exact: true })
+        .inputValue(),
+      portablePrompt,
+    );
+    assert.ok(
+      (await portableCard.textContent()).includes("Approved (supplied status)"),
+    );
+    await portableCard
+      .getByRole("combobox", { name: "Document version", exact: true })
+      .selectOption(portableVersions[0].id);
+    assert.equal(
+      await portableCard
+        .getByRole("textbox", { name: "Document text", exact: true })
+        .inputValue(),
+      "Synthetic first draft.",
+    );
+    await portableCard
+      .getByRole("combobox", { name: "Document version", exact: true })
+      .selectOption(portableVersions[1].id);
+    findings.push(
+      "Portable document import rejected duplicate numbering, preserved DOC-902 with V1/V3 and full prompts, and displayed supplied review history separately from current approval.",
+    );
+    await portableCard
+      .getByText("Import history", { exact: true })
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: "artifacts/studio-import-history.png",
       fullPage: true,
     });
     await page.goto(base + "/demo");

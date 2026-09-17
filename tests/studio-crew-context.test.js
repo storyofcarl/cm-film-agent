@@ -24,6 +24,27 @@ jest.mock("../apps/studio/lib/server/store", () => ({
 }));
 beforeEach(() => jest.clearAllMocks());
 
+test("oversized preparation preserves full history and does not suggest nonexistent archive or scene-filter workarounds", async () => {
+  const project = createProject();
+  project.artifacts.push({
+    id: "long-script",
+    documentArea: "scripts",
+    title: "Complete screenplay history",
+    content: "Full script text. ".repeat(50000),
+  });
+  const before = JSON.stringify(project);
+  await expect(
+    runCrew(project, {
+      method: "film.develop",
+      instruction: "Review the complete production",
+      model: "mock",
+    }),
+  ).rejects.toThrow("current chat limit");
+  expect(invokeHandler).not.toHaveBeenCalled();
+  expect(mergeProject).not.toHaveBeenCalled();
+  expect(JSON.stringify(project)).toBe(before);
+});
+
 test("chat sees current batch gates and reused lookdev evidence without mistaking historical review for current approval", async () => {
   let project = createProject();
   project = applyCommand(project, {
