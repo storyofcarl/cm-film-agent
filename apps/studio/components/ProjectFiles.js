@@ -1,5 +1,6 @@
 import UploadInbox from "./UploadInbox";
-import PromptField from "./PromptField";
+import DocumentCard from "./DocumentCard";
+import { documentGroups } from "../lib/documents";
 import { FILE_AREAS, fileArea } from "../lib/fileAreas";
 
 export default function ProjectFiles({
@@ -8,20 +9,20 @@ export default function ProjectFiles({
   busy,
   command,
   onUpload,
+  focusDocumentId,
+  documentDrafts,
+  setDocumentDrafts,
+  onInspectDocument,
 }) {
   const entries = (project.inbox || []).filter(
     (entry) => fileArea(entry) === area,
   );
   const documents = ["scripts", "documents"].includes(area)
-    ? project.artifacts.filter((artifact) => {
-        if (artifact.sourceInboxId || artifact.instruction || artifact.proposal)
-          return false;
-        const isScript =
-          /screenplay|screenwriting|film\.develop/.test(
-            artifact.method || "",
-          ) || /screenplay|\bscript\b/i.test(artifact.title || "");
-        return area === "scripts" ? isScript : !isScript;
-      })
+    ? documentGroups(project, area).sort(
+        (a, b) =>
+          Number(b.versions.some((entry) => entry.id === focusDocumentId)) -
+          Number(a.versions.some((entry) => entry.id === focusDocumentId)),
+      )
     : [];
   return (
     <section className="project-files" aria-label={`${FILE_AREAS[area]} files`}>
@@ -52,16 +53,19 @@ export default function ProjectFiles({
         <p className="muted">No files here yet.</p>
       )}
       <UploadInbox {...{ project, area, busy, command }} />
-      {documents.map((artifact) => (
-        <article className="inbox-entry" key={artifact.id}>
-          <h3>{artifact.title}</h3>
-          <PromptField
-            label={`${artifact.title} content`}
-            value={artifact.content || ""}
-            readOnly
-            rows={12}
-          />
-        </article>
+      {documents.map((group) => (
+        <DocumentCard
+          key={group.id}
+          {...{ project, group, area, busy, command }}
+          initialVersionId={
+            group.versions.some((entry) => entry.id === focusDocumentId)
+              ? focusDocumentId
+              : null
+          }
+          drafts={documentDrafts}
+          setDrafts={setDocumentDrafts}
+          onInspect={onInspectDocument}
+        />
       ))}
     </section>
   );

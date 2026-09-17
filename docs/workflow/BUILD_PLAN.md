@@ -166,6 +166,11 @@ The owner rejected D41's stacked header. WD35 moves overview/export to the left 
 and uses a compact center view toggle; it remains a reviewable working choice.
 The strip's navigation/selector grouping is a reviewable working design, not an
 accepted final interaction. Continue incorporating owner corrections.
+WD36 completes the next writing-workflow increment: chat deliverables open in
+their contextual file area with independent document versions, recorded prompts,
+manual editing and exact-version chat context. Its mechanics are tested using
+synthetic writing and intercepted reasoning requests; real creative output and
+the overall interaction design still need director review.
 The chat-first workflow, shared properties, source inspection, stable codes and
 status snapshot are deployed and verified. Review
 [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for requirement evidence, real-production

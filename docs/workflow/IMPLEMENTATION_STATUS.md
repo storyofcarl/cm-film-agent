@@ -24,6 +24,14 @@ that the conversation is restricted to one object or task.
 
 ## Implemented
 
+- Versioned writing documents (WD36): chat deliverables have separate Scripts or
+  Production docs homes, stable DOC codes, source-reply links, full text and
+  recorded prompts. Inline editing appends a pending version; earlier text and
+  approvals remain intact. Original uploads and recorded-text downloads remain
+  available. Chat receives the inspected document version and separately labeled
+  unsaved edits. Portable import preserves lineage and supplied prompt provenance
+  without treating imported approvals/proposals as authoritative.
+
 - Chat now receives the exact version being inspected, its original recipes and
   historical versions for that object, separately from the selected production
   version. It also receives contextual file locations. WD34 records the choice;
@@ -78,7 +86,19 @@ that the conversation is restricted to one object or task.
 
 ## Evidence
 
-- Complete automated regression: **96 passing tests across 18 suites**.
+- Writing-specific mocked-provider checks cover multiple full deliverables,
+  failed filing without data loss, exact version/unsaved-edit context and rejection
+  before a provider call. Domain/import checks cover stable families, branching
+  revisions, earlier approvals and untrusted imported provenance. Authenticated
+  browser checks verify chat links, long text, original uploads, drafts across
+  navigation, V1/V2 approvals, and persistence after reload. Model requests in the
+  browser are intercepted; synthetic writing is clearly labeled test content.
+
+- Latest Studio regression: **66 passing tests across 12 suites**, including the
+  existing PDF/DOCX extraction checks and the new writing/version/import checks.
+  Studio build, changed-source lint and authenticated browser smoke pass; changed
+  source and browser build contain zero configured-secret matches. The earlier
+  broader regression run recorded **96 passing tests across 18 suites**.
 - WaveSpeed image plans record a null seed because the adapter does not submit
   a seed to that provider; an untransmitted seed must not imply reproducibility.
 - Combined crew proposals resolve newly created assets in updates to existing shots

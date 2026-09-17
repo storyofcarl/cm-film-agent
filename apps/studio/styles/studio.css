@@ -181,6 +181,47 @@
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+.document-card {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  min-width: 0;
+}
+.document-card h2 {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+.document-controls {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.document-controls .field {
+  flex: 1 1 160px;
+}
+.document-card > p,
+.document-source {
+  margin-top: 15px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.document-card a {
+  color: var(--accent);
+}
+.text-button.document-link {
+  display: block;
+  text-align: left;
+  color: var(--accent);
+}
+.unfiled-document-output {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 300px;
+  overflow: auto;
+}
 .generation-inline .source-media :is(video, img),
 .generation-inline .reference-grid :is(video, img) {
   max-width: 100%;

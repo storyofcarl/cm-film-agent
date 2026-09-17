@@ -1,5 +1,6 @@
 /** @jest-environment node */
-import { createProject } from "../apps/studio/lib/domain";
+import { createProject, ensureProductionIds } from "../apps/studio/lib/domain";
+import { documentGroups, documentSource } from "../apps/studio/lib/documents";
 import { runCrew } from "../apps/studio/lib/server/crew";
 import { invokeHandler } from "../apps/studio/lib/server/invoke";
 import { mergeProject } from "../apps/studio/lib/server/store";
@@ -17,6 +18,155 @@ jest.mock("../apps/studio/lib/server/store", () => ({
   fault: (message) => new Error(message),
 }));
 beforeEach(() => jest.clearAllMocks());
+
+test("chat files complete writing deliverables separately and retains invalid siblings for recovery", async () => {
+  const project = createProject();
+  const content = "INT. OBSERVATORY - NIGHT\nA long complete scene.\n".repeat(
+    300,
+  );
+  invokeHandler.mockResolvedValue({
+    content: JSON.stringify({
+      title: "Writing complete",
+      content: "Saved two drafts.",
+      documents: [
+        {
+          title: "Screenplay",
+          area: "scripts",
+          content,
+          review: "approved",
+          id: "forged",
+        },
+        {
+          title: "Director vision",
+          area: "documents",
+          content: "Keep the light practical.",
+        },
+        {
+          title: "Unfiled draft",
+          area: "scripts",
+          content: "Must retain this text",
+          revisesId: "missing",
+        },
+      ],
+    }),
+  });
+  mergeProject.mockImplementation(async (_id, update) => ({
+    project: ensureProductionIds(update(project)),
+  }));
+  const result = await runCrew(project, {
+    method: "film.develop",
+    instruction: "Write the screenplay and direction.",
+    model: "mock",
+  });
+  const reply = result.project.artifacts.find((entry) => entry.instruction);
+  const script = documentGroups(result.project, "scripts")[0].versions[0];
+  expect(script.content).toBe(content);
+  expect(script).toMatchObject({
+    review: "pending",
+    origin: "generated",
+    number: 1,
+  });
+  expect(script.id).not.toBe("forged");
+  expect(script.code).toMatch(/^DOC-/);
+  expect(reply.documentIds).toHaveLength(2);
+  expect(documentGroups(result.project, "documents")).toHaveLength(1);
+  expect(documentSource(result.project, script)).toBe(reply);
+  expect(reply.prompt).toContain("Write the screenplay and direction.");
+  expect(reply.systemPrompt).toContain("TEMPLATE");
+  expect(reply.documentWarnings).toHaveLength(1);
+  expect(reply.unfiledDocuments[0].content).toBe("Must retain this text");
+  expect(result.project.batches).toEqual([]);
+});
+
+test("document chat revisions use the inspected version and unsaved edits without overwriting saved work", async () => {
+  const project = createProject();
+  project.artifacts.push({
+    id: "doc1",
+    title: "Script",
+    documentArea: "scripts",
+    content: "Approved original",
+    review: "approved",
+  });
+  invokeHandler.mockResolvedValue({
+    content: JSON.stringify({
+      title: "Revised",
+      content: "Saved a revision.",
+      documents: [
+        {
+          area: "scripts",
+          content: "Revised from director edits",
+          revisesId: "doc1",
+        },
+      ],
+    }),
+  });
+  mergeProject.mockImplementation(async (_id, update) => ({
+    project: ensureProductionIds(update(project)),
+  }));
+  const result = await runCrew(project, {
+    method: "film.develop",
+    instruction: "Polish this draft",
+    model: "mock",
+    activeFileArea: "scripts",
+    inspectingDocumentId: "doc1",
+    inspectingDocumentDraft: "Unsaved director edits",
+  });
+  const request = invokeHandler.mock.calls[0][1];
+  const context = JSON.parse(
+    request.prompt.split(
+      "CURRENT PRODUCTION (complete preparation context)\n",
+    )[1],
+  );
+  expect(context.documentInspection).toMatchObject({
+    id: "doc1",
+    number: 1,
+    unsavedDraft: "Unsaved director edits",
+  });
+  expect(context.documents[0].content).toBe("Approved original");
+  const versions = documentGroups(result.project, "scripts")[0].versions;
+  expect(versions[0]).toMatchObject({
+    content: "Approved original",
+    review: "approved",
+  });
+  expect(versions[1]).toMatchObject({
+    content: "Revised from director edits",
+    revisesId: "doc1",
+    review: "pending",
+    number: 2,
+  });
+  expect(
+    documentSource(result.project, versions[1]).documentInspection.id,
+  ).toBe("doc1");
+});
+
+test("invalid document inspection is rejected before any paid model call", async () => {
+  const project = createProject();
+  project.artifacts.push({
+    id: "doc1",
+    title: "Script",
+    documentArea: "scripts",
+    content: "Draft",
+  });
+  for (const input of [
+    { inspectingDocumentId: "missing", activeFileArea: "scripts" },
+    { inspectingDocumentId: "doc1", activeFileArea: "audio" },
+    { inspectingDocumentDraft: "Orphan edits" },
+    {
+      inspectingDocumentId: "doc1",
+      activeFileArea: "scripts",
+      inspectingDocumentDraft: {},
+    },
+  ])
+    await expect(
+      runCrew(project, {
+        method: "auto",
+        instruction: "Revise",
+        model: "mock",
+        ...input,
+      }),
+    ).rejects.toThrow();
+  expect(invokeHandler).not.toHaveBeenCalled();
+});
 
 test("chat receives the inspected older version and its historical recipe without changing the production selection", async () => {
   const project = createProject();

@@ -9,6 +9,7 @@ import { crewNextActions } from "../crewActions";
 import { uid, inputSignature, findItem, stable } from "../domain";
 import { versionSources } from "../provenance";
 import { FILE_AREAS, fileArea } from "../fileAreas";
+import { appendDocument, documentArea } from "../documents";
 import { invokeHandler } from "./invoke";
 import { requireModel, modelCatalog } from "./models";
 import { fault, mergeProject, ownerId } from "./store";
@@ -97,6 +98,8 @@ export async function runCrew(
     itemId,
     contextId,
     inspectingVersionId,
+    inspectingDocumentId,
+    inspectingDocumentDraft,
     activeFileArea,
   },
 ) {
@@ -111,6 +114,39 @@ export async function runCrew(
     throw fault("The selected production object no longer exists.");
   if (activeFileArea != null && !Object.hasOwn(FILE_AREAS, activeFileArea))
     throw fault("The selected file area no longer exists.");
+  const inspectedDocument = inspectingDocumentId
+    ? project.artifacts.find((entry) => entry.id === inspectingDocumentId)
+    : null;
+  if (
+    inspectingDocumentId &&
+    (!inspectedDocument ||
+      inspectedDocument.hidden ||
+      !documentArea(project, inspectedDocument) ||
+      documentArea(project, inspectedDocument) !== activeFileArea)
+  )
+    throw fault(
+      "That document version is not in the selected file area. Refresh the selection before sending.",
+    );
+  if (
+    inspectingDocumentDraft !== undefined &&
+    (!inspectedDocument ||
+      typeof inspectingDocumentDraft !== "string" ||
+      inspectingDocumentDraft.length > 500000)
+  )
+    throw fault(
+      "An unsaved document draft must belong to the inspected version and be at most 500,000 characters.",
+    );
+  const documentInspection = inspectedDocument
+    ? {
+        id: inspectedDocument.id,
+        documentId: inspectedDocument.documentId || inspectedDocument.id,
+        code: inspectedDocument.code,
+        title: inspectedDocument.title,
+        number: inspectedDocument.number || 1,
+        area: activeFileArea,
+        unsavedDraft: inspectingDocumentDraft ?? null,
+      }
+    : null;
   const inspectedItem = selectedContext
     ? selectedContext.kind
       ? selectedContext
@@ -239,10 +275,12 @@ This is a persistent director/crew conversation, not a sequence of disconnected 
 Give each proposed new asset a temporary id, and supply each proposed shot's assetIds using existing or temporary asset ids. Use [] for no asset references. Preserve explicit references rather than attaching the entire production roster to every shot. State why each asset needs reuse or design control in its description.
 The upload inbox contains supplied work before it has been assigned to production objects. Inventory it and name actual gaps. Text extraction and media decoding do not establish creative completeness. You may propose inboxAssignments:[{inboxId,targetId,purpose:"version|board|previs"}] inside proposal, using existing or new temporary asset/shot IDs. Give proposed shots temporary IDs when assigning uploads to them. Reuse supplied media, never fabricate its historical prompt/model/seed or approvals. Images listed in visualEvidenceIds are provided for inspection; all other media has metadata only in this conversation. Do not claim to have watched or heard unprovided media. Full completeness checks use the intake batch after assignments.
 The inspection object records the version currently shown in the center and historical recipes for that object's versions. Use inspection.versionId to resolve "this version"; selectedVersionId is the separate production selection. Inspecting a version does not select it, approve it, or authorize a generation. Compare recorded prompts, sources, references and settings without substituting current intent or asset selections for history. A source URL alone is not evidence that you watched or heard media. Selection is context, not a restriction: follow the director's request across the full project. activeFileArea and each inbox entry's area describe where files live, not whether they are complete or approved.
+documentInspection identifies the saved document version being discussed. Resolve its full text in documents by id. If unsavedDraft is non-null, it is the director's current unsaved edit, not a new saved or approved version. Use it when the request concerns current edits, and retain the inspected saved id as revisesId for a resulting draft. Never claim unsaved edits have already been saved or approved.
 The Studio contract overrides methodology interaction mechanics: return the complete requested preparation as one reviewable batch. The user can choose overlapping methods. Do not stop for routine approval questions. State assumptions in decisions. You may NOT approve generated media, lookdev, scenes, delivery, or paid generation plans. Do not call providers or fabricate media, measurements, prices, seeds, checks or job results.
 Hierarchy: film/episode > act > sequence > scene > shot. Scene changes time/location. Segments are execution units; shots are independently revised. Assets are recurring or needed for design control, not every incidental object. Preserve approved work. For long shots, supply complete timed action/sentence beats summing to shot duration. Silhouette previs may use faceless, color-coded character shapes before final asset approval. Burst boards use up to 20 discrete stable compositions in a five-second video, with an extraction map. Lookdev is human-reviewed; one character/location, and one technical test for each scene above three segments by default, with director override.
 Return ONLY valid JSON with {"title":"...","content":"complete useful document in Markdown","decisions":["assumption and rationale"],"proposal":{"nodes":[{"id":"temporary-id","type":"act|sequence|scene","parentId":"existing-or-temporary-id-or-null","title":"...","location":"...","time":"..."}],"assets":[{"title":"...","type":"character|location|prop|creature","prompt":"...","description":"..."}],"shots":[{"title":"...","sceneId":"existing-or-temporary-id","prompt":"...","description":"...","duration":5,"beats":[{"text":"complete action or sentence","duration":5}]}]}}. Proposal is optional; use empty arrays for analysis or documents. Do not duplicate existing assets or shots. Put prompt refinements and guidance into content unless new items are requested. Do not put generated files or executable code into fields.
 For a requested revision to existing preparation, proposal may also include "updates":[{"id":"existing-item-id","previousPrompt":"exact existing prompt","prompt":"complete revised prompt","title":"...","description":"...","duration":5,"beats":[]}]. Include only fields to change. This updates future intent after human application, never historical version recipes, media, approvals, or selection. Do not merely describe prompt changes in content when the director asked you to apply them; return the reviewable updates too. Preserve assetIds unless asked to change references.
+For actual writing deliverables, return a top-level "documents" array: [{"title":"...","area":"scripts|documents","content":"full document text","revisesId":"existing document version id, only when revising"}]. Screenplays and creative writing belong in scripts; director's vision, shot lists, analysis and production plans belong in documents. Save each requested deliverable separately in the same response. Put the full deliverable in its document content and a concise explanation in the reply content; do not substitute a synopsis or silently truncate the requested scope. Ordinary discussion needs no documents. Revisions append a new pending draft and preserve earlier content, approvals and source history; use a documents[].id from the production context as revisesId. Saving a draft does not approve it or apply a production proposal. All document content is plain text or Markdown, never executable code or file paths.
 SELECTED METHOD ${method} (source instructions and references):\n${source.text}`;
   const context = {
     id: project.id,
@@ -255,6 +293,7 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
       "Container runtime is the sum of descendant shots. Direction accumulates from project global style through act, sequence, scene and shot. Asset references use the nearest explicit assetIds list; [] means none, null inherits, and an unconfigured project uses all project assets. Historical version recipes remain immutable.",
     settings: project.settings,
     inspection,
+    documentInspection,
     activeFileArea: activeFileArea || null,
     availableModels: modelCatalog().map(({ id, label, kind, provider }) => ({
       id,
@@ -330,22 +369,24 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
         reply: artifact.content,
         context: artifact.context,
         inspection: artifact.inspection || null,
+        documentInspection: artifact.documentInspection || null,
         activeFileArea: artifact.activeFileArea || null,
+        documentIds: artifact.documentIds || [],
         applied: Boolean(artifact.appliedAt),
       })),
     documents: project.artifacts
-      .filter(
-        (artifact) =>
-          !artifact.hidden &&
-          !artifact.instruction &&
-          !artifact.prompt?.startsWith("DIRECTOR'S REQUEST\n"),
-      )
-      .map(({ id, title, content, review, validation }) => ({
-        id,
-        title,
-        content,
-        review,
-        validation,
+      .filter((artifact) => !artifact.hidden && documentArea(project, artifact))
+      .map((document) => ({
+        id: document.id,
+        code: document.code,
+        documentId: document.documentId || document.id,
+        number: document.number || 1,
+        area: documentArea(project, document),
+        revisesId: document.revisesId || null,
+        title: document.title,
+        content: document.content,
+        review: document.review,
+        validation: document.validation,
       })),
     selectedScene: selectedContext
       ? selectedContext.sceneId ||
@@ -424,6 +465,7 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
         }
       : null,
     activeFileArea: activeFileArea || null,
+    documentInspection,
     method,
     chosenMethods,
     routing,
@@ -442,8 +484,44 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
     createdAt: new Date().toISOString(),
     actor: ownerId(),
   };
+  const documentOutputs = (
+    Array.isArray(output.documents)
+      ? output.documents
+      : output.documents
+        ? [output.documents]
+        : []
+  ).map((input) => ({ input, id: uid("artifact") }));
   return mergeProject(project.id, (current) => {
+    artifact.documentIds = [];
+    artifact.documentWarnings = [];
+    artifact.unfiledDocuments = [];
     current.artifacts.push(artifact);
+    for (const { input, id } of documentOutputs) {
+      try {
+        const document = appendDocument(current, input, {
+          id,
+          sourceArtifactId: artifact.id,
+          origin: "generated",
+          actor: "crew",
+          createdAt: artifact.createdAt,
+        });
+        artifact.documentIds.push(document.id);
+        current.events.push({
+          id: uid("event"),
+          kind: "document.drafted",
+          role: "agent",
+          actor: "crew",
+          at: artifact.createdAt,
+          artifactId: document.id,
+          sourceArtifactId: artifact.id,
+        });
+      } catch (error) {
+        artifact.documentWarnings.push(
+          `A document could not be filed: ${error.message}`,
+        );
+        artifact.unfiledDocuments.push(input);
+      }
+    }
     current.events.push({
       id: uid("event"),
       kind: "crew.prepared",

@@ -476,6 +476,42 @@ async function main() {
       itemId,
       versionId: productionFixtureVersion,
     });
+    // Seed a synthetic chat/document result only in this disposable test project.
+    // This checks its UI without invoking a writing model or production account.
+    const writingFixtureText =
+      "Synthetic writing fixture — no model called.\n".repeat(200);
+    current.project.artifacts.push(
+      {
+        id: "writing_fixture_reply",
+        instruction: "Synthetic writing request",
+        content: "Synthetic writing draft saved.",
+        prompt: "Recorded synthetic source prompt",
+        systemPrompt: "Recorded synthetic method",
+        method: "film.develop",
+        documentIds: ["writing_fixture_v1"],
+      },
+      {
+        id: "writing_fixture_v1",
+        documentId: "writing_fixture_v1",
+        documentArea: "scripts",
+        number: 1,
+        title: "Mock screenplay",
+        content: writingFixtureText,
+        review: "pending",
+        origin: "generated",
+        sourceArtifactId: "writing_fixture_reply",
+      },
+    );
+    const seededWriting = await admin
+      .from("studio_projects")
+      .update({ document: current.project, revision: current.revision + 1 })
+      .eq("id", id)
+      .eq("owner_id", owner.id)
+      .eq("revision", current.revision)
+      .select("id");
+    assert.ifError(seededWriting.error);
+    assert.equal(seededWriting.data.length, 1);
+    current = await call(owner, `/api/studio/projects?id=${id}`);
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({
       viewport: { width: 1600, height: 1100 },
@@ -596,6 +632,157 @@ async function main() {
     ]);
     assert.equal(inspectedRequest.activeFileArea, "scripts");
     assert.equal(inspectedRequest.inspectingVersionId, null);
+    await chat
+      .getByRole("button", { name: "Mock screenplay · V1", exact: true })
+      .click();
+    const generatedDocument = page.getByRole("article", {
+      name: "Mock screenplay document",
+      exact: true,
+    });
+    assert.equal(
+      await generatedDocument
+        .getByRole("textbox", { name: "Document text", exact: true })
+        .inputValue(),
+      writingFixtureText,
+    );
+    await generatedDocument
+      .getByText("Source prompt and method", { exact: true })
+      .click();
+    assert.equal(
+      await generatedDocument
+        .getByRole("textbox", { name: "Document source prompt", exact: true })
+        .inputValue(),
+      "Recorded synthetic source prompt",
+    );
+    const suppliedDocument = page.getByRole("article", {
+      name: "Supplied screenplay.pdf document",
+      exact: true,
+    });
+    await suppliedDocument
+      .getByRole("link", { name: "Open original upload" })
+      .waitFor();
+    const originalText = await suppliedDocument
+      .getByRole("textbox", { name: "Document text", exact: true })
+      .inputValue();
+    const originalDocumentId = await suppliedDocument
+      .getByRole("combobox", { name: "Document version", exact: true })
+      .inputValue();
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/api/studio/projects") &&
+          response.request().postDataJSON()?.command?.type ===
+            "artifact.review",
+      ),
+      suppliedDocument
+        .getByRole("combobox", { name: "Document approval", exact: true })
+        .selectOption("approved"),
+    ]);
+    const editedText =
+      originalText + "\nDirector revision: keep the station quiet.";
+    await suppliedDocument
+      .getByRole("textbox", { name: "Document text", exact: true })
+      .fill(editedText);
+    assert.equal(
+      await suppliedDocument
+        .getByRole("combobox", { name: "Document approval", exact: true })
+        .isDisabled(),
+      true,
+    );
+    await page.getByTitle("Audio", { exact: true }).click();
+    await page.getByTitle("Scripts", { exact: true }).click();
+    assert.equal(
+      await suppliedDocument
+        .getByRole("textbox", { name: "Document text", exact: true })
+        .inputValue(),
+      editedText,
+    );
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/api/studio/crew") &&
+          response.status() === 400,
+      ),
+      chat.getByRole("button", { name: "Send", exact: true }).click(),
+    ]);
+    assert.equal(inspectedRequest.inspectingDocumentId, originalDocumentId);
+    assert.equal(inspectedRequest.inspectingDocumentDraft, editedText);
+    await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/api/studio/projects") &&
+          response.request().postDataJSON()?.command?.type ===
+            "document.revise",
+      ),
+      suppliedDocument
+        .getByRole("button", { name: "Save new version", exact: true })
+        .click(),
+    ]);
+    await suppliedDocument
+      .getByRole("button", { name: "Download V2", exact: true })
+      .waitFor();
+    const revisedDocumentId = await suppliedDocument
+      .getByRole("combobox", { name: "Document version", exact: true })
+      .inputValue();
+    assert.equal(
+      await suppliedDocument
+        .getByRole("combobox", { name: "Document approval", exact: true })
+        .inputValue(),
+      "pending",
+    );
+    await suppliedDocument
+      .getByRole("combobox", { name: "Document version", exact: true })
+      .selectOption(originalDocumentId);
+    assert.equal(
+      await suppliedDocument
+        .getByRole("textbox", { name: "Document text", exact: true })
+        .inputValue(),
+      originalText,
+    );
+    assert.equal(
+      await suppliedDocument
+        .getByRole("combobox", { name: "Document approval", exact: true })
+        .inputValue(),
+      "approved",
+    );
+    await page.reload();
+    await chat.waitFor();
+    await page.getByTitle("Scripts", { exact: true }).click();
+    assert.equal(
+      await suppliedDocument
+        .getByRole("combobox", { name: "Document version", exact: true })
+        .inputValue(),
+      revisedDocumentId,
+    );
+    assert.equal(
+      await suppliedDocument
+        .getByRole("textbox", { name: "Document text", exact: true })
+        .inputValue(),
+      editedText,
+    );
+    await suppliedDocument
+      .getByRole("link", { name: "Open original upload" })
+      .waitFor();
+    const savedWriting = await call(owner, `/api/studio/projects?id=${id}`);
+    assert.equal(
+      savedWriting.project.artifacts.find(
+        (entry) => entry.id === originalDocumentId,
+      ).review,
+      "approved",
+    );
+    assert.equal(
+      savedWriting.project.artifacts.find(
+        (entry) => entry.id === revisedDocumentId,
+      ).review,
+      "pending",
+    );
+    await page.screenshot({
+      path: "artifacts/studio-versioned-writing.png",
+      fullPage: true,
+    });
+    findings.push(
+      "Synthetic chat writing opens in Scripts with full text and source prompts; imported document edits survive navigation, chat receives unsaved edits, and V2 persists without changing approved V1 or its original upload.",
+    );
     await page.unroute("**/api/studio/crew");
     await chat.getByRole("textbox", { name: "Message", exact: true }).fill("");
     await page.locator(".hierarchy-card[aria-pressed=true]").click();

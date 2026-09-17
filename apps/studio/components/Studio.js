@@ -6,6 +6,7 @@ import PromptField from "./PromptField";
 import GenerationDetails from "./GenerationDetails";
 import ProjectFiles from "./ProjectFiles";
 import { FILE_AREAS } from "../lib/fileAreas";
+import { documentArea } from "../lib/documents";
 import CrewConversation from "./CrewConversation";
 import { UPLOAD_ACCEPT } from "../lib/uploads";
 import { uploadWork } from "../lib/uploadWork";
@@ -119,6 +120,10 @@ export default function Studio({
   const [modal, setModal] = useState(null);
   const closeModal = useCallback(() => setModal(null), []);
   const [drafts, setDrafts] = useState({});
+  const [documentDrafts, setDocumentDrafts] = useState({});
+  const [focusDocumentId, setFocusDocumentId] = useState(null);
+  const [inspectingDocumentId, setInspectingDocumentId] = useState(null);
+  const [documentOpenRequest, setDocumentOpenRequest] = useState(0);
   const instruction = drafts[project?.id || "new"] || "";
   const setInstruction = (value) =>
     setDrafts((current) => ({ ...current, [project?.id || "new"]: value }));
@@ -497,6 +502,19 @@ export default function Studio({
           activeFileArea:
             Object.keys(FILE_AREAS).find((key) => FILE_AREAS[key] === tab) ||
             null,
+          inspectingDocumentId:
+            project.artifacts.find(
+              (entry) =>
+                entry.id === inspectingDocumentId &&
+                FILE_AREAS[documentArea(project, entry)] === tab,
+            )?.id || null,
+          inspectingDocumentDraft: project.artifacts.some(
+            (entry) =>
+              entry.id === inspectingDocumentId &&
+              FILE_AREAS[documentArea(project, entry)] === tab,
+          )
+            ? documentDrafts[inspectingDocumentId]
+            : undefined,
         }),
       );
       setProject(result.project);
@@ -1030,6 +1048,12 @@ export default function Studio({
                   )}
                   {Object.values(FILE_AREAS).includes(tab) && (
                     <ProjectFiles
+                      key={`${project.id}:${documentOpenRequest}`}
+                      {...{
+                        focusDocumentId,
+                        documentDrafts,
+                        setDocumentDrafts,
+                      }}
                       project={project}
                       area={Object.keys(FILE_AREAS).find(
                         (key) => FILE_AREAS[key] === tab,
@@ -1037,6 +1061,7 @@ export default function Studio({
                       busy={busy}
                       command={command}
                       onUpload={openUpload}
+                      onInspectDocument={setInspectingDocumentId}
                     />
                   )}
                   {tab === "Footage" && (
@@ -1508,6 +1533,12 @@ export default function Studio({
             {project && (
               <CrewConversation
                 {...{ project, busy, command }}
+                openDocument={(document) => {
+                  setFocusDocumentId(document.id);
+                  setInspectingDocumentId(document.id);
+                  setDocumentOpenRequest((value) => value + 1);
+                  setTab(FILE_AREAS[document.documentArea]);
+                }}
                 prepare={(kind) => batchAction("prepare", { kind })}
               />
             )}

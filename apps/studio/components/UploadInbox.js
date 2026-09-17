@@ -7,7 +7,12 @@ import { fileArea } from "../lib/fileAreas";
 export default function UploadInbox({ project, busy, command, area = null }) {
   const [open, setOpen] = useState(false);
   const entries = (project.inbox || []).filter(
-    (entry) => !area || fileArea(entry) === area,
+    (entry) =>
+      (!area || fileArea(entry) === area) &&
+      !(
+        ["scripts", "documents"].includes(area) &&
+        project.artifacts.some((artifact) => artifact.id === entry.artifactId)
+      ),
   );
   if (!entries.length) return null;
   const objects = [...project.assets, ...project.shots];

@@ -16,7 +16,13 @@ export function directorMessage(artifact) {
   );
 }
 
-export default function CrewConversation({ project, busy, command, prepare }) {
+export default function CrewConversation({
+  project,
+  busy,
+  command,
+  prepare,
+  openDocument,
+}) {
   const log = useRef(null);
   const [expanded, setExpanded] = useState(null);
   const messages = project.artifacts.filter((artifact) =>
@@ -30,6 +36,37 @@ export default function CrewConversation({ project, busy, command, prepare }) {
       <div className="crew-reply">
         <ReactMarkdown>{artifact.content}</ReactMarkdown>
       </div>
+      {artifact.documentIds?.map((id) => {
+        const document = project.artifacts.find((entry) => entry.id === id);
+        return (
+          document && (
+            <button
+              type="button"
+              className="text-button document-link"
+              key={id}
+              onClick={() => {
+                openDocument(document);
+                setExpanded(null);
+              }}
+            >
+              {document.title} · V{document.number}
+            </button>
+          )
+        );
+      })}
+      {artifact.documentWarnings?.map((warning, index) => (
+        <p className="gate-message" key={index}>
+          {warning}
+        </p>
+      ))}
+      {!!artifact.unfiledDocuments?.length && (
+        <details>
+          <summary>Unfiled document output</summary>
+          <pre className="unfiled-document-output">
+            {JSON.stringify(artifact.unfiledDocuments, null, 2)}
+          </pre>
+        </details>
+      )}
       {artifact.decisions?.length > 0 && (
         <p className="gate-message">
           Working decisions: {artifact.decisions.join(" · ")}

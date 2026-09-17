@@ -55,6 +55,28 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD36 — Writing deliverables have versioned homes and chat context
+
+Under D29, save actual writing deliverables returned by chat as separate pending
+documents in Scripts or Production docs. Keep ordinary conversation in chat, and
+link each filed document back to its exact source reply, prompt, method and model.
+Each family receives a stable DOC code. Manual and generated revisions append;
+review dropdowns apply only to the inspected version. Branching from an older
+version retains that parent and advances the family version number.
+
+Keep full text editable in the center, with a version dropdown, original-upload
+link where available, recorded-text download, and source provenance. Unsaved text
+survives changing sections. Chat receives the inspected saved version and any
+current unsaved edits as distinct context; sending never saves or approves them.
+Malformed model document output remains recoverable alongside its filing warning.
+Portable imports retain document families and prompt history as explicitly supplied,
+unverified provenance while resetting active approvals and removing proposals/jobs.
+
+This is a delegated working choice, not owner acceptance. Mocked generation tests
+and authenticated browser checks verify the mechanics without paid model calls.
+The strip proposal shown in conversation remains for owner review; neither that
+proposal nor these checks establish final UX acceptance.
+
 ### WD35 — One scope module and separate project actions
 
 Following D44, combine scope selection, metadata, progress and thumbnail navigation

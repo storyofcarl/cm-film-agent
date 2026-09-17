@@ -1,4 +1,5 @@
 // Pure studio contract. No provider calls, UI state, secrets, or legacy orchestration.
+import { appendDocument, documentArea } from "./documents";
 export const REVIEW = ["pending", "approved", "revision"];
 export const REVIEW_LABELS = {
   pending: "Pending review",
@@ -16,6 +17,11 @@ const now = () => new Date().toISOString();
 const clone = (value) => JSON.parse(JSON.stringify(value));
 export function ensureProductionIds(project) {
   project.idCounters ||= {};
+  const documentRoots = (project.artifacts || []).filter(
+    (entry) =>
+      (!entry.documentId || entry.documentId === entry.id) &&
+      documentArea(project, entry),
+  );
   const records = [
     [project, "PRJ"],
     ...project.nodes.map((node) => [
@@ -25,6 +31,7 @@ export function ensureProductionIds(project) {
     ...project.shots.map((shot) => [shot, "SH"]),
     ...project.assets.map((asset) => [asset, "AST"]),
     ...(project.inbox || []).map((entry) => [entry, "IN"]),
+    ...documentRoots.map((entry) => [entry, "DOC"]),
     ...(project.segments || []).map((segment) => [segment, "SEG"]),
     ...(project.batches || []).flatMap((batch) => [
       [batch, "BAT"],
@@ -41,6 +48,12 @@ export function ensureProductionIds(project) {
     project.idCounters[prefix] = number;
     record.code = `${prefix}-${String(number).padStart(3, "0")}`;
     used.add(record.code);
+  }
+  for (const entry of project.artifacts || []) {
+    if (entry.documentId)
+      entry.code =
+        documentRoots.find((root) => root.id === entry.documentId)?.code ||
+        entry.code;
   }
   return project;
 }
@@ -1196,6 +1209,26 @@ export function applyCommand(
       };
       project.artifacts.push(artifact);
       event("document.supplied", { artifactId: artifact.id });
+      break;
+    }
+    case "document.revise": {
+      human();
+      const parent = project.artifacts.find((entry) => entry.id === payload.id);
+      assert(parent && documentArea(project, parent), "Document not found.");
+      const document = appendDocument(
+        project,
+        {
+          title: payload.title || parent.title,
+          content: payload.content,
+          area: documentArea(project, parent),
+          revisesId: parent.id,
+        },
+        { origin: "manual", actor: actor.id, createdAt: time },
+      );
+      event("document.revised", {
+        artifactId: document.id,
+        revisesId: parent.id,
+      });
       break;
     }
     case "artifact.review": {
