@@ -19,8 +19,8 @@ It was created on 2026-09-16 from the design discussion with the project owner.
 ## Authority and status
 
 Actual build/verification progress is in [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md).
-The separate hosted destination needs the concrete approval described in
-[DEPLOYMENT_APPROVAL.md](DEPLOYMENT_APPROVAL.md).
+The owner approved the separate Vercel destination on 2026-09-17; the approved
+scope is recorded in [DEPLOYMENT_APPROVAL.md](DEPLOYMENT_APPROVAL.md).
 
 The owner's latest explicit instructions take precedence. Confirmed decisions
 are distinct from proposals; describing a pipeline here does not mean every

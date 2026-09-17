@@ -161,8 +161,9 @@ complete the now-approved separate Vercel preview and hosted checks.
 Implementation has progressed into the separate Studio application. See
 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for evidence, known limits
 and remaining deployment work. Phases 1–5 have a working local implementation;
-phase 6 has verified synthetic finishing/export and still needs the authorized
-hosted preview and a director-approved real pilot. This does not mean all future
+phase 6 has verified synthetic finishing/export locally and on the separate hosted
+preview. The next production-readiness milestone is a director-approved real pilot.
+This does not mean all future
 professional post-production features are finished.
 
 [WORKFLOW_MATRIX.md](WORKFLOW_MATRIX.md) now contains draft 1 of the phase-1

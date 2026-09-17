@@ -280,9 +280,16 @@ without requiring that every scene in the film be finished first.
 
 Thumbnail navigation runs from the full deliverable through acts, sequences,
 scenes, and shots. The strip is shared at the top of every project view, above
-the workspace and inspector. Changing views preserves its hierarchy context
+the workspace content and inspector, to the right of the full-height project
+sidebar. It never sits above the project navigation. Changing views preserves its hierarchy context
 and shot selection. Higher levels inform executable work. Segment relationships
 and job state must remain accessible from the relevant creative context.
+
+Treat the selected shot, scene, sequence, act or film/episode as a persistent
+object with properties. Runtime, asset references, prompts and direction belong
+to that object; each screen exposes different properties or actions for it.
+Changing screens preserves the selected context. Derived aggregate values and
+immutable version recipes remain distinct from editable creative intent.
 
 ## OCC principles to retain in the pipeline draft
 

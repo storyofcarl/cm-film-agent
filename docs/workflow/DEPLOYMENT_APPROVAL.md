@@ -2,7 +2,10 @@
 
 Status: owner approved Vercel on 2026-09-17 after the destination-specific request.
 Separate project `cm-film-agent-studio` (`prj_nfTEl8jOgjAXT5sSv4tRvPJjoDIM`)
-has been created and its runtime allowlist uploaded. Hosted verification is in progress.
+has been created and its runtime allowlist uploaded. The Studio preview is live at
+https://cm-film-agent-studio.vercel.app with hosted authentication, media assembly
+and separate scheduler checks passing. No Vercel automation bypass was necessary
+for the stable production domain; application invitation access remains enforced.
 
 ## Reviewable application
 
@@ -89,4 +92,6 @@ allowlisted environment. It must not be run until this new destination is approv
 origin and protection path are verified. It writes only the new private endpoint
 record and schedule. Never reuse the legacy cron secret or overwrite its schedule.
 
-The goal remains incomplete until the separate deployment and hosted checks pass.
+The separate deployment and hosted checks passed on 2026-09-17. A director-reviewed
+real creative pilot remains a release-readiness step before broader production use;
+no arbitrary paid generations were authorized or run as part of these checks.

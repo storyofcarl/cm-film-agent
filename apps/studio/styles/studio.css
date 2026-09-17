@@ -445,6 +445,19 @@ button:hover:not(:disabled) {
   flex: 1;
   min-height: 0;
 }
+.project-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.project-content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
 .project-nav {
   width: 246px;
   flex-shrink: 0;
@@ -1514,7 +1527,7 @@ pre {
     height: auto;
     min-height: 100vh;
   }
-  .studio-body {
+  .project-content {
     flex-wrap: wrap;
   }
   .project-nav {
@@ -1522,7 +1535,7 @@ pre {
     min-height: calc(100vh - 126px);
   }
   .workspace {
-    width: calc(100% - 175px);
+    width: 100%;
     flex: none;
   }
   .inspector {

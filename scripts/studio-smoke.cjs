@@ -208,6 +208,81 @@ async function main() {
     findings.push(
       "Studio upload namespace, version review and unknown imported provenance passed.",
     );
+    if (process.env.STUDIO_RENDER_SMOKE === "1") {
+      fs.mkdirSync("artifacts", { recursive: true });
+      const fixture = path.resolve("artifacts", "studio-render-fixture.mp4");
+      require("node:child_process").execFileSync(
+        require("ffmpeg-static"),
+        [
+          "-y",
+          "-f",
+          "lavfi",
+          "-i",
+          "color=c=gray:s=320x180:r=24",
+          "-t",
+          "2",
+          "-c:v",
+          "libx264",
+          "-pix_fmt",
+          "yuv420p",
+          fixture,
+        ],
+        { stdio: "ignore", windowsHide: true },
+      );
+      const clip = fs.readFileSync(fixture);
+      const clipKey =
+        crypto.createHash("sha256").update(clip).digest("hex").slice(0, 32) +
+        ".mp4";
+      const clipTicket = await call(owner, "/api/film/upload", {
+        action: "sign",
+        key: clipKey,
+        contentType: "video/mp4",
+        size: clip.length,
+      });
+      objects.push(clipTicket.path);
+      const upload = await owner.client.storage
+        .from("film-media")
+        .uploadToSignedUrl(clipTicket.path, clipTicket.token, clip, {
+          contentType: "video/mp4",
+        });
+      assert.ifError(upload.error);
+      const stored = await call(owner, "/api/film/upload", {
+        action: "complete",
+        key: clipKey,
+      });
+      await command("version.add", {
+        itemId,
+        media: { url: stored.url, type: "video" },
+      });
+      const clipVersion = current.project.shots[0].versions.at(-1).id;
+      await command("version.select", { itemId, versionId: clipVersion });
+      current = await call(owner, "/api/studio/delivery", {
+        action: "review",
+        id,
+        sceneId,
+      });
+      const assembly = current.project.deliveries.at(-1);
+      objects.push(`${owner.id}/studio/${assembly.media.key}`);
+      assert.equal(assembly.purpose, "scene-review");
+      assert.equal(assembly.media.width, 854);
+      assert.ok(Math.abs(assembly.media.duration - 2) < 0.1);
+      await command("version.review", {
+        itemId,
+        versionId: clipVersion,
+        review: "approved",
+      });
+      await command("scene.approve", { sceneId });
+      const delivery = await call(owner, "/api/studio/delivery", {
+        action: "package",
+        id,
+        sceneId,
+      });
+      assert.equal(delivery.manifest.clips.length, 1);
+      assert.equal(delivery.otio.OTIO_SCHEMA, "Timeline.1");
+      findings.push(
+        "Hosted synthetic video decoding, 2-second scene assembly and approved editorial/OTIO export passed without AI generation.",
+      );
+    }
     const snapshots = await admin
       .from("studio_project_versions")
       .select("revision")
@@ -373,7 +448,7 @@ async function main() {
     );
     fs.writeFileSync(
       path.join("artifacts", "studio-smoke-report.json"),
-      JSON.stringify({ at: new Date().toISOString(), findings }, null, 2),
+      JSON.stringify({ at: new Date().toISOString(), base, findings }, null, 2),
     );
     findings.forEach((finding) => console.log(finding));
   } finally {

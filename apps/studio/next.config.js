@@ -4,7 +4,7 @@ module.exports = {
   experimental: { cpus: 2, externalDir: true },
   outputFileTracingRoot: root,
   serverExternalPackages: ['ffmpeg-static'],
-  outputFileTracingIncludes: { '/api/**': [path.join(root, 'node_modules/ffmpeg-static/ffmpeg*'), './resources/skills/**/*'] },
+  outputFileTracingIncludes: { '/api/**': ['../../node_modules/ffmpeg-static/ffmpeg*', './resources/skills/**/*'] },
   async headers() {
     return [{ source: '/:path*', headers: [
       { key: 'X-Content-Type-Options', value: 'nosniff' },

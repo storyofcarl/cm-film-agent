@@ -28,6 +28,12 @@ npm run studio:start -- --hostname 127.0.0.1 --port 43189
 
 ## Director's workflow
 
+The nested thumbnail strip stays at the top of the project workspace, to the
+right of the full-height left sidebar, across every view. Use breadcrumbs to
+move through film/episode, acts, sequences and scenes; select a shot to direct it.
+View changes retain the hierarchy and shot selection. Shots and containers own
+their properties; screens are ways of working with the same production records.
+
 1. Create a film, episode or scene. Import supplied text, a Studio JSON project,
    shot/asset media, or guides. Ask Crew to analyze, write, plan or revise using
    either the original Film Agent method or an owner-supplied method.
@@ -90,6 +96,8 @@ paths `<owner>/studio/<key>`. Three additive migrations are in `supabase/migrati
 Clients have owner-scoped reads; authenticated server commands control mutations.
 Version snapshots retain earlier revisions; project saves use optimistic concurrency.
 
-Separate Vercel deployment is awaiting the explicit new-destination approval in
-[DEPLOYMENT_APPROVAL.md](../../docs/workflow/DEPLOYMENT_APPROVAL.md). Do not point
-the legacy Vercel project at this application or reuse its scheduler configuration.
+The separately approved preview is https://cm-film-agent-studio.vercel.app;
+use `/demo` for illustrated fixtures and `/` for your approved account.
+Deployment authority is in [DEPLOYMENT_APPROVAL.md](../../docs/workflow/DEPLOYMENT_APPROVAL.md).
+The separate private scheduler is `film-agent-studio-reconcile`. Do not point the
+legacy Vercel project at this application or reuse its scheduler configuration.

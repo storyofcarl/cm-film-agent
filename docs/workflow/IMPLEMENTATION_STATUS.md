@@ -29,7 +29,7 @@ active goal is not complete: separate hosted deployment and its verification rem
 - WaveSpeed upscale and supported same-prompt/seed V2V finishing after scene approval.
 - Draft scene review assembly, approved picture render, signed-media delivery
   package, valid OpenTimelineIO timeline and local feature-length renderer.
-- Separate deployment and private scheduler setup scripts, prepared but not run.
+- Separate Vercel deployment and private Supabase scheduler, verified live.
 
 ## Evidence
 
@@ -79,12 +79,29 @@ active goal is not complete: separate hosted deployment and its verification rem
 ## Deployment progress — 2026-09-17
 
 The owner approved the separate Vercel destination after the explicit request.
-**cm-film-agent-studio** is created and the approved runtime environment is uploaded.
-Hosted deployment, authentication and scheduler checks are underway. The previous
-approval blocker is resolved; see [DEPLOYMENT_APPROVAL.md](DEPLOYMENT_APPROVAL.md).
+**cm-film-agent-studio** is live at https://cm-film-agent-studio.vercel.app.
+The illustrative walkthrough is https://cm-film-agent-studio.vercel.app/demo.
+Existing approved accounts can sign in. The approved runtime environment is uploaded.
+The separate `film-agent-studio-reconcile` minute schedule is enabled; the legacy
+schedule remains active and unchanged. Its private endpoint returned 200 with no
+pending work. Production-domain checks needed no Vercel automation bypass.
+The previous approval blocker is resolved; see [DEPLOYMENT_APPROVAL.md](DEPLOYMENT_APPROVAL.md).
 
-The project strip now lives above the workspace and inspector on every project
-view. Desktop/mobile checks verified all six views, hierarchy navigation without
+Hosted authentication, ownership, stale-save protection, namespace isolation,
+version history and atomic claim checks passed. A synthetic 2-second video was
+decoded and assembled to an 854-pixel-wide review, then exported as approved
+editorial JSON/OTIO. Temporary users and media were removed; no paid AI calls ran.
+All three Studio tables retain row-level security and the fixture project count
+returned to zero. Screenshots and the hosted smoke report are in ignored artifacts.
+
+Deployment portability fixes: use the Vercel CLI with an isolated scanned source
+snapshot, resolve the physical monorepo install directory, retain npm 12's missing
+optional-peer lockfile entries, and use relative FFmpeg tracing patterns. These
+do not change provider behavior or the legacy project's Vercel settings.
+
+The project strip now lives inside the project workspace, to the right of the
+full-height left sidebar and above the view content and inspector on every project
+view. Desktop/mobile checks verified the sidebar placement, all six views, hierarchy navigation without
 changing the active view, retained shot selection, and return from Assets to the
 selected shot. The updated authenticated smoke also passed; temporary fixtures
 were cleaned up and no provider generation was submitted.

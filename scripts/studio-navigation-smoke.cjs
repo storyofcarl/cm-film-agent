@@ -8,6 +8,7 @@ async function main() {
     const page = await browser.newPage({
       viewport: { width: 1600, height: 1000 },
     });
+    await page.emulateMedia({ reducedMotion: "reduce" });
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(
@@ -18,6 +19,16 @@ async function main() {
       exact: true,
     });
     await strip.waitFor();
+    const sidebar = await page.locator(".project-nav").boundingBox();
+    const stripBounds = await strip.boundingBox();
+    assert.ok(
+      sidebar.x + sidebar.width <= stripBounds.x + 1,
+      "Strip belongs to the right of the full-height project sidebar.",
+    );
+    assert.ok(
+      sidebar.y <= stripBounds.y,
+      "Sidebar must begin alongside the strip, not below it.",
+    );
     const selection = await strip
       .locator('[aria-pressed="true"]')
       .textContent();
@@ -73,11 +84,13 @@ async function main() {
     fs.mkdirSync("artifacts", { recursive: true });
     await page.screenshot({
       path: "artifacts/studio-desktop.png",
+      animations: "disabled",
       fullPage: true,
     });
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
     await page.screenshot({
       path: "artifacts/studio-assets-top-strip.png",
+      animations: "disabled",
       fullPage: true,
     });
     await page.setViewportSize({ width: 390, height: 844 });
@@ -103,6 +116,7 @@ async function main() {
     }
     await page.screenshot({
       path: "artifacts/studio-mobile-top-strip.png",
+      animations: "disabled",
       fullPage: true,
     });
     assert.deepEqual(errors, []);

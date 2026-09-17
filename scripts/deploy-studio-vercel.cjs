@@ -1,7 +1,9 @@
 // Explicitly deploy the separate approved Studio destination, never the root link.
 require("dotenv").config({ quiet: true });
 const fs = require("node:fs");
-const { execFileSync } = require("node:child_process");
+const crypto = require("node:crypto");
+const { execFileSync, spawnSync } = require("node:child_process");
+const path = require("node:path");
 const link = JSON.parse(fs.readFileSync(".local/studio-vercel.json", "utf8"));
 if (
   link.projectName !== "cm-film-agent-studio" ||
@@ -50,45 +52,66 @@ async function main() {
         throw new Error("Configured secret detected in " + file);
       return { file, data: data.toString("base64"), encoding: "base64" };
     });
-  const response = await fetch(
-    "https://api.vercel.com/v13/deployments?teamId=" +
-      encodeURIComponent(link.orgId),
+  const uploadRoot = path.resolve(
+    ".local",
+    "studio-upload-" + crypto.randomUUID(),
+  );
+  for (const entry of files) {
+    const destination = path.join(uploadRoot, entry.file);
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.writeFileSync(destination, Buffer.from(entry.data, "base64"));
+  }
+  fs.mkdirSync(path.join(uploadRoot, ".vercel"), { recursive: true });
+  fs.writeFileSync(
+    path.join(uploadRoot, ".vercel/project.json"),
+    JSON.stringify(link),
+  );
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.resolve("node_modules/vercel/dist/index.js"),
+      "deploy",
+      "--yes",
+      "--prod",
+      "--no-wait",
+      "--json",
+      "--project",
+      link.projectId,
+      "--scope",
+      link.orgId,
+      "--token",
+      process.env.VERCEL_TOKEN,
+      "--meta",
+      "sourceCommit=" + git("rev-parse", "HEAD").trim(),
+      "--meta",
+      "sourceDigest=" +
+        crypto.createHash("sha256").update(JSON.stringify(files)).digest("hex"),
+    ],
     {
-      method: "POST",
-      headers: {
-        Authorization: "Bearer " + process.env.VERCEL_TOKEN,
-        "Content-Type": "application/json",
+      cwd: uploadRoot,
+      env: {
+        ...process.env,
+        VERCEL_PROJECT_ID: link.projectId,
+        VERCEL_ORG_ID: link.orgId,
       },
-      body: JSON.stringify({
-        name: link.projectName,
-        project: link.projectId,
-        target: "production",
-        files,
-        projectSettings: {
-          rootDirectory: "apps/studio",
-          framework: "nextjs",
-          nodeVersion: "24.x",
-        },
-        meta: {
-          sourceCommit: git("rev-parse", "HEAD").trim(),
-          sourceBranch: git("branch", "--show-current").trim(),
-        },
-      }),
+      encoding: "utf8",
+      windowsHide: true,
+      maxBuffer: 8 * 1024 * 1024,
     },
   );
-  const data = await response.json();
-  if (!response.ok)
-    throw new Error(
-      "Studio deployment failed: " +
-        (data.error?.code || response.status) +
-        ": " +
-        (data.error?.message || ""),
+  if (result.status !== 0) {
+    console.error(
+      (result.stderr || "").replaceAll(process.env.VERCEL_TOKEN, "[redacted]"),
     );
+    throw new Error("Studio deployment command failed.");
+  }
+  const data = JSON.parse(result.stdout);
+  const deployment = data.deployment || data;
   const record = {
-    id: data.id,
-    url: data.url,
+    id: deployment.id,
+    url: deployment.url,
     projectId: link.projectId,
-    state: data.readyState,
+    state: deployment.readyState,
     files: files.length,
   };
   fs.writeFileSync(

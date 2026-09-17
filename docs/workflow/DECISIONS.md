@@ -58,7 +58,9 @@ may later be promoted for reuse.
 Provide thumbnail navigation through film/episode, act, sequence, scene, and
 ultimately shot views. Keep shot/take and segment relationships understandable.
 The owner's 2026-09-17 correction is explicit: the strip belongs at the top of
-every project view and must not depend on the current page. Keep its hierarchy
+every project view and must not depend on the current page. It sits inside the
+project workspace, to the right of the full-height left sidebar, never above
+the project navigation. Keep its hierarchy
 context and shot selection when switching views. The separate Hierarchy page
 and Cut-only bottom strip are superseded by one shared project strip.
 
@@ -329,7 +331,18 @@ It does not authorize arbitrary billable film-generation tests or destructive
 replacement of legacy projects. Use simulated provider jobs for paid-path tests
 unless the owner has authorized the particular production spend.
 
-## Superseded proposals
+### D30 — Project objects own properties; screens edit the same objects
+
+Confirmed by the owner on 2026-09-17: shots, scenes, sequences, acts and the
+film/episode are persistent objects with properties such as runtime, specific
+asset references, prompts and creative direction. Screens expose and manipulate
+these properties; they do not define separate page-specific production objects.
+The project strip chooses the creative context, which persists across screens.
+Keep authored intent distinct from derived values (such as aggregate runtime)
+and immutable historical version recipes. A future UX pass must make the selected
+container's properties directly inspectable, not only show its descendant shots.
+
+## Superseded proposals and interpretations
 
 ### D26 — Earlier duration-threshold interpretation, replaced by D27
 

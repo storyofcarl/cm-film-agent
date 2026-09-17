@@ -41,7 +41,7 @@ async function main() {
       framework: "nextjs",
       rootDirectory: "apps/studio",
       buildCommand: "npm run build",
-      installCommand: "cd ../.. && ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci",
+      installCommand: "cd -P ../.. && ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci",
       publicSource: false,
     });
   }
@@ -49,6 +49,7 @@ async function main() {
   await request("/v9/projects/" + project.id, "PATCH", {
     sourceFilesOutsideRootDirectory: true,
     nodeVersion: "24.x",
+    installCommand: "cd -P ../.. && ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci",
   });
   fs.writeFileSync(
     ".local/studio-vercel.json",
