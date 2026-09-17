@@ -52,6 +52,14 @@ that the conversation is restricted to one object or task.
   bytes. A 15.5 MB/40-version fixture imports, loads and exports through the actual
   browser, appends V41, preserves old snapshots and rejects foreign access/direct
   overwrites. Legacy inline records remain readable. No provider calls are used.
+  WD50 extends the browser check to a two-hour synthetic production: 1,200 shots,
+  60 scenes, 4,800 retained shot recipes and 40 screenplay drafts. Local and hosted
+  runs passed with a 41,839,610-byte manifest and 3,648,555-byte stored index. The
+  hosted verification took 84 seconds end to end before account cleanup, including
+  import, full history comparison, last-shot inspection, V41 append, snapshot and
+  ownership checks, reload and export. This is not a single-request latency claim.
+  These versions contain no generated media; exact prompt/seed retention and
+  navigation are proven, not playback or creative production quality.
 
 - Indexed reasoning context (WD40): oversized contexts retain the complete object
   and version inventory and retrieve lossless source-text parts on demand. Required
@@ -221,7 +229,7 @@ that the conversation is restricted to one object or task.
   local long-film rendering does not prove large-project conversational support.
   WD41 routes large payloads through private storage parts instead of sending the
   full project through [Vercel's 4.5 MB function limit](https://vercel.com/docs/functions/limitations).
-  A 15.5 MB production fixture is verified; this does not establish upper-bound
+  A 41.8 MB/1,200-shot production fixture is verified locally and hosted; this does not establish upper-bound
   performance, concurrent-team capacity or live creative quality.
 
 - No arbitrary paid Studio generations were run. Provider adapters are reused and

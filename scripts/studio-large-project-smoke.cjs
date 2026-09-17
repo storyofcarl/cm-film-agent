@@ -7,6 +7,7 @@ const { createClient } = require("@supabase/supabase-js");
 const { createServerClient } = require("@supabase/ssr");
 const { chromium } = require("@playwright/test");
 const base = process.env.STUDIO_TEST_URL || "http://localhost:43201";
+const filmScale = process.env.STUDIO_FILM_SCALE === "1";
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SECRET_KEY,
@@ -116,6 +117,7 @@ async function removeOwnRecords(owner) {
 }
 async function main() {
   let browser;
+  const started = Date.now();
   try {
     const owner = await account();
     const other = await account();
@@ -146,6 +148,69 @@ async function main() {
       prompt: "Complete source prompt. ".repeat(250),
       review: index === 39 ? "approved" : "pending",
     }));
+    if (filmScale) {
+      manifest.nodes = [];
+      manifest.shots = [];
+      for (let act = 0; act < 3; act++) {
+        const actId = `scale-act-${act}`;
+        manifest.nodes.push({
+          id: actId,
+          type: "act",
+          parentId: null,
+          title: `Act ${act + 1}`,
+          order: act,
+        });
+        for (let sequence = 0; sequence < 4; sequence++) {
+          const sequenceId = `${actId}-sequence-${sequence}`;
+          manifest.nodes.push({
+            id: sequenceId,
+            type: "sequence",
+            parentId: actId,
+            title: `Sequence ${sequence + 1}`,
+            order: sequence,
+          });
+          for (let scene = 0; scene < 5; scene++) {
+            const sceneId = `${sequenceId}-scene-${scene}`;
+            manifest.nodes.push({
+              id: sceneId,
+              type: "scene",
+              parentId: sequenceId,
+              title: `Scene ${manifest.nodes.filter((node) => node.type === "scene").length + 1}`,
+              order: scene,
+            });
+            const prompt =
+              `Scene ${sceneId}.\n` +
+              "Preserve screen direction, geography, natural light and exact dialogue 🎬.\n".repeat(
+                54,
+              );
+            for (let shot = 0; shot < 20; shot++) {
+              const number = manifest.shots.length + 1;
+              const id = `scale-shot-${number}`;
+              manifest.shots.push({
+                id,
+                code: `SH-${String(number).padStart(4, "0")}`,
+                kind: "shot",
+                title: `Scale shot ${number}`,
+                sceneId,
+                order: shot,
+                duration: 6,
+                prompt,
+                assetIds: [],
+                versions: Array.from({ length: 4 }, (_, version) => ({
+                  id: `${id}-v${version + 1}`,
+                  number: version + 1,
+                  prompt: `${prompt}Take ${version + 1}.`,
+                  seed: number * 10 + version,
+                  review: "pending",
+                  media: null,
+                  origin: "fixture",
+                })),
+              });
+            }
+          }
+        }
+      }
+    }
     const source = Buffer.from(JSON.stringify(manifest));
     assert.ok(source.length > 12 * 1024 * 1024);
     browser = await chromium.launch({ headless: true });
@@ -191,6 +256,54 @@ async function main() {
     assert.ok(JSON.stringify(raw).length < 50000);
     const imported = await decode(raw);
     const projectId = imported.project.id;
+    if (filmScale) {
+      assert.equal(imported.project.shots.length, 1200);
+      assert.equal(
+        imported.project.shots.reduce((sum, shot) => sum + shot.duration, 0),
+        7200,
+      );
+      assert.equal(
+        imported.project.nodes.filter((node) => node.type === "scene").length,
+        60,
+      );
+      assert.deepEqual(
+        imported.project.shots.map((shot) =>
+          shot.versions.map((version) => ({
+            prompt: version.prompt,
+            seed: version.seed,
+          })),
+        ),
+        manifest.shots.map((shot) =>
+          shot.versions.map((version) => ({
+            prompt: version.prompt,
+            seed: version.seed,
+          })),
+        ),
+      );
+      await page
+        .locator(".project-strip h1")
+        .filter({ hasText: manifest.title })
+        .waitFor({ timeout: 180000 });
+      await page.waitForFunction(
+        () =>
+          document.querySelectorAll(".project-strip .hierarchy-card").length ===
+          1200,
+        null,
+        { timeout: 180000 },
+      );
+      assert.equal(
+        await page.locator(".project-strip .hierarchy-card").count(),
+        1200,
+      );
+      await page.locator(".project-strip .hierarchy-card").last().click();
+      assert.equal(
+        await page
+          .getByRole("combobox", { name: "Reviewing version", exact: true })
+          .locator("option")
+          .count(),
+        4,
+      );
+    }
     assert.equal(
       imported.project.artifacts.filter((entry) => entry.code === "DOC-041")
         .length,
@@ -233,7 +346,10 @@ async function main() {
       (entry) => entry.code === "DOC-041",
     ).content;
     assert.equal(typeof textReference.$studioText, "string");
-    assert.ok(JSON.stringify(stored.data.document).length < 200000);
+    assert.ok(
+      JSON.stringify(stored.data.document).length <
+        (filmScale ? 5 * 1024 * 1024 : 200000),
+    );
     const recordPath = `${owner.id}/${projectId}/text/${textReference.$studioText}.json`;
     assert.ok(
       (await owner.client.storage.from("studio-records").download(recordPath))
@@ -329,6 +445,7 @@ async function main() {
     const exported = JSON.parse(
       fs.readFileSync(await (await download).path(), "utf8"),
     );
+    if (filmScale) assert.deepEqual(exported.shots, reloaded.project.shots);
     assert.equal(
       exported.artifacts.find((entry) => entry.id === originalVersion.id)
         .content,
@@ -345,8 +462,37 @@ async function main() {
       path: "artifacts/studio-large-project.png",
       fullPage: true,
     });
+    fs.writeFileSync(
+      "artifacts/studio-large-project-report.json",
+      JSON.stringify(
+        {
+          at: new Date().toISOString(),
+          base,
+          filmScale,
+          sourceBytes: source.length,
+          storedIndexBytes: Buffer.byteLength(
+            JSON.stringify(stored.data.document),
+          ),
+          shots: manifest.shots.length,
+          shotVersions: manifest.shots.reduce(
+            (sum, shot) => sum + shot.versions.length,
+            0,
+          ),
+          scriptVersions: 40,
+          appendedScriptVersions: 1,
+          plannedSeconds: manifest.shots.reduce(
+            (sum, shot) => sum + shot.duration,
+            0,
+          ),
+          elapsedSeconds: Math.round((Date.now() - started) / 1000),
+          providerCalls: 0,
+        },
+        null,
+        2,
+      ),
+    );
     console.log(
-      `Large-project verification passed: ${source.length} bytes, 40 original versions, browser multipart import/download/export, exact text, private immutable records, revision 41 appended, retained snapshots, owner isolation and stale-write protection. No paid calls.`,
+      `Large-project verification passed: ${source.length} bytes, ${manifest.shots.length} shots, ${manifest.shots.reduce((sum, shot) => sum + shot.versions.length, 0)} shot versions, 40 original script versions, browser multipart import/download/export, exact text, private immutable records, revision 41 appended, retained snapshots, owner isolation and stale-write protection. No paid calls.`,
     );
   } finally {
     if (browser) await browser.close();
@@ -357,6 +503,6 @@ async function main() {
   }
 }
 main().catch((error) => {
-  console.error(error.message);
+  console.error(error.stack || error.message);
   process.exitCode = 1;
 });

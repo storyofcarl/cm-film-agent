@@ -7,6 +7,16 @@ does not establish creative quality, live provider reliability, or final accepta
 Latest UI corrections D48–D49 compact the act/sequence labels, remove the header
 status/action cluster and duplicate left hierarchy, restore small project details,
 and provide 34 illustrated demo shots plus empty trailing slots for panning review.
+D50 removes the single-shot grid toggle. Shots open their viewer with version
+mechanics below; scene/sequence/act labels continue to open their contents grids.
+WD49's authenticated import/switch checks verify clean selection context and
+recovery of per-project chat drafts and unsaved document edits.
+WD50's local and hosted scale checks retain a 41.8 MB two-hour fixture with 1,200
+shots, 4,800 version recipes and 40 screenplay drafts. The 3.65 MB stored index,
+exact prompts/seeds, strip inventory, last-shot versions, added script revision,
+old snapshots, owner isolation and complete export passed. Generated media is
+absent from this fixture: playback, concurrency and real creative quality remain
+unproven. This advances the scale evidence without claiming the capacity ceiling.
 
 | Agreed requirement | Implementation and evidence | Remaining acceptance |
 | --- | --- | --- |

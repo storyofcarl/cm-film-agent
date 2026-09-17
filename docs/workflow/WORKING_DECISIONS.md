@@ -55,6 +55,18 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD50 — Full-length synthetic scale fixture
+
+Extend the private-record/browser check with an optional two-hour production:
+1,200 six-second shots across 60 scenes, 12 sequences and three acts; four retained
+version recipes per shot; and 40 full screenplay drafts. Verify exact prompts,
+seeds, stable shot records, all strip entries, last-shot version access, script
+revision append, immutable snapshots and portable export. Versions have no
+generated media and remain unapproved. Shared scene prompt blocks exercise record
+deduplication; this does not represent thousands of unique provider outputs or
+prove the 480 MB capacity ceiling, playback performance or creative quality.
+Use only disposable accounts, delete their test records and make no provider calls.
+
 ### WD49 — Reset inspection context at project boundaries
 
 Project creation, manifest import and manual project switching share one activation

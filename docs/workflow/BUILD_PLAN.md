@@ -174,6 +174,10 @@ worker validation, record lifecycle, and real full-film preparation acceptance.
 WD41 now externalizes immutable text
 and uses private multipart transport for large projects; a 15.5 MB/40-version
 browser fixture verifies behavior beyond the former manifest/response limits.
+WD50 adds local and hosted verification of a 41.8 MB two-hour fixture with 1,200
+shots, 4,800 retained recipes and 40 script versions, including exact portable
+round-trip and immutable revision append. This covers record/navigation scale,
+not generated-media playback or the 480 MB ceiling.
 Whole-project memory loading, record lifecycle/garbage collection and upper-bound
 scale validation remain open. Keep the full deliverable scope
 and stable IDs visible, resolve exact versions from retained records, and partition
@@ -183,8 +187,10 @@ truncate scripts/prompts, narrow a batch to the selected scene, or ask the direc
 to perform the agent's partitioning manually. Validate this with long-film fixtures,
 multiple long versions and mocked model requests before any paid production run.
 Do not solve context or storage size by deleting required history. Failed studies
-currently retain existing production data but do not resume an unfinished reasoning
-session; extend that behavior before claiming complete feature-film capacity.
+retain existing production data. WD43 resumes confirmed completed calls from its
+durable journal; an interrupted, unconfirmed provider call requires attention and
+is never automatically purchased again. This does not yet prove complete
+feature-film capacity under real production load.
 
 2026-09-17: the separate Vercel preview is delivered. The strip's persistent placement
 is implemented, and its rejected breadcrumb interaction has been replaced by
