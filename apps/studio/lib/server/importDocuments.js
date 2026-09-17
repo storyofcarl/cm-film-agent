@@ -4,6 +4,53 @@ import { fault } from "./errors";
 
 const text = (value) => (typeof value === "string" ? value : null);
 const positive = (value) => Number.isSafeInteger(value) && value > 0;
+function retainedStudy(study) {
+  if (study == null) return null;
+  if (
+    study.mode !== "indexed" ||
+    !Array.isArray(study.transcript) ||
+    !Array.isArray(study.coverage)
+  )
+    throw fault("Supplied source-read history has an invalid structure.");
+  return {
+    mode: "indexed",
+    transcript: study.transcript.map((entry) => {
+      if (
+        !entry ||
+        typeof entry.prompt !== "string" ||
+        typeof entry.response !== "string"
+      )
+        throw fault(
+          "Supplied source-read history must retain each complete request and response.",
+        );
+      return {
+        prompt: entry.prompt,
+        response: entry.response,
+        usage: entry.usage ?? null,
+      };
+    }),
+    coverage: study.coverage.map((entry) => {
+      if (
+        !entry ||
+        typeof entry.recordId !== "string" ||
+        !positive(entry.totalParts) ||
+        !Array.isArray(entry.readParts) ||
+        entry.readParts.some(
+          (part) =>
+            !Number.isSafeInteger(part) || part < 0 || part >= entry.totalParts,
+        ) ||
+        new Set(entry.readParts).size !== entry.readParts.length
+      )
+        throw fault("Supplied source-read coverage is invalid.");
+      return {
+        recordId: entry.recordId,
+        required: Boolean(entry.required),
+        totalParts: entry.totalParts,
+        readParts: [...entry.readParts],
+      };
+    }),
+  };
+}
 const historyEntry = (entry) => ({
   projectId: text(entry.projectId),
   artifactId: text(entry.artifactId),
@@ -135,6 +182,7 @@ export function importDocuments(input, createdAt) {
         origin: text(artifact.origin),
         prompt: text(source.prompt),
         systemPrompt: text(source.systemPrompt),
+        contextStudy: retainedStudy(source.contextStudy),
         method: text(source.method),
         methodVersion: text(source.methodVersion),
         model: text(source.model),

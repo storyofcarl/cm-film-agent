@@ -1,4 +1,5 @@
 import { useState } from "react";
+import SourceStudy from "./SourceStudy";
 import PromptField from "./PromptField";
 import { REVIEW_LABELS } from "../lib/domain";
 import { documentGroups, documentSource } from "../lib/documents";
@@ -203,6 +204,7 @@ export default function DocumentCard({
           {source.methodVersion && (
             <p className="muted">Method version: {source.methodVersion}</p>
           )}
+          <SourceStudy key={version.id} study={source.contextStudy} />
         </details>
       )}
     </article>

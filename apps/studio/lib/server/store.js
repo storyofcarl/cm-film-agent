@@ -60,7 +60,7 @@ export async function saveProject(project, revision) {
   validateProject(project);
   if (JSON.stringify(project).length > 12 * 1024 * 1024)
     throw fault(
-      "The project manifest exceeds 12 MB. Archive older batches before adding more.",
+      "The updated project exceeds the current 12 MB storage limit. Your existing saved production is unchanged.",
     );
   const { data, error } = await createAdminSupabase()
     .from("studio_projects")

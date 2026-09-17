@@ -4,6 +4,7 @@ import { InspectDialog } from "./PromptField";
 import { crewNextActions } from "../lib/crewActions";
 import ProposalReview from "./ProposalReview";
 import UploadInbox from "./UploadInbox";
+import SourceStudy from "./SourceStudy";
 
 export function directorMessage(artifact) {
   return (
@@ -67,6 +68,7 @@ export default function CrewConversation({
           </pre>
         </details>
       )}
+      <SourceStudy key={artifact.id} study={artifact.contextStudy} />
       {artifact.decisions?.length > 0 && (
         <p className="gate-message">
           Working decisions: {artifact.decisions.join(" · ")}

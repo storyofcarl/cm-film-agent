@@ -24,7 +24,7 @@ jest.mock("../apps/studio/lib/server/store", () => ({
 }));
 beforeEach(() => jest.clearAllMocks());
 
-test("oversized preparation preserves full history and does not suggest nonexistent archive or scene-filter workarounds", async () => {
+test("oversized preparation studies full text in bounded requests and saves its source audit", async () => {
   const project = createProject();
   project.artifacts.push({
     id: "long-script",
@@ -32,17 +32,33 @@ test("oversized preparation preserves full history and does not suggest nonexist
     title: "Complete screenplay history",
     content: "Full script text. ".repeat(50000),
   });
-  const before = JSON.stringify(project);
-  await expect(
-    runCrew(project, {
-      method: "film.develop",
-      instruction: "Review the complete production",
-      model: "mock",
+  const original = project.artifacts[0].content;
+  invokeHandler.mockResolvedValue({
+    content: JSON.stringify({
+      title: "Study",
+      content: "Complete source coverage.",
     }),
-  ).rejects.toThrow("current chat limit");
-  expect(invokeHandler).not.toHaveBeenCalled();
-  expect(mergeProject).not.toHaveBeenCalled();
-  expect(JSON.stringify(project)).toBe(before);
+  });
+  mergeProject.mockImplementation(async (_id, update) => ({
+    project: update(project),
+  }));
+  const result = await runCrew(project, {
+    method: "film.develop",
+    instruction: "Review the complete production",
+    model: "mock",
+  });
+  expect(invokeHandler.mock.calls.length).toBeGreaterThan(2);
+  expect(mergeProject).toHaveBeenCalledTimes(1);
+  expect(project.artifacts[0].content).toBe(original);
+  const artifact = result.project.artifacts.at(-1);
+  expect(artifact.contextStudy.mode).toBe("indexed");
+  expect(artifact.contextStudy.transcript).toHaveLength(
+    invokeHandler.mock.calls.length,
+  );
+  expect(artifact.contextStudy.coverage[0].readParts.length).toBe(
+    artifact.contextStudy.coverage[0].totalParts,
+  );
+  expect(result.project.batches).toEqual([]);
 });
 
 test("chat sees current batch gates and reused lookdev evidence without mistaking historical review for current approval", async () => {

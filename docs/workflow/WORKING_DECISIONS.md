@@ -55,6 +55,39 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD40 — Indexed source access for large reasoning requests
+
+When the existing complete context exceeds 650,000 characters, retain the full
+production inventory and replace long text values with exact source descriptors.
+Each descriptor records a content hash, total length and lossless text-part ranges.
+The agent may request up to eight parts per read. These are transport parts, not
+creative segments, rewritten scenes or generation boundaries. No source is deleted
+or silently truncated. Scope remains the full deliverable regardless of selection.
+
+Before saving a preparation proposal, document or next-step action, require source
+coverage for current creative intent, current and most recent approved writing,
+inspected drafts and inspected/selected recipes. Earlier versions and conversation
+remain available by their indexed records. Ordinary discussion can inspect only
+the sources relevant to its question. Coverage proves data access, not comprehension,
+creative completeness or human approval. All existing human gates remain intact.
+
+Retain successful studies' exact requests, responses and per-call usage, and show
+their source-read history beside the reply and resulting document's provenance.
+Export/import retains that history as supplied provenance without active approvals.
+Method routing receives a supplied-work inventory count rather than duplicating
+excerpts from every imported artifact before the actual source study begins.
+
+Working limits: 12 reasoning passes, 48,000-character source parts, 40,000-character
+working notes and a 220-second pre-call deadline check. The existing provider call
+timeout can extend a running call beyond that check. A failed/over-limit study
+does not apply incomplete output. Resumable background preparation, full-deliverable
+output partitioning and scalable retained-history storage remain incomplete.
+The 12 MB project-store cap still applies and may reject a large audit; saved data
+is unchanged. Do not describe this increment as complete feature-film capacity.
+
+This is a delegated implementation choice pending owner review. Tests use mocked
+reasoning responses and synthetic source records; no paid model-quality claim is made.
+
 ### WD39 — Select an object without replacing the strip scope
 
 The strip's level and title selectors control its displayed scope. Clicking an

@@ -81,6 +81,29 @@ async function main() {
       ),
     );
     const portablePrompt = "Synthetic portable direction. ".repeat(150);
+    const contextStudyFixture = {
+      mode: "indexed",
+      coverage: [
+        {
+          recordId: "synthetic-record",
+          required: true,
+          totalParts: 2,
+          readParts: [0, 1],
+        },
+      ],
+      transcript: [
+        {
+          prompt: "Synthetic source request one. ".repeat(150),
+          response: "Synthetic read request",
+          usage: null,
+        },
+        {
+          prompt: "Synthetic source request two. ".repeat(150),
+          response: "Synthetic final response",
+          usage: null,
+        },
+      ],
+    };
     pilot.artifacts.push(
       {
         id: "portable-v3",
@@ -92,6 +115,7 @@ async function main() {
         title: "Portable writing fixture",
         content: "Synthetic third draft.",
         prompt: portablePrompt,
+        contextStudy: contextStudyFixture,
         review: "approved",
       },
       {
@@ -144,6 +168,10 @@ async function main() {
     );
     assert.equal(portableVersions[1].revisesId, portableVersions[0].id);
     assert.equal(portableVersions[1].suppliedMetadata.prompt, portablePrompt);
+    assert.deepEqual(
+      portableVersions[1].suppliedMetadata.contextStudy,
+      contextStudyFixture,
+    );
     await call(
       other,
       `/api/studio/projects?id=${importedPilot.project.id}`,
@@ -531,6 +559,7 @@ async function main() {
         content: "Synthetic writing draft saved.",
         prompt: "Recorded synthetic source prompt",
         systemPrompt: "Recorded synthetic method",
+        contextStudy: contextStudyFixture,
         method: "film.develop",
         documentIds: ["writing_fixture_v1"],
       },
@@ -708,6 +737,37 @@ async function main() {
         .getByRole("textbox", { name: "Document source prompt", exact: true })
         .inputValue(),
       "Recorded synthetic source prompt",
+    );
+    await generatedDocument
+      .getByText("Source read history · 2 steps", { exact: true })
+      .click();
+    assert.equal(
+      await generatedDocument
+        .getByRole("textbox", { name: "Recorded source request", exact: true })
+        .inputValue(),
+      contextStudyFixture.transcript[0].prompt,
+    );
+    await generatedDocument
+      .getByRole("combobox", { name: "Source read step" })
+      .selectOption("1");
+    assert.equal(
+      await generatedDocument
+        .getByRole("textbox", { name: "Recorded source request", exact: true })
+        .inputValue(),
+      contextStudyFixture.transcript[1].prompt,
+    );
+    assert.equal(
+      await generatedDocument
+        .getByRole("textbox", { name: "Recorded source response", exact: true })
+        .inputValue(),
+      contextStudyFixture.transcript[1].response,
+    );
+    await page.screenshot({
+      path: "artifacts/studio-source-read-history.png",
+      fullPage: true,
+    });
+    findings.push(
+      "Source-read history preserves complete per-step requests/responses, switches steps in the document center, and survives portable import.",
     );
     const suppliedDocument = page.getByRole("article", {
       name: "Supplied screenplay.pdf document",

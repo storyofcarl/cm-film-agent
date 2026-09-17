@@ -26,6 +26,7 @@ import { appendDocument, documentArea } from "../documents";
 import { invokeHandler } from "./invoke";
 import { requireModel, modelCatalog } from "./models";
 import { fault, mergeProject, ownerId } from "./store";
+import { queryCrewContext } from "./crewContext";
 
 const skillDir = () => {
   const candidates = [
@@ -219,12 +220,18 @@ export async function runCrew(
           }
         : null,
       activeFileArea: activeFileArea || null,
-      suppliedWork: project.artifacts
-        .filter((entry) => entry.origin === "imported")
-        .map((entry) => ({
-          title: entry.title,
-          excerpt: entry.content?.slice(0, 2000),
-        })),
+      suppliedWork: {
+        importedRecords: project.artifacts.filter(
+          (entry) => entry.origin === "imported",
+        ).length,
+        scripts: project.artifacts.filter(
+          (entry) => documentArea(project, entry) === "scripts",
+        ).length,
+        productionDocuments: project.artifacts.filter(
+          (entry) => documentArea(project, entry) === "documents",
+        ).length,
+        inspectedTitle: inspectedDocument?.title || null,
+      },
       recentConversation: project.artifacts
         .filter((entry) => entry.instruction)
         .slice(-4)
@@ -452,6 +459,8 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
           artifact.prompt?.startsWith("DIRECTOR'S REQUEST\n"),
       )
       .map((artifact) => ({
+        id: artifact.id,
+        createdAt: artifact.createdAt,
         instruction:
           artifact.instruction ||
           artifact.prompt
@@ -497,20 +506,22 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
         }
       : null,
   };
-  const prompt = `DIRECTOR'S REQUEST\n${instruction}\n\nCURRENT PRODUCTION (complete preparation context)\n${JSON.stringify(context)}`;
-  if (prompt.length + systemPrompt.length > 650000)
-    throw fault(
-      "This production is too large for the current chat limit. Its full history is preserved.",
-    );
-  const result = await invokeHandler(seedHandler, {
-    modelId: selected,
-    prompt,
+  const study = await queryCrewContext({
+    context,
+    instruction,
     systemPrompt,
-    reasoningEffort: "high",
-    images: (project.inbox || [])
-      .filter((entry) => context.visualEvidenceIds.includes(entry.id))
-      .map((entry) => entry.media.url),
+    invoke: (prompt, instructions) =>
+      invokeHandler(seedHandler, {
+        modelId: selected,
+        prompt,
+        systemPrompt: instructions,
+        reasoningEffort: "high",
+        images: (project.inbox || [])
+          .filter((entry) => context.visualEvidenceIds.includes(entry.id))
+          .map((entry) => entry.media.url),
+      }),
   });
+  const { prompt, result, contextStudy } = study;
   let output;
   try {
     output = JSON.parse(
@@ -564,7 +575,8 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
     sourceFiles: source.files,
     model: selected,
     prompt,
-    systemPrompt,
+    systemPrompt: study.systemPrompt,
+    contextStudy,
     usage: result.usage || null,
     proposal: output.proposal || null,
     nextActions: crewNextActions(output.nextActions),

@@ -159,16 +159,19 @@ while level/title selectors control the row. The selected branch guides subseque
 level changes. Scope editing uses inline Properties. Review this behavior with the
 owner alongside the module grouping; neither is final design acceptance.
 
-Next engineering priority from WD38: support large-film preparation without loading
-all historical text into every reasoning request. Keep the full deliverable scope
+WD40 implements bounded indexed source reads while preserving the full inventory
+and exact successful-study provenance. Next engineering priority: make long-film
+preparation resumable across hosted requests, partition full-deliverable outputs,
+and scale retained history beyond the current 12 MB store. Keep the full deliverable scope
 and stable IDs visible, resolve exact versions from retained records, and partition
 work only at valid scene/document boundaries when it exceeds a model's capacity.
 Aggregate complete outputs before the existing human review gates. Do not silently
 truncate scripts/prompts, narrow a batch to the selected scene, or ask the director
 to perform the agent's partitioning manually. Validate this with long-film fixtures,
 multiple long versions and mocked model requests before any paid production run.
-Also address the 12 MB project-store limit so retained provenance can scale with
-the production; do not solve context size by deleting required history.
+Do not solve context or storage size by deleting required history. Failed studies
+currently retain existing production data but do not resume an unfinished reasoning
+session; extend that behavior before claiming complete feature-film capacity.
 
 2026-09-17: the separate Vercel preview is delivered. The strip's persistent placement
 is implemented, and its rejected breadcrumb interaction has been replaced by

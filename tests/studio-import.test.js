@@ -180,11 +180,30 @@ test("ambiguous document identifiers, codes, numbering or parentage fail without
 
 test("portable writing retains version lineage and supplied prompts without importing approvals or executable proposals", async () => {
   const project = createProject();
+  const contextStudy = {
+    mode: "indexed",
+    coverage: [
+      {
+        recordId: "retained-record",
+        required: true,
+        totalParts: 2,
+        readParts: [0, 1],
+      },
+    ],
+    transcript: [
+      {
+        prompt: "Complete request. ".repeat(4000),
+        response: "Exact response",
+        usage: { inputTokens: 4 },
+      },
+    ],
+  };
   project.artifacts.push({
     id: "reply",
     instruction: "Write",
     prompt: "Original full prompt",
     systemPrompt: "Original instructions",
+    contextStudy,
     method: "film.develop",
     content: "Done",
     proposal: { shots: [{ title: "Never execute" }] },
@@ -213,7 +232,13 @@ test("portable writing retains version lineage and supplied prompts without impo
     prompt: "Original full prompt",
     systemPrompt: "Original instructions",
     supplied: true,
+    contextStudy,
   });
+  const again = (await importManifest(imported)).project;
+  expect(
+    documentSource(again, documentGroups(again, "scripts")[0].versions[0])
+      .contextStudy,
+  ).toEqual(contextStudy);
   expect(imported.artifacts.every((entry) => !entry.proposal)).toBe(true);
   expect(imported.shots).toEqual([]);
 });

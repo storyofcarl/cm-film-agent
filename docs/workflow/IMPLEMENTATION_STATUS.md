@@ -24,6 +24,13 @@ that the conversation is restricted to one object or task.
 
 ## Implemented
 
+- Indexed reasoning context (WD40): oversized contexts retain the complete object
+  and version inventory and retrieve lossless source-text parts on demand. Required
+  current/approved writing and creative-intent coverage gates preparation output.
+  Exact successful-study requests/responses remain inspectable and survive import.
+  This is bounded retrieval, not completion of long-film task partitioning or
+  scalable storage; 12 passes and the 12 MB store remain explicit limits.
+
 - Strip selection is separate from scope (WD39): container thumbnails open their
   central workspace without replacing the thumbnail row. Level changes follow the
   selected branch; selection survives file-view switches. Scope edits use inline
@@ -115,12 +122,15 @@ that the conversation is restricted to one object or task.
   navigation, V1/V2 approvals, and persistence after reload. Model requests in the
   browser are intercepted; synthetic writing is clearly labeled test content.
 
-- Latest Studio regression: **78 passing tests across 13 suites**, including
+- Latest Studio regression: **85 passing tests across 14 suites**, including
   PDF/DOCX extraction, writing/version/import, lookdev reuse/invalidation and current
   batch-state chat context. Authenticated browser checks verify a zero-job reused
   lookdev review without conflating it with individual asset approval.
   New import tests cover out-of-order/gapped versions, repeated import, immutable
   full prompts, legacy numbering, conflicting identities and unchanged originals.
+  Indexed-context tests cover lossless Unicode-safe text parts, exact historical
+  reads, current/approved version coverage, all-scene scope, pre-proposal gates,
+  request bounds and an oversized index failing before a model call.
   Studio build, changed-source lint and authenticated browser smoke pass; changed
   source and browser build contain zero configured-secret matches. The earlier
   broader regression run recorded **96 passing tests across 18 suites**.
@@ -165,11 +175,12 @@ that the conversation is restricted to one object or task.
 
 ## Release boundary and limits
 
-- Large-project chat remains incomplete. The server loads the full preparation
-  context and rejects combined prompt/instructions above 650,000 characters;
-  selecting a scene does not reduce it. The error now reports the limit honestly,
-  with data retained. Whole-film retrieval/partitioning is still required; local
-  long-film rendering does not prove large-project conversational support.
+- Large-project chat remains incomplete. Oversized contexts now use indexed exact
+  reads under the 650,000-character per-call guard, with the full inventory retained.
+  Studies currently stop after 12 passes or the pre-call deadline; they are not yet
+  resumable. Whole-deliverable output partitioning and scalable history storage are
+  still required. Failed studies leave existing saved production data unchanged;
+  local long-film rendering does not prove large-project conversational support.
 
 - No arbitrary paid Studio generations were run. Provider adapters are reused and
   exercised with mocks; a director-approved real pilot is still required to assess
