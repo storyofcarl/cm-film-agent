@@ -1,28 +1,32 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
 import { InspectDialog } from "./PromptField";
+import PromptField from "./PromptField";
+import { fileArea } from "../lib/fileAreas";
 
-export default function UploadInbox({ project, busy, command }) {
+export default function UploadInbox({ project, busy, command, area = null }) {
   const [open, setOpen] = useState(false);
-  const entries = project.inbox || [];
+  const entries = (project.inbox || []).filter(
+    (entry) => !area || fileArea(entry) === area,
+  );
   if (!entries.length) return null;
   const objects = [...project.assets, ...project.shots];
+  const Wrapper = area ? "section" : InspectDialog;
   return (
     <>
-      <button
-        type="button"
-        className="text-button inbox-summary"
-        onClick={() => setOpen(true)}
-      >
-        Supplied work · {entries.length} files ·{" "}
-        {entries.filter((entry) => entry.status === "needs-attention").length}{" "}
-        need attention
-      </button>
-      {open && (
-        <InspectDialog
-          title="Supplied work inbox"
-          onClose={() => setOpen(false)}
+      {!area && (
+        <button
+          type="button"
+          className="text-button inbox-summary"
+          onClick={() => setOpen(true)}
         >
+          Supplied work · {entries.length} files ·{" "}
+          {entries.filter((entry) => entry.status === "needs-attention").length}{" "}
+          need attention
+        </button>
+      )}
+      {(area || open) && (
+        <Wrapper title="Supplied work inbox" onClose={() => setOpen(false)}>
           <p>
             Original files stay with the project. Direct the crew to inventory
             them and propose where they belong, or assign media below.
@@ -60,6 +64,18 @@ export default function UploadInbox({ project, busy, command }) {
                     : ""}
                   . {entry.extraction.note}
                 </p>
+              )}
+              {area && entry.artifactId && (
+                <PromptField
+                  label={`${entry.title} content`}
+                  readOnly
+                  rows={12}
+                  value={
+                    project.artifacts.find(
+                      (artifact) => artifact.id === entry.artifactId,
+                    )?.content || ""
+                  }
+                />
               )}
               {entry.warnings?.map((warning, index) => (
                 <p className="gate-message" key={index}>
@@ -132,7 +148,7 @@ export default function UploadInbox({ project, busy, command }) {
                 )}
             </article>
           ))}
-        </InspectDialog>
+        </Wrapper>
       )}
     </>
   );

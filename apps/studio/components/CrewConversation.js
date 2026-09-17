@@ -16,22 +16,12 @@ export function directorMessage(artifact) {
   );
 }
 
-export default function CrewConversation({
-  project,
-  contextId,
-  busy,
-  command,
-  prepare,
-}) {
+export default function CrewConversation({ project, busy, command, prepare }) {
   const log = useRef(null);
   const [expanded, setExpanded] = useState(null);
   const messages = project.artifacts.filter((artifact) =>
     directorMessage(artifact),
   );
-  const context =
-    [...project.nodes, ...project.shots, ...project.assets, project].find(
-      (entry) => entry.id === contextId,
-    ) || project;
   useEffect(() => {
     if (log.current) log.current.scrollTop = log.current.scrollHeight;
   }, [messages.length]);
@@ -81,14 +71,6 @@ export default function CrewConversation({
   );
   return (
     <>
-      <p className="crew-context">
-        Directing:{" "}
-        <strong>
-          {context.code || context.id} · {context.title}
-        </strong>
-        <br />
-        <small>The crew also sees the full production.</small>
-      </p>
       <UploadInbox {...{ project, busy, command }} />
       {project.artifacts.some((entry) => entry.origin === "imported") && (
         <details className="crew-uploads">
@@ -116,15 +98,10 @@ export default function CrewConversation({
         ref={log}
         className="crew-conversation"
         role="log"
-        aria-label="Crew conversation"
+        aria-label="Conversation"
         aria-live="polite"
       >
-        {!messages.length && (
-          <p>
-            Start with your vision, ask about the production, or direct the next
-            batch. Replies and reviewable proposals will appear here.
-          </p>
-        )}
+        {!messages.length && <p>Plan, create, or revise your project.</p>}
         {messages.map((artifact) => (
           <article key={artifact.id}>
             <div className="crew-message director-message">
@@ -132,7 +109,7 @@ export default function CrewConversation({
               <p className="crew-message-text">{directorMessage(artifact)}</p>
             </div>
             <div className="crew-message">
-              <b>Crew</b>
+              <b>Assistant</b>
               {artifact.context?.title && (
                 <small>{artifact.context.title}</small>
               )}
@@ -149,7 +126,7 @@ export default function CrewConversation({
         ))}
       </div>
       {expanded && (
-        <InspectDialog title="Crew reply" onClose={() => setExpanded(null)}>
+        <InspectDialog title="Reply" onClose={() => setExpanded(null)}>
           {reply(
             project.artifacts.find((artifact) => artifact.id === expanded),
           )}

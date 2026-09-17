@@ -135,7 +135,15 @@ export function sampleProject() {
       if (index === 2) {
         item.versions[0].note =
           "Keep the original silhouette; soften the light at the doorway.";
-        item.versions.push(version("sh3v2", "door", "pending", prompt, 2));
+        item.versions.push(
+          version(
+            "sh3v2",
+            "door",
+            "pending",
+            `${prompt} Soften the doorway light while preserving the keeper's silhouette.`,
+            2,
+          ),
+        );
       }
       return item;
     },

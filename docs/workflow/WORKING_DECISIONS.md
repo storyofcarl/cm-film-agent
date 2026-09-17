@@ -55,10 +55,12 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
-D37 supersedes WD30's default wide chat layout: keep chat docked alongside the
-visible project, with optional modest widening. D36 rejects the current strip
-interaction; its replacement remains unresolved. Do not treat prior passing
-navigation checks as owner acceptance or resolve this through more unrelated pilot work.
+D37–D40 supersede WD30's default wide chat layout: a chat-only right sidebar starts
+expanded and can collapse to a permanent rail. It cannot be removed. Manual controls belong in the center; the left bar has a
+simple open/closed toggle. D36 rejects breadcrumb navigation in the strip. The
+replacement uses direct level controls based on the earlier description, following
+the owner's instruction that it was already described. Owner review remains needed;
+do not treat passing checks as creative/interaction acceptance.
 
 ## Review on return
 

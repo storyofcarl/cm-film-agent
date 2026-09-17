@@ -1,26 +1,34 @@
 # Studio implementation status
 
 Updated 2026-09-17. The separate private preview is deployed and verified.
-The owner rejected the breadcrumb-driven strip interaction (D36); the required
-level-view module remains unresolved pending the rest of their clarification.
-Passing placement/navigation checks did not establish interaction acceptance.
+The UX remains a working draft. The owner explicitly rejected describing it as
+final; deployment and passing checks do not establish design acceptance.
+The owner rejected the breadcrumb-driven strip interaction (D36); direct level
+controls now replace it. Owner review of the replacement remains outstanding.
+Passing placement/navigation checks do not establish interaction acceptance.
 A director-reviewed real creative pilot remains outstanding.
 
-Latest owner correction: D37 is deployed. Crew chat stays in the right dock and
-never hides the main production workspace, including when widened. Live desktop
-and mobile checks passed, with draft retention through navigation. D36 remains
-unresolved: do not present the strip's current interaction as accepted or complete.
+Latest owner correction D38: the left bar opens or closes to icons. The right bar
+starts expanded and is chat-only, with collapse/expand controls that retain a
+permanent right rail (D40). Object Properties and
+Details have moved to the center. D41–D43 place the production header and project
+actions above the strip, keep shot/version mechanics inline with no Details toggle,
+and add contextual Footage, Scripts, Production docs and Audio file areas. Chat remains the primary direction interface;
+the center provides manual inspection and adjustment. Browser checks cover both
+sidebar states, draft retention, central controls and direct strip-level selection.
+Chat copy follows D39: Chat, Message and Send, with no directing banner implying
+that the conversation is restricted to one object or task.
 
 ## Implemented
 
 - Separate `apps/studio` application; legacy remains at the repository root.
 - Persistent crew conversation docked beside the visible production workspace
-  (D37). Optional widening keeps the work visible. Saved replies, project-specific
+  (D37–D40). Collapsing/expanding preserves the draft. Saved replies, project-specific
   drafts, selected object context, readable
   proposals, and non-executing batch-preparation actions. Automatic method routing
   retains source provenance; model/method defaults live in project settings.
-- Stable project-local object codes. The current scoped strip is implemented but
-  its breadcrumb-driven interaction is rejected (D36). Clickable approval ring counts current scene approvals, with asset, shot,
+- Stable project-local object codes and direct level controls in the strip. The
+  breadcrumb-driven interaction was replaced (D36). Clickable approval ring counts current scene approvals, with asset, shot,
   scene and active-job details. Asset types are editable in Properties.
 - Expanded prompt editors/readers, exact-version reference inspection, full source
   segment playback and per-shot source ranges. Illustrative demo frames are clearly

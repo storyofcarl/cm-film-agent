@@ -155,8 +155,15 @@ Deliverable: verified production workflow, delivery package, and migration plan.
 ## Current review artifact
 
 2026-09-17: the separate Vercel preview is delivered. The strip's persistent placement
-is implemented, but its breadcrumb-driven interaction was rejected by the owner
-(D36). The required level-view module remains incomplete pending clarification.
+is implemented, and its rejected breadcrumb interaction has been replaced by
+direct level controls using the owner's earlier description (D36). Owner review
+of the replacement is still required. D38 places manual controls in the center
+and persistent chat in a dedicated right sidebar. D40 clarifies that chat can
+collapse to a permanent rail, never disappear. The overall UX remains a working draft.
+The current iteration implements D41–D43: a header above the strip for production
+actions/status; inline, version-bound shot mechanics; and contextual file areas.
+The strip's navigation/selector grouping is a reviewable working design, not an
+accepted final interaction. Continue incorporating owner corrections.
 The chat-first workflow, shared properties, source inspection, stable codes and
 status snapshot are deployed and verified. Review
 [COMPLETION_AUDIT.md](COMPLETION_AUDIT.md) for requirement evidence, real-production

@@ -19,38 +19,109 @@ async function main() {
       exact: true,
     });
     await strip.waitFor();
-    const chat = page.getByRole("region", { name: "Persistent crew chat" });
+    for (const [level, childType] of [
+      ["Project", "act"],
+      ["Act", "sequence"],
+      ["Sequence", "scene"],
+      ["Scene", "Shot"],
+    ]) {
+      await strip.getByRole("button", { name: level, exact: true }).click();
+      assert.equal(
+        await strip.locator(".strip-levels [aria-pressed=true]").textContent(),
+        level,
+      );
+      assert.equal(
+        await strip.locator(".hierarchy-card small").first().textContent(),
+        childType,
+      );
+    }
+    await strip.locator(".hierarchy-card").first().click();
+
+    const chat = page.getByRole("region", { name: "Project chat" });
+    assert.equal(
+      await chat.locator(".crew-context").count(),
+      0,
+      "Chat must not display a single-object directing banner.",
+    );
     await chat
-      .getByRole("textbox", { name: "Message the crew", exact: true })
+      .getByRole("textbox", { name: "Message", exact: true })
       .fill("Keep this direction while I inspect the production.");
     assert.ok(await chat.isVisible());
     assert.ok(
       await page.locator("main.workspace").isVisible(),
       "The project remains visible while directing the crew.",
     );
-    const normalChat = await page.locator(".inspector").boundingBox();
+    const normalChat = await page.locator(".crew-sidebar").boundingBox();
     const normalWorkspace = await page.locator("main.workspace").boundingBox();
     assert.ok(
       normalWorkspace.width > normalChat.width,
       "The work area is larger than the default chat dock.",
     );
-    await chat.getByRole("button", { name: "Widen chat", exact: true }).click();
-    const widerChat = await page.locator(".inspector").boundingBox();
-    assert.ok(widerChat.width > normalChat.width);
-    assert.ok(
-      await page.locator("main.workspace").isVisible(),
-      "Widening chat must not hide the production.",
-    );
-    await chat
-      .getByRole("button", { name: "Narrow chat", exact: true })
+    await page
+      .getByRole("button", { name: "Close left bar", exact: true })
       .click();
+    assert.ok((await page.locator(".project-nav").boundingBox()).width <= 64);
+    assert.ok(await page.getByTitle("Assets", { exact: true }).isVisible());
+    assert.ok(await chat.isVisible());
+    await page.screenshot({
+      path: "artifacts/studio-closed-left-bar.png",
+      fullPage: true,
+    });
+    await page
+      .getByRole("button", { name: "Open left bar", exact: true })
+      .click();
+    await chat
+      .getByRole("button", { name: "Collapse chat", exact: true })
+      .click();
+    assert.equal(await chat.isVisible(), false);
+    assert.ok(
+      await page
+        .getByRole("complementary", { name: "Chat sidebar" })
+        .isVisible(),
+      "The chat rail stays on screen when collapsed.",
+    );
+    assert.ok((await page.locator(".crew-sidebar").boundingBox()).width <= 56);
+    assert.ok(await page.locator("main.workspace").isVisible());
+    await page
+      .getByRole("button", { name: "Expand chat", exact: true })
+      .click();
+    assert.equal(
+      await chat
+        .getByRole("textbox", { name: "Message", exact: true })
+        .inputValue(),
+      "Keep this direction while I inspect the production.",
+    );
+    assert.equal(
+      await page.locator(".crew-sidebar .inspector-object").count(),
+      0,
+      "Manual controls must not live in chat.",
+    );
+    const right = await page.locator(".crew-sidebar").boundingBox();
+    const centerStrip = await strip.boundingBox();
+    assert.ok(centerStrip.x + centerStrip.width <= right.x + 1);
+    assert.ok(right.y <= centerStrip.y);
     fs.mkdirSync("artifacts", { recursive: true });
     await page.screenshot({
       path: "artifacts/studio-chat-workspace.png",
       animations: "disabled",
       fullPage: true,
     });
-    await strip.getByRole("button", { name: /^Project status:/ }).click();
+    await page.getByRole("button", { name: /^Project status:/ }).click();
+    const header = await page
+      .getByRole("banner", { name: "Production header" })
+      .boundingBox();
+    assert.ok(header.y + header.height <= (await strip.boundingBox()).y + 1);
+    assert.equal(
+      await page
+        .locator("main.workspace")
+        .getByRole("button", { name: "Export project" })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page.getByRole("button", { name: "Details", exact: true }).count(),
+      0,
+    );
     const status = page.getByRole("dialog", { name: "Production status" });
     await status
       .getByText("0 of 3 scenes approved for the current selected versions.", {
@@ -69,9 +140,16 @@ async function main() {
       "Sidebar must begin alongside the strip, not below it.",
     );
     const selection = await strip
-      .locator('[aria-pressed="true"]')
+      .locator('.hierarchy-card[aria-pressed="true"]')
       .textContent();
-    const crumbs = await strip.getByRole("navigation").textContent();
+    const level = await strip
+      .locator(".strip-levels [aria-pressed=true]")
+      .textContent();
+    assert.equal(
+      await strip.getByRole("navigation").count(),
+      0,
+      "Level switching does not use breadcrumbs.",
+    );
     for (const name of [
       "Assets 3",
       /^Batches \d+$/,
@@ -87,7 +165,7 @@ async function main() {
       );
       const chatBounds = await chat.boundingBox();
       const sendBounds = await chat
-        .getByRole("button", { name: "Send to crew", exact: true })
+        .getByRole("button", { name: "Send", exact: true })
         .boundingBox();
       assert.ok(
         sendBounds.y + sendBounds.height <= chatBounds.y + chatBounds.height,
@@ -95,15 +173,20 @@ async function main() {
       );
       assert.equal(
         await chat
-          .getByRole("textbox", { name: "Message the crew", exact: true })
+          .getByRole("textbox", { name: "Message", exact: true })
           .inputValue(),
         "Keep this direction while I inspect the production.",
       );
       assert.equal(await strip.count(), 1);
       assert.ok(await strip.isVisible());
-      assert.equal(await strip.getByRole("navigation").textContent(), crumbs);
       assert.equal(
-        await strip.locator('[aria-pressed="true"]').textContent(),
+        await strip.locator(".strip-levels [aria-pressed=true]").textContent(),
+        level,
+      );
+      assert.equal(
+        await strip
+          .locator('.hierarchy-card[aria-pressed="true"]')
+          .textContent(),
         selection,
       );
       const top = await strip.boundingBox();
@@ -114,7 +197,7 @@ async function main() {
       );
     }
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
-    await strip.getByRole("navigation").getByRole("button").first().click();
+    await strip.getByRole("button", { name: "Project", exact: true }).click();
     const properties = page.getByRole("region", {
       name: "Selected object properties",
     });
@@ -192,6 +275,10 @@ async function main() {
       .getByRole("textbox", { name: "Object prompt / direction", exact: true })
       .fill("Cool dawn light; deliberate camera movement.");
     await page.getByRole("button", { name: "History", exact: true }).click();
+    assert.equal(await page.locator(".manual-inspector").isVisible(), false);
+    await page
+      .getByRole("button", { name: "Scene workspace", exact: true })
+      .click();
     assert.equal(
       await properties
         .getByRole("textbox", {
@@ -201,6 +288,9 @@ async function main() {
         .inputValue(),
       "Cool dawn light; deliberate camera movement.",
     );
+    await page
+      .getByRole("button", { name: "Scene workspace", exact: true })
+      .click();
     await properties
       .getByRole("heading", { name: "The observatory", exact: true })
       .waitFor();
@@ -235,26 +325,68 @@ async function main() {
       fullPage: true,
     });
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
-    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page
-      .getByRole("button", { name: /^View segments & references/ })
-      .click();
-    await page
-      .getByRole("dialog")
+      .locator(".generation-inline")
       .getByText(
         "This demo version is an illustrated storyboard. No video segment was generated.",
         { exact: true },
       )
       .waitFor();
-    await page
-      .getByRole("dialog")
-      .getByRole("button", { name: "Close", exact: true })
-      .click();
     await page.screenshot({
       path: "artifacts/studio-assets-top-strip.png",
       animations: "disabled",
       fullPage: true,
     });
+    await strip.locator(".hierarchy-card").nth(2).click();
+    const versionPicker = page.getByRole("combobox", {
+      name: "Reviewing version",
+      exact: true,
+    });
+    const firstPrompt = await page
+      .getByRole("textbox", { name: "Exact prompt", exact: true })
+      .inputValue();
+    await versionPicker.selectOption("sh3v2");
+    assert.notEqual(
+      await page
+        .getByRole("textbox", { name: "Exact prompt", exact: true })
+        .inputValue(),
+      firstPrompt,
+    );
+    assert.ok(
+      (await page.locator(".viewer-caption").textContent()).includes("V2"),
+    );
+    assert.equal(
+      await page
+        .getByRole("combobox", { name: "Approval status", exact: true })
+        .inputValue(),
+      "pending",
+    );
+    await versionPicker.selectOption("sh3v1");
+    assert.equal(
+      await page
+        .getByRole("textbox", { name: "Exact prompt", exact: true })
+        .inputValue(),
+      firstPrompt,
+    );
+    assert.equal(
+      await page
+        .getByRole("combobox", { name: "Approval status", exact: true })
+        .inputValue(),
+      "revision",
+    );
+    assert.ok(
+      await page
+        .getByRole("region", { name: "Recorded references" })
+        .isVisible(),
+    );
+    for (const name of ["Footage", "Scripts", "Production docs", "Audio"]) {
+      await page.getByTitle(name, { exact: true }).click();
+      assert.ok(
+        await page
+          .getByRole("button", { name: "Upload to " + name, exact: true })
+          .isVisible(),
+      );
+    }
     await page.setViewportSize({ width: 390, height: 844 });
     for (const name of [
       "Assets",
@@ -283,7 +415,7 @@ async function main() {
     });
     assert.deepEqual(errors, []);
     console.log(
-      "Docked chat, widening without hiding the work, persistent drafts and desktop/mobile layout checks passed. Strip placement checks do not establish acceptance of its level-view interaction.",
+      "Left open/closed toggle, chat-only persistent right bar, central manual controls and direct strip-level switching passed desktop/mobile checks.",
     );
   } finally {
     await browser.close();

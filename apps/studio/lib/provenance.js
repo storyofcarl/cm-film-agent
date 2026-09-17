@@ -59,6 +59,21 @@ export function versionSources(project, item, version) {
       prompt: recipe?.prompt ?? job?.request?.prompt ?? "",
       model: payload?.model || job?.request?.model || version.model,
       seed: payload?.seed ?? recipe?.seed ?? null,
+      settings: {
+        duration: payload?.duration ?? job?.request?.duration ?? null,
+        resolution:
+          payload?.resolution ??
+          payload?.size ??
+          job?.request?.resolution ??
+          job?.request?.size ??
+          null,
+        ratio:
+          payload?.ratio ??
+          payload?.aspect_ratio ??
+          job?.request?.ratio ??
+          null,
+        audio: payload?.generate_audio ?? job?.request?.audio ?? null,
+      },
       references: recordedReferences(payload, recorded),
       referencesKnown: Boolean(
         payload?.content ||

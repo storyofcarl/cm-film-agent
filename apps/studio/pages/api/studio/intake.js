@@ -8,6 +8,7 @@ import { extractDocument } from "../../../lib/server/documents";
 import { validateMedia } from "../../../lib/server/intake";
 import { uid } from "../../../lib/domain";
 import { DOCUMENT_TYPES, MEDIA_TYPES } from "../../../lib/uploads";
+import { FILE_AREAS, fileArea } from "../../../lib/fileAreas";
 import {
   KEY_RE,
   readStoreBytes,
@@ -20,7 +21,9 @@ export const config = {
 };
 export default withStudioAuth(async (req, res) => {
   if (req.method !== "POST") return res.status(405).end();
-  const { id, revision, key, name } = req.body || {};
+  const { id, revision, key, name, area } = req.body || {};
+  if (area != null && !Object.hasOwn(FILE_AREAS, area))
+    return res.status(400).json({ error: "Choose a valid file area." });
   if (!KEY_RE.test(String(key || "")))
     return res.status(400).json({ error: "Choose a completed upload." });
   const loaded = await loadProject(id);
@@ -34,11 +37,9 @@ export default withStudioAuth(async (req, res) => {
   if (!type) return res.status(400).json({ error: "Unsupported upload type." });
   const { buffer, contentType } = await readStoreBytes(key);
   if (contentType.split(";")[0] !== type)
-    return res
-      .status(400)
-      .json({
-        error: "The uploaded file type does not match its storage record.",
-      });
+    return res.status(400).json({
+      error: "The uploaded file type does not match its storage record.",
+    });
   const entry = {
     id: uid("inbox"),
     title: String(name || "Supplied work").slice(0, 300),
@@ -54,6 +55,7 @@ export default withStudioAuth(async (req, res) => {
     assignments: [],
     createdAt: new Date().toISOString(),
   };
+  entry.area = area || fileArea(entry);
   try {
     if (entry.kind === "document") {
       const result = await extractDocument(buffer, extension);

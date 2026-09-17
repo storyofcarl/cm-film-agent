@@ -7,7 +7,8 @@ does not establish creative quality, live provider reliability, or final accepta
 | Agreed requirement | Implementation and evidence | Remaining acceptance |
 | --- | --- | --- |
 | Separate Studio; preserve legacy | Separate app, Vercel project, tables, media namespace and scheduler; hosted ownership and namespace checks | No automatic legacy conversion; use the migration path below |
-| Project strip on every view, inside the project beside the left sidebar | Placement/persistence checks pass, but the owner rejected the breadcrumb-driven interaction (D36) | Incomplete: clarify and implement the level-view module; navigation tests do not prove alignment |
+| Project strip on every view, inside the project beside the left sidebar | Breadcrumb interaction rejected (D36); replaced with direct Project/Act/Sequence/Scene controls and level-specific selection. Browser checks preserve scope and selected shot across views | Owner review of the replacement; checks do not substitute for acceptance |
+| Left/center/right workspace boundaries | Left opens/closes to icons; chat-only right sidebar starts expanded and collapses to a permanent rail with draft preserved; object controls live in center (D38–D40) | Owner visual review; overall UX explicitly remains a draft |
 | Objects own properties; screens manipulate those same objects | Shared Properties inspector; saved container direction/reference scope reaches compiled requests; crew receives selected context | Owner review of inheritance defaults in WD29 |
 | Film/episode batch scope and hierarchical shot assembly | Domain and execution tests cover batch preparation, segment packing, atomic beats, continuation and minimum-duration trimming | Real multi-scene production pilot |
 | Reusable assets and human lookdev | Explicit reference assignments; version gates and more-than-three-segment scene threshold with picture override | Human review of representative character/location and technical video lookdev |

@@ -279,8 +279,13 @@ async function main() {
         revision: current.revision,
         key: documentKey,
         name: `Supplied screenplay.${document.ext}`,
+        area: document.ext === "docx" ? "documents" : "scripts",
       });
       const entry = current.project.inbox.at(-1);
+      assert.equal(
+        entry.area,
+        document.ext === "docx" ? "documents" : "scripts",
+      );
       assert.equal(entry.status, "ready", JSON.stringify(entry.warnings));
       assert.ok(
         current.project.artifacts
@@ -315,6 +320,7 @@ async function main() {
     });
     const inboxImage = current.project.inbox.at(-1);
     assert.equal(inboxImage.status, "ready");
+    assert.equal(inboxImage.area, "assets");
     await command("item.add", {
       kind: "asset",
       title: "Supplied keeper",
@@ -475,7 +481,7 @@ async function main() {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(base);
-    await page.getByRole("region", { name: "Persistent crew chat" }).waitFor();
+    await page.getByRole("region", { name: "Project chat" }).waitFor();
     await page
       .getByRole("button", { name: /^Supplied work · 4 files/ })
       .click();
@@ -528,7 +534,6 @@ async function main() {
     findings.push(
       "Chat upload control, visible intake results, original-file links and inbox persistence across reload passed.",
     );
-    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page
       .getByRole("heading", { name: "Scene 01", exact: true })
       .waitFor();
@@ -566,7 +571,6 @@ async function main() {
       fullPage: true,
     });
     await page.goto(base + "/demo");
-    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page
       .getByRole("heading", { name: "The observatory", exact: true })
       .waitFor();
@@ -602,7 +606,6 @@ async function main() {
     );
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
     await page.getByRole("button", { name: "The keeper", exact: true }).click();
-    await page.getByRole("button", { name: "Details", exact: true }).click();
     await page
       .getByRole("button", { name: "Edit asset intent", exact: true })
       .click();

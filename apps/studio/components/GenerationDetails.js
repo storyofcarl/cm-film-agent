@@ -57,21 +57,30 @@ function References({ project, references, known }) {
   );
 }
 
-export default function GenerationDetails({ project, item, version }) {
+export default function GenerationDetails({
+  project,
+  item,
+  version,
+  inline = false,
+}) {
   const [open, setOpen] = useState(false);
   if (!version) return null;
   const sources = versionSources(project, item, version);
+  const Wrapper = inline ? "section" : InspectDialog;
   return (
     <>
-      <button
-        type="button"
-        className="secondary full"
-        onClick={() => setOpen(true)}
-      >
-        View segments & references · V{version.number}
-      </button>
-      {open && (
-        <InspectDialog
+      {!inline && (
+        <button
+          type="button"
+          className="secondary full"
+          onClick={() => setOpen(true)}
+        >
+          View segments & references · V{version.number}
+        </button>
+      )}
+      {(inline || open) && (
+        <Wrapper
+          className={inline ? "generation-inline" : undefined}
           title={`${item.title} · V${version.number} sources`}
           onClose={() => setOpen(false)}
         >
@@ -86,12 +95,14 @@ export default function GenerationDetails({ project, item, version }) {
                   ? "This demo version is an illustrated storyboard. No video segment was generated."
                   : "No generated source segment is linked to this version. Imported media may not include its original generation history."}
               </p>
-              <PromptField
-                label="Recorded version prompt"
-                value={version.prompt || ""}
-                readOnly
-                rows={10}
-              />
+              {!inline && (
+                <PromptField
+                  label="Recorded version prompt"
+                  value={version.prompt || ""}
+                  readOnly
+                  rows={10}
+                />
+              )}
               <References
                 project={project}
                 references={version.references || []}
@@ -125,6 +136,26 @@ export default function GenerationDetails({ project, item, version }) {
                 Model: {source.model || "Not recorded"} · Seed:{" "}
                 {source.seed ?? "Not recorded"}
               </p>
+              <dl className="recipe-meta">
+                <dt>Generated duration</dt>
+                <dd>
+                  {source.settings.duration == null
+                    ? "Not recorded"
+                    : `${source.settings.duration}s`}
+                </dd>
+                <dt>Resolution / size</dt>
+                <dd>{source.settings.resolution ?? "Not recorded"}</dd>
+                <dt>Aspect ratio</dt>
+                <dd>{source.settings.ratio ?? "Not recorded"}</dd>
+                <dt>Generated audio</dt>
+                <dd>
+                  {source.settings.audio == null
+                    ? "Not recorded"
+                    : source.settings.audio
+                      ? "On"
+                      : "Off"}
+                </dd>
+              </dl>
               <PromptField
                 label={`Segment ${index + 1} exact prompt`}
                 value={source.prompt}
@@ -138,7 +169,7 @@ export default function GenerationDetails({ project, item, version }) {
               />
             </section>
           ))}
-        </InspectDialog>
+        </Wrapper>
       )}
     </>
   );

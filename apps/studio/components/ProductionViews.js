@@ -1,6 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
-import ProjectStatus from "./ProjectStatus";
 import {
   REVIEW_LABELS,
   selectedVersion,
@@ -192,6 +191,19 @@ export function HierarchyStrip({
     chain.unshift(cursor);
     cursor = project.nodes.find((node) => node.id === cursor.parentId);
   }
+  const targetAtLevel = (level) =>
+    chain.find((node) => node.type === level) ||
+    project.nodes.find((node) => {
+      if (node.type !== level) return false;
+      if (!container) return true;
+      let parent = node;
+      while (parent) {
+        if (parent.id === container.id) return true;
+        parent = project.nodes.find((entry) => entry.id === parent.parentId);
+      }
+      return false;
+    }) ||
+    project.nodes.find((node) => node.type === level);
   const descendantShots = (id) => {
     const ids = new Set([id]);
     let size;
@@ -206,40 +218,50 @@ export function HierarchyStrip({
   return (
     <section className="project-strip" aria-label="Project strip">
       <div className="project-strip-heading">
-        <nav className="hierarchy-crumbs" aria-label="Production hierarchy">
-          <button
-            aria-current={!container ? "location" : undefined}
-            onClick={() => onNavigate(null)}
+        <div className="strip-navigation">
+          <div
+            className="strip-levels"
+            role="group"
+            aria-label="Strip view level"
           >
-            {project.title}
-          </button>
-          {chain.map((node) => (
-            <button
-              key={node.id}
-              aria-current={node.id === containerId ? "location" : undefined}
-              onClick={() => onNavigate(node.id)}
-            >
-              › {node.title}
-            </button>
-          ))}
-        </nav>
-        <div className="button-row">
-          <ProjectStatus project={project} onNavigate={onNavigate} />
-          <label className="strip-scope">
-            View scope
-            <select
-              aria-label="Strip scope"
-              value={containerId || ""}
-              onChange={(event) => onNavigate(event.target.value || null)}
-            >
-              <option value="">Full project · {project.title}</option>
-              {project.nodes.map((node) => (
-                <option key={node.id} value={node.id}>
-                  {node.code || node.type} · {node.title}
-                </option>
-              ))}
-            </select>
-          </label>
+            {["project", "act", "sequence", "scene"].map((level) => (
+              <button
+                key={level}
+                type="button"
+                aria-pressed={(container?.type || "project") === level}
+                disabled={
+                  level !== "project" &&
+                  !project.nodes.some((node) => node.type === level)
+                }
+                onClick={() =>
+                  onNavigate(
+                    level === "project" ? null : targetAtLevel(level).id,
+                  )
+                }
+              >
+                {level[0].toUpperCase() + level.slice(1)}
+              </button>
+            ))}
+          </div>
+          {container && (
+            <label className="strip-scope">
+              <select
+                aria-label="Strip scope"
+                value={containerId || ""}
+                onChange={(event) => onNavigate(event.target.value || null)}
+              >
+                {project.nodes
+                  .filter((node) => node.type === container.type)
+                  .map((node) => (
+                    <option key={node.id} value={node.id}>
+                      {node.code || node.type} · {node.title}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
+        </div>
+        <div className="button-row strip-actions">
           <button
             className="secondary compact"
             onClick={() =>
@@ -310,7 +332,7 @@ export function HierarchyStrip({
               <p>
                 {node.kind === "shot"
                   ? `${Number(node.duration).toFixed(1)}s · ${take ? `V${take.number} · ${REVIEW_LABELS[take.review]}` : "No takes yet"}`
-                  : `${shots.length} shots · ${shots.reduce((sum, shot) => sum + Number(shot.duration), 0).toFixed(1)}s`}
+                  : `${shots.length} shots · ${shots.reduce((sum, shot) => sum + Number(shot.duration), 0).toFixed(1)}s · ${shots.filter((shot) => selectedVersion(shot)?.review === "approved").length}/${shots.length} shots approved`}
               </p>
             </button>
           );

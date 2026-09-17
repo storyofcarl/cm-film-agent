@@ -389,9 +389,11 @@ versions, not obsolete approvals or the mere existence of generated footage.
 The owner rejected the deployed strip's breadcrumb-driven interaction. The strip
 must be a module for viewing the production at different levels. Placement and
 navigation tests do not establish acceptance of that interaction. The owner's
-description ended at "it should be"; the replacement controls and presentation
-await the rest of that clarification. Do not infer a new interaction or deploy a
-strip redesign from that unfinished sentence.
+initial correction ended at "it should be". The owner subsequently stated that
+the strip was already described; proceed from the existing requirement for
+project/act/sequence/scene levels and nested thumbnails down to shots. The revised
+implementation uses direct level controls instead of breadcrumbs; the owner has
+not yet accepted the rendered replacement.
 
 ### D37 — Persistent chat must not consume the workspace
 
@@ -399,6 +401,61 @@ The owner clarified that chat should not take up the entire workspace. Keep the
 project work visible alongside the persistent conversation. Opening crew chat,
 uploading supplied work or selecting the Crew tab must not hide the work area.
 The prior default full-width chat interpretation is superseded.
+
+### D38 — Simple left toggle, chat-only right bar, manual center
+
+The left bar has two states: open and closed to icons. Do not add extra sidebar
+features or turn this into a more elaborate nesting design. The right sidebar is
+open by default unless closed and is dedicated to persistent crew chat. Chat is
+the primary way to direct the work. All asset, shot and scene options belong in
+the center, where the director can inspect and manually tweak assets and footage.
+The right bar must not switch from conversation to object controls.
+
+### D39 — Plain chat labels; no single-task directing banner
+
+Use concise controls such as Chat, Message and Send. Remove repeated "crew"
+wording and the "Directing [selected object]" banner. A conversation can direct
+multiple tasks; selecting an object in the center must not present the chat as
+locked to that object. Selection remains useful contextual data, not a task boundary.
+
+### D40 — Chat collapses; it is never removed
+
+The owner clarified D38: chat is the core control, so its right sidebar cannot
+disappear. It starts expanded and may collapse to a narrow persistent rail with
+an expand control. Preserve conversation and draft state. There is no remove-chat
+action or need to reopen chat from the center.
+
+The owner explicitly states that this UX is nowhere near final. These changes are
+iterations on a working draft; neither the overall design nor the replacement
+strip interaction has been accepted as finished.
+
+### D41 — Header and project actions sit above the strip
+
+The owner identified the scene/context heading as a header, not a shot artifact.
+It belongs above the persistent project strip. Export project, production overview,
+and the project approval meter stay at that level. Project views do not display
+an unrelated shot inspector. The strip groups level controls and the current-scope
+selector on the left, Add/Edit on the right, then the thumbnail row. This grouping
+is a working design choice for owner review, not an accepted final design.
+
+### D42 — Shot mechanics are directly visible and version-bound
+
+The center displays the selected shot and its mechanics without a Details toggle
+or a required modal. One Reviewing version dropdown changes the footage, exact
+prompt, approval, recorded references and original source segment together. Source
+settings come from historical requests, including duration, resolution, ratio and
+audio where recorded; unknown values stay unknown. Editable intent remains separate
+from immutable generation history. Optional large prompt expansion remains available.
+
+### D43 — Files have contextual homes and upload icons
+
+The owner requested Assets, Footage, Scripts, Production docs and Audio as the
+normal upload locations, with an upload icon in chat. These areas share the existing
+project originals and assignment records. Uploading within an area preserves that
+area; chat uploads use media type or an obvious screenplay filename as a default.
+Filename-based document routing is a working choice, not creative validation or
+approval. Footage also exposes the project's shot versions. Existing file ownership,
+retention, extraction and approval requirements remain in force.
 
 ## Superseded proposals and interpretations
 
