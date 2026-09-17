@@ -71,7 +71,13 @@ Changing models requires recompilation and review of the resulting lookdev cover
 
 ## Cost approval worksheet
 
-This package authorizes **zero spend**. No current provider quote has been attached.
+This package authorizes **zero spend**. A review-only first lookdev batch is saved
+as `asset-lookdev.review.json`: two 2K square PNGs with Nano Banana Pro through
+WaveSpeed, no image references and no provider seed. The list-price estimate is
+**USD 0.28** (2 × USD 0.14), checked 2026-09-17 against the
+[provider model page](https://wavespeed.ai/models/google/nano-banana-pro/text-to-image).
+Promotions, taxes and account adjustments are excluded; this is not an invoice
+or authority to run. The remaining production stages have not been priced.
 Fill in each actual Studio batch's estimate and basis before requesting approval.
 Do not treat the counts below as a dollar quote or assume unlimited retries.
 

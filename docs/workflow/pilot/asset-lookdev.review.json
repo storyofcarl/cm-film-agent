@@ -1,0 +1,69 @@
+{
+  "purpose": "Review only; this file does not grant execution authority.",
+  "projectId": "pilot_last_light",
+  "batch": {
+    "id": "batch_04e445f8-e9f2-44c6-b18b-d8819d01a755",
+    "kind": "lookdev",
+    "title": "The Last Light · proposed production pilot · lookdev",
+    "scope": "film",
+    "createdAt": "2026-09-17T11:55:15.066Z",
+    "state": "planned",
+    "jobs": [
+      {
+        "id": "job_e51336cd-4e76-4000-9d67-a4f5a7de7c36",
+        "state": "planned",
+        "dependsOn": [],
+        "title": "The keeper",
+        "targetId": "pilot_keeper",
+        "setupScope": "assets",
+        "setupSignature": "{\"references\":[],\"sceneId\":\"assets\",\"settings\":{\"aspectRatio\":\"16:9\",\"audio\":true,\"draftResolution\":\"480p\",\"imageModel\":\"google/nano-banana-pro\",\"llmModel\":\"claude-opus-5\",\"seed\":41723,\"timingMode\":\"picture\"},\"style\":\"Restrained, tactile science fiction. An aging remote observatory with practical controls, brushed metal, worn painted surfaces and believable scale. Warm amber practicals against cool window light. Naturalistic contrast and patient camera movement. Preserve screen direction, character identity, prop geometry and room geography across cuts. No captions, logos or readable invented interface text. No spoken dialogue; quiet room tone and subtle mechanical sound only.\"}",
+        "request": {
+          "type": "image",
+          "model": "google/nano-banana-pro",
+          "prompt": "Restrained, tactile science fiction. An aging remote observatory with practical controls, brushed metal, worn painted surfaces and believable scale. Warm amber practicals against cool window light. Naturalistic contrast and patient camera movement. Preserve screen direction, character identity, prop geometry and room geography across cuts. No captions, logos or readable invented interface text. No spoken dialogue; quiet room tone and subtle mechanical sound only.\n\nDesign one observatory keeper, a woman in her fifties with a compact practical silhouette, short silver-streaked dark hair and an unbranded charcoal work jacket. Quiet, observant expression. Full-body three-quarter view and clear face in one coherent character reference; neutral unobtrusive background. No text or duplicate figures.",
+          "size": "2K",
+          "references": [],
+          "seed": null
+        },
+        "sourceItemIds": [
+          "pilot_keeper"
+        ],
+        "sourceSignature": "[{\"id\":\"pilot_keeper\",\"order\":0,\"prompt\":\"Design one observatory keeper, a woman in her fifties with a compact practical silhouette, short silver-streaked dark hair and an unbranded charcoal work jacket. Quiet, observant expression. Full-body three-quarter view and clear face in one coherent character reference; neutral unobtrusive background. No text or duplicate figures.\"}]"
+      },
+      {
+        "id": "job_8e0d29d2-9f1b-4065-b1f8-2414af7634ec",
+        "state": "planned",
+        "dependsOn": [],
+        "title": "Observatory control room",
+        "targetId": "pilot_room",
+        "setupScope": "assets",
+        "setupSignature": "{\"references\":[],\"sceneId\":\"assets\",\"settings\":{\"aspectRatio\":\"16:9\",\"audio\":true,\"draftResolution\":\"480p\",\"imageModel\":\"google/nano-banana-pro\",\"llmModel\":\"claude-opus-5\",\"seed\":41723,\"timingMode\":\"picture\"},\"style\":\"Restrained, tactile science fiction. An aging remote observatory with practical controls, brushed metal, worn painted surfaces and believable scale. Warm amber practicals against cool window light. Naturalistic contrast and patient camera movement. Preserve screen direction, character identity, prop geometry and room geography across cuts. No captions, logos or readable invented interface text. No spoken dialogue; quiet room tone and subtle mechanical sound only.\"}",
+        "request": {
+          "type": "image",
+          "model": "google/nano-banana-pro",
+          "prompt": "Restrained, tactile science fiction. An aging remote observatory with practical controls, brushed metal, worn painted surfaces and believable scale. Warm amber practicals against cool window light. Naturalistic contrast and patient camera movement. Preserve screen direction, character identity, prop geometry and room geography across cuts. No captions, logos or readable invented interface text. No spoken dialogue; quiet room tone and subtle mechanical sound only.\n\nDesign a small aging observatory control room. A broad window occupies the left wall; a waist-high instrument console runs along the right; the exit is beyond the console. Brushed metal, worn pale paint, simple controls. Eye-level wide view making the geography legible. No people, captions or readable interface text.",
+          "size": "2K",
+          "references": [],
+          "seed": null
+        },
+        "sourceItemIds": [
+          "pilot_room"
+        ],
+        "sourceSignature": "[{\"id\":\"pilot_room\",\"order\":1,\"prompt\":\"Design a small aging observatory control room. A broad window occupies the left wall; a waist-high instrument console runs along the right; the exit is beyond the console. Brushed metal, worn pale paint, simple controls. Eye-level wide view making the geography legible. No people, captions or readable interface text.\"}]"
+      }
+    ],
+    "estimate": {
+      "total": 0.28,
+      "currency": "USD",
+      "basis": "2 images × USD 0.14/image at 2K; published list rate verified 2026-09-17. Promotions/tax/account adjustments not included. No retries or additional jobs authorized.",
+      "source": "https://wavespeed.ai/models/google/nano-banana-pro/text-to-image",
+      "checkedAt": "2026-09-17"
+    },
+    "scopes": [
+      {
+        "scope": "assets",
+        "signature": "{\"references\":[],\"sceneId\":\"assets\",\"settings\":{\"aspectRatio\":\"16:9\",\"audio\":true,\"draftResolution\":\"480p\",\"imageModel\":\"google/nano-banana-pro\",\"llmModel\":\"claude-opus-5\",\"seed\":41723,\"timingMode\":\"picture\"},\"style\":\"Restrained, tactile science fiction. An aging remote observatory with practical controls, brushed metal, worn painted surfaces and believable scale. Warm amber practicals against cool window light. Naturalistic contrast and patient camera movement. Preserve screen direction, character identity, prop geometry and room geography across cuts. No captions, logos or readable invented interface text. No spoken dialogue; quiet room tone and subtle mechanical sound only.\"}"
+      }
+    ]
+  }
+}

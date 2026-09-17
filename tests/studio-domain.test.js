@@ -667,6 +667,22 @@ test("crew proposal temporary IDs cannot ambiguously name different production o
   }
 });
 
+test("WaveSpeed image plans do not claim a seed that the image adapter never sends", () => {
+  let { project } = fixture();
+  project.settings.seed = 41723;
+  project = applyCommand(project, {
+    type: "item.add",
+    payload: { kind: "asset", title: "Keeper", assetType: "character" },
+  });
+  project = prepareBatch(
+    project,
+    { kind: "lookdev", imageModel: "wave-image" },
+    [{ id: "wave-image", kind: "image", provider: "wavespeed" }],
+  );
+  expect(project.batches[0].jobs).toHaveLength(1);
+  expect(project.batches[0].jobs[0].request.seed).toBeNull();
+});
+
 test("pausing preserves approval but prevents remaining jobs until explicitly resumed", () => {
   let { project } = fixture();
   project = prepareBatch(

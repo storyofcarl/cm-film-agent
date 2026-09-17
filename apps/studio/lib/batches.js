@@ -12,8 +12,8 @@ import {
   orderedScenes,
   effectiveAssetIds,
   inheritedDirection,
-} from "./domain";
-import { upscaleEstimate, UPSCALE_RATE_SOURCE } from "./upscalers";
+} from "./domain.js";
+import { upscaleEstimate, UPSCALE_RATE_SOURCE } from "./upscalers.js";
 
 const fail = (message) => {
   throw new Error(message);
@@ -132,7 +132,7 @@ export function prepareBatch(project, options, catalog) {
           .join("\n\n"),
         size: "2K",
         references: asset.kind === "shot" ? sourceRefs(project, asset) : [],
-        seed: seed(project),
+        seed: imageModel.provider === "wavespeed" ? null : seed(project),
       },
       ...extra,
     });

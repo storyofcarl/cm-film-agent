@@ -9,6 +9,7 @@ import {
   compileSegments,
   lookdevRequirement,
 } from "../apps/studio/lib/domain.js";
+import { prepareBatch } from "../apps/studio/lib/batches.js";
 
 // Preparation only. No credentials, network, approvals, or provider submissions.
 const destination = path.resolve(
@@ -27,6 +28,7 @@ project.globalStyle =
 project.settings = {
   ...project.settings,
   llmModel: "claude-opus-5",
+  imageModel: "google/nano-banana-pro",
   audio: true,
   seed: 41723,
 };
@@ -253,6 +255,50 @@ fs.mkdirSync(destination, { recursive: true });
 fs.writeFileSync(
   path.join(destination, "last-light-pilot.studio.json"),
   JSON.stringify(project, null, 2) + "\n",
+);
+const lookdev = prepareBatch(
+  structuredClone(project),
+  { kind: "lookdev", imageModel: project.settings.imageModel },
+  [
+    {
+      id: project.settings.imageModel,
+      kind: "image",
+      provider: "wavespeed",
+      references: 14,
+    },
+  ],
+);
+const batch = lookdev.batches[0];
+batch.estimate = {
+  total: 0.28,
+  currency: "USD",
+  basis:
+    "2 images × USD 0.14/image at 2K; published list rate verified 2026-09-17. Promotions/tax/account adjustments not included. No retries or additional jobs authorized.",
+  source: "https://wavespeed.ai/models/google/nano-banana-pro/text-to-image",
+  checkedAt: "2026-09-17",
+};
+assert.equal(batch.jobs.length, 2);
+assert.ok(
+  batch.jobs.every(
+    (job) =>
+      job.state === "planned" &&
+      job.request.size === "2K" &&
+      job.request.seed === null &&
+      job.request.references.length === 0,
+  ),
+);
+assert.ok(!batch.approval);
+fs.writeFileSync(
+  path.join(destination, "asset-lookdev.review.json"),
+  JSON.stringify(
+    {
+      purpose: "Review only; this file does not grant execution authority.",
+      projectId: project.id,
+      batch,
+    },
+    null,
+    2,
+  ) + "\n",
 );
 console.log(
   "Prepared importable pilot: 68 seconds, 2 scenes, 5 shots, 3 assets. Verified 4+1 segment planning and independent 3-second repair padding. No jobs or approvals created.",

@@ -5,8 +5,8 @@
   "scope": "film",
   "brief": "A keeper rescues the final light of a closing observatory. A 68-second, two-scene silent short for director review. Provisional material adapted from the Studio demo, not an approved production assignment.",
   "globalStyle": "Restrained, tactile science fiction. An aging remote observatory with practical controls, brushed metal, worn painted surfaces and believable scale. Warm amber practicals against cool window light. Naturalistic contrast and patient camera movement. Preserve screen direction, character identity, prop geometry and room geography across cuts. No captions, logos or readable invented interface text. No spoken dialogue; quiet room tone and subtle mechanical sound only.",
-  "createdAt": "2026-09-17T11:51:10.886Z",
-  "updatedAt": "2026-09-17T11:51:10.887Z",
+  "createdAt": "2026-09-17T11:55:15.056Z",
+  "updatedAt": "2026-09-17T11:55:15.057Z",
   "settings": {
     "lookdevMode": "scene",
     "lookdevThreshold": 3,
@@ -15,6 +15,7 @@
     "draftResolution": "480p",
     "deliveryResolution": "1080p",
     "llmModel": "claude-opus-5",
+    "imageModel": "google/nano-banana-pro",
     "audio": true,
     "seed": 41723
   },
@@ -227,7 +228,7 @@
       "review": "pending",
       "origin": "prepared",
       "content": "This is a proposed 68-second silent short, awaiting director acceptance. Validate the complete source, character/location/prop roster and five-shot coverage. Use a verified 15-second maximum draft model for the planned four-plus-one segment exercise; changing that profile requires recompilation and a new cost estimate. No supplied media is claimed. Upload any real completed work and preserve it after completeness validation. Technical lookdev is reviewed by the director. Do not submit paid requests without an approved, priced batch. See PILOT_REVIEW.md for the full acceptance run.",
-      "createdAt": "2026-09-17T11:51:10.886Z"
+      "createdAt": "2026-09-17T11:55:15.056Z"
     }
   ],
   "events": [],
