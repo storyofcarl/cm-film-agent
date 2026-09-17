@@ -18,9 +18,11 @@ export default function SourceStudy({ study }) {
       {open && (
         <>
           <p>
-            {study.mode === "journal"
-              ? "Completed model steps are saved here while the task continues."
-              : `${read} of ${total} indexed text parts read. This records source access, not creative approval.`}
+            {study.mode === "partitioned"
+              ? `${study.outputPlan?.parts?.length || 0} planned output parts were assembled together. Exact source reads and output responses are retained below; this does not approve the result.`
+              : study.mode === "journal"
+                ? "Completed model steps are saved here while the task continues."
+                : `${read} of ${total} indexed text parts read. This records source access, not creative approval.`}
           </p>
           <label className="field">
             Source read step

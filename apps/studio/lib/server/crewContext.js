@@ -217,6 +217,7 @@ Before returning any proposal, writing documents or preparation actions, read ev
     const preparation =
       output?.coverageMode !== "discussion" ||
       output?.proposal ||
+      output?.outputPlan ||
       output?.documents ||
       output?.nextActions?.length;
     if (preparation && library.missing().length) {

@@ -55,6 +55,34 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD47 — Plan and assemble large preparation outputs
+
+Under D29, extend saved chat tasks with an ordered whole-project output plan.
+Require coverage of all existing scene IDs before execution, retain exact section
+outputs and reread them through the source index for continuity. Append sections
+with the same document key into one draft; preserve metadata and revision lineage.
+Combine proposal collections while rejecting repeated definitions, conflicting
+updates and repeated project-setting proposals. No proposal or document is
+published until all declared parts finish. Applying intent still requires the
+existing human action; media, scene and spending approvals are unchanged.
+
+Completed provider calls use WD43 replay, so interruption/cancellation does not
+buy the same part again. Malformed parts pause with completed calls retained.
+Portable import retains the descriptive part plan and complete requests/responses
+without importing executable tasks or approvals. A single document remains capped
+at 500,000 characters, with an explicit error rather than truncation. The model
+chooses valid creative boundaries; structural checks do not prove creative
+completeness, source fidelity or final quality. This remains a working choice for
+director review and real-production validation.
+
+### WD46 — Left work-area menu and restored metadata
+
+Implement D49 by removing the hierarchy tree and its standalone Add scene link.
+Use strip labels or center grids to navigate/create hierarchy contents. Beneath
+the project title, show type, scene count, shot count and summed planned runtime
+in small text. These field choices are an implementation interpretation of the
+request to restore project details; the status/action cluster stays removed.
+
 ### WD45 — Compact range labels and empty trailing slots
 
 Implement D48 with two 14px range rows, short act/sequence names and full names on

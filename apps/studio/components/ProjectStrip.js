@@ -59,6 +59,12 @@ export default function ProjectStrip({
   const [emptySlots, setEmptySlots] = useState(1);
   const [edges, setEdges] = useState({ left: false, right: false });
   const groups = shotRanges(project);
+  const runtime = Math.round(
+    project.shots.reduce((sum, shot) => sum + Number(shot.duration || 0), 0),
+  );
+  const sceneCount = project.nodes.filter(
+    (node) => node.type === "scene",
+  ).length;
   useEffect(() => {
     const node = placeholders.current;
     const update = () => setEmptySlots(Math.ceil(node.clientWidth / 102));
@@ -160,7 +166,14 @@ export default function ProjectStrip({
       data-scope={project.id}
     >
       <div className="project-strip-heading">
-        <h1 className="strip-project-title">{project.title}</h1>
+        <div>
+          <h1 className="strip-project-title">{project.title}</h1>
+          <p className="strip-project-meta" aria-label="Project details">
+            <span>{project.scope}</span> · {sceneCount} scenes ·{" "}
+            {project.shots.length} shots · {Math.floor(runtime / 60)}:
+            {String(runtime % 60).padStart(2, "0")} planned
+          </p>
+        </div>
       </div>
       <div className="shot-strip-navigation">
         <button

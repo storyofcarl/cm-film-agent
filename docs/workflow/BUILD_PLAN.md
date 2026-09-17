@@ -167,8 +167,10 @@ artifacts; browser checks do not establish owner acceptance.
 
 WD40 implements bounded indexed source reads while preserving the full inventory
 and exact successful-study provenance. WD43 adds saved, resumable chat tasks across
-hosted requests, verified with mocked studies beyond twelve passes. Next priority:
-partition full-deliverable outputs and validate full-film preparation end to end.
+hosted requests, verified with mocked studies beyond twelve passes. WD47 now
+assembles ordered whole-project output parts, tested through durable calls and
+versioned document/proposal application. Next priorities: upper-bound storage and
+worker validation, record lifecycle, and real full-film preparation acceptance.
 WD41 now externalizes immutable text
 and uses private multipart transport for large projects; a 15.5 MB/40-version
 browser fixture verifies behavior beyond the former manifest/response limits.

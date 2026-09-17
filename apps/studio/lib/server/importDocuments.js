@@ -7,13 +7,34 @@ const positive = (value) => Number.isSafeInteger(value) && value > 0;
 function retainedStudy(study) {
   if (study == null) return null;
   if (
-    study.mode !== "indexed" ||
+    !["indexed", "partitioned"].includes(study.mode) ||
     !Array.isArray(study.transcript) ||
     !Array.isArray(study.coverage)
   )
     throw fault("Supplied source-read history has an invalid structure.");
+  if (
+    study.mode === "partitioned" &&
+    (study.outputPlan?.scope !== "project" ||
+      typeof study.outputPlan.title !== "string" ||
+      !Array.isArray(study.outputPlan.parts) ||
+      !study.outputPlan.parts.length ||
+      study.outputPlan.parts.some(
+        (part) =>
+          !part ||
+          typeof part.id !== "string" ||
+          typeof part.title !== "string" ||
+          !Array.isArray(part.sceneIds) ||
+          part.sceneIds.some((id) => typeof id !== "string"),
+      ) ||
+      new Set(study.outputPlan.parts.map((part) => part.id)).size !==
+        study.outputPlan.parts.length)
+  )
+    throw fault("Supplied output-part history has an invalid plan.");
   return {
-    mode: "indexed",
+    mode: study.mode,
+    ...(study.mode === "partitioned"
+      ? { outputPlan: JSON.parse(JSON.stringify(study.outputPlan)) }
+      : {}),
     transcript: study.transcript.map((entry) => {
       if (
         !entry ||

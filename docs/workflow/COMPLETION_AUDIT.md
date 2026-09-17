@@ -4,6 +4,10 @@ Updated 2026-09-17. This audit separates implemented behavior from evidence that
 still requires a real production and director review. Automated success alone
 does not establish creative quality, live provider reliability, or final acceptance.
 
+Latest UI corrections D48–D49 compact the act/sequence labels, remove the header
+status/action cluster and duplicate left hierarchy, restore small project details,
+and provide 34 illustrated demo shots plus empty trailing slots for panning review.
+
 | Agreed requirement | Implementation and evidence | Remaining acceptance |
 | --- | --- | --- |
 | Separate Studio; preserve legacy | Separate app, Vercel project, tables, media namespace and scheduler; hosted ownership and namespace checks | No automatic legacy conversion; use the migration path below |
@@ -11,7 +15,7 @@ does not establish creative quality, live provider reliability, or final accepta
 | Left/center/right workspace boundaries | Left opens/closes to icons and contains project overview/export; chat-only right sidebar starts expanded and collapses to a permanent rail with draft preserved; version mechanics stay inline in center (D38–D44) | Owner visual review; overall UX explicitly remains a draft |
 | Objects own properties; screens manipulate those same objects | Shared Properties inspector; saved container direction/reference scope reaches compiled requests; crew receives selected context | Owner review of inheritance defaults in WD29 |
 | Film/episode batch scope and hierarchical shot assembly | Domain and execution tests cover batch preparation, segment packing, atomic beats, continuation and minimum-duration trimming | Real multi-scene production pilot |
-| Long-film chat and retained production history | WD40 adds indexed exact-source reads; WD41 adds immutable records and multipart transport, verified with a 15.5 MB/40-version fixture and V41 append. WD43 journals and resumes tasks beyond twelve passes, with leases, exact replay, cancellation and uncertain-call protection; model calls are mocked in tests | Engineering incomplete: full-deliverable output partitioning, record lifecycle/upper-bound scale validation and the real long-film pilot |
+| Long-film chat and retained production history | WD40 indexes exact sources; WD41 retains immutable records and multipart transport, verified with a 15.5 MB/40-version fixture. WD43 resumes journaled calls beyond twelve passes. WD47 assembles all planned writing/proposal parts together, tested with a large screenplay revision and all 34 shot updates, retained approvals, failure recovery and portable history; model calls are mocked | Record lifecycle/upper-bound scale validation and the real long-film pilot remain open. Structural coverage cannot prove creative completeness |
 | Reusable assets and human lookdev | Explicit reference assignments; version gates and more-than-three-segment scene threshold with picture override. WD37 retains existing representative assets for human review and generates only missing looks; changed/rejected reused versions invalidate release | Human review of representative character/location and technical video lookdev |
 | Full asset review and explicit shot/version approval | Separate selection/review state, dropdowns, retained decisions and stale approval checks | Director review of an actual complete asset batch and resulting shots |
 | Three independent shot repair routes | Frame repair dependencies, trimmed video edit references, unchanged/changed prompt reruns; historical recipes preserved | Live model behavior and director approval of a proposed paid revision batch |

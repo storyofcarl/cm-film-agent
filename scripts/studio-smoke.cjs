@@ -917,7 +917,10 @@ async function main() {
     );
     await page.unroute("**/api/studio/crew");
     await chat.getByRole("textbox", { name: "Message", exact: true }).fill("");
-    await page.locator(".project-strip").getByRole("button", { name: /A complete action/ }).click();
+    await page
+      .locator(".project-strip")
+      .getByRole("button", { name: /A complete action/ })
+      .click();
     findings.push(
       "Intercepted chat requests carry the inspected version and file area without changing production selection or calling a model.",
     );
@@ -1097,8 +1100,8 @@ async function main() {
       fullPage: true,
     });
     await page
-      .locator(".project-nav")
-      .getByRole("button", { name: "Act I · The signal", exact: true })
+      .locator(".project-strip")
+      .getByRole("button", { name: /^View act .*Act I · The signal/ })
       .click();
     await page.getByRole("button", { name: "Edit act", exact: true }).click();
     const dialog = page.getByRole("dialog");
@@ -1113,7 +1116,10 @@ async function main() {
       .getByRole("button", { name: "Save object properties" })
       .click();
     await objectProperties.getByRole("status").waitFor();
-    await page.locator(".project-nav").getByRole("button", { name: "Act I · Reviewed hierarchy", exact: true }).click();
+    await page
+      .locator(".project-strip")
+      .getByRole("button", { name: /^View act .*Act I · Reviewed hierarchy/ })
+      .click();
     await page
       .getByRole("button", { name: "Add sequence", exact: true })
       .click();
@@ -1122,8 +1128,7 @@ async function main() {
       .fill("Sequence · Test addition");
     await dialog.getByRole("button", { name: "Save changes" }).click();
     await page
-      .locator(".project-nav")
-      .getByRole("button", { name: /Sequence · Test addition/ })
+      .getByRole("button", { name: "Sequence · Test addition", exact: true })
       .waitFor();
     await page
       .getByRole("button", { name: "Add sequence", exact: true })

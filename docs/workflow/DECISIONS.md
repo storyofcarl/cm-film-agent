@@ -509,6 +509,14 @@ The owner explicitly removes the header's approval ring/count, plus and pencil.
 The project title remains above the strip. This supersedes the ring/action portion
 of D35/D44 in this location; version and phase approval indicators remain.
 
+### D49 — Strip replaces the left hierarchy; retain small project details
+
+The owner removes the duplicated act/sequence/scene tree from the left menu now
+that the strip provides hierarchy navigation. The left menu retains project work
+areas, settings and export. The owner also asks for the small project details
+that disappeared during header simplification. Restore compact project metadata
+beneath the title while retaining D48's removal of the ring/add/edit cluster.
+
 ## Superseded proposals and interpretations
 
 ### D26 — Earlier duration-threshold interpretation, replaced by D27

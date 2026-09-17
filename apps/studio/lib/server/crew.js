@@ -27,6 +27,7 @@ import { invokeHandler } from "./invoke";
 import { requireModel, modelCatalog } from "./models";
 import { fault, mergeProject, ownerId } from "./store";
 import { queryCrewContext } from "./crewContext";
+import { completeCrewOutput, OUTPUT_PROTOCOL } from "./crewOutput";
 
 const skillDir = () => {
   const candidates = [
@@ -508,21 +509,29 @@ SELECTED METHOD ${method} (source instructions and references):\n${source.text}`
         }
       : null,
   };
-  const study = await queryCrewContext({
+  const invokeStudy = (prompt, instructions) =>
+    invoke(seedHandler, {
+      modelId: selected,
+      prompt,
+      systemPrompt: instructions,
+      reasoningEffort: "high",
+      images: (project.inbox || [])
+        .filter((entry) => context.visualEvidenceIds.includes(entry.id))
+        .map((entry) => entry.media.url),
+    });
+  const sourceStudy = await queryCrewContext({
     context,
     instruction,
-    systemPrompt,
+    systemPrompt: systemPrompt + OUTPUT_PROTOCOL,
     maxPasses: execution.durable ? Infinity : 12,
-    invoke: (prompt, instructions) =>
-      invoke(seedHandler, {
-        modelId: selected,
-        prompt,
-        systemPrompt: instructions,
-        reasoningEffort: "high",
-        images: (project.inbox || [])
-          .filter((entry) => context.visualEvidenceIds.includes(entry.id))
-          .map((entry) => entry.media.url),
-      }),
+    invoke: invokeStudy,
+  });
+  const study = await completeCrewOutput({
+    context,
+    instruction,
+    study: sourceStudy,
+    invoke: invokeStudy,
+    maxPasses: execution.durable ? Infinity : 12,
   });
   const { prompt, result, contextStudy } = study;
   let output;

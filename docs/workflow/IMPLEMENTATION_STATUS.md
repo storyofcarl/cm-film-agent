@@ -28,6 +28,8 @@ D48 compacts act/sequence labels, removes the strip header's status/add/edit
 cluster and fills unused trailing width with non-record shot placeholders.
 The demo now contains 34 illustrated shots across three acts for panning review.
 Manual container add/edit controls are beside the center grid, outside the strip.
+D49 removes the duplicated left hierarchy tree. Small project metadata (type,
+scene/shot counts and planned runtime) is restored beneath the title.
 Chat copy follows D39: Chat, Message and Send, with no directing banner implying
 that the conversation is restricted to one object or task.
 
@@ -45,7 +47,10 @@ that the conversation is restricted to one object or task.
   Exact successful-study requests/responses remain inspectable and survive import.
   WD43 persists and resumes Studio tasks across requests with one new provider call
   per worker, exact replay, cancellation and uncertain-call protection. Mocked
-  studies exceed twelve passes; full output partitioning remains open. WD41 separately
+  studies exceed twelve passes. WD47 assembles planned output parts into complete
+  documents and proposals, retaining exact history and checking scene coverage,
+  document identity and conflicting updates. No partial output is published.
+  WD41 separately
   externalizes retained long text while keeping a 12 MB operational index limit.
 
 - The strip always contains project shots (D46/WD44). Scene, sequence and act
@@ -138,7 +143,7 @@ that the conversation is restricted to one object or task.
   navigation, V1/V2 approvals, and persistence after reload. Model requests in the
   browser are intercepted; synthetic writing is clearly labeled test content.
 
-- Latest Studio regression: **107 passing tests across 19 suites**, including
+- Latest Studio regression: **115 passing tests across 20 suites**, including
   PDF/DOCX extraction, writing/version/import, lookdev reuse/invalidation and current
   batch-state chat context. Authenticated browser checks verify a zero-job reused
   lookdev review without conflating it with individual asset approval.
@@ -147,6 +152,10 @@ that the conversation is restricted to one object or task.
   Indexed-context tests cover lossless Unicode-safe text parts, exact historical
   reads, current/approved version coverage, all-scene scope, pre-proposal gates,
   request bounds and an oversized index failing before a model call.
+  Output-part checks cover ordered document assembly, cross-part asset references,
+  exact rereads, omitted-scene rejection, conflicting definitions, malformed/large
+  sections, frozen task replay, failure without partial filing, complete 34-shot
+  intent updates and repeated portable import of the source/part audit.
   Studio build, changed-source lint and authenticated browser smoke pass; changed
   source and browser build contain zero configured-secret matches. The earlier
   broader regression run recorded **96 passing tests across 18 suites**.
@@ -194,8 +203,9 @@ that the conversation is restricted to one object or task.
 - Large-project chat remains incomplete. Oversized contexts now use indexed exact
   reads under the 650,000-character per-call guard, with the full inventory retained.
   Studio tasks now resume saved study calls across worker requests (WD43). Direct
-  helper callers retain a twelve-pass default. Whole-deliverable output partitioning and upper-bound scale validation
-  are still required. Failed studies leave existing saved production data unchanged;
+  helper callers retain a twelve-pass default. WD47 output partitioning is tested
+  with mocked long writing and all 34 demo-shot prompt updates. Upper-bound scale
+  and real creative production validation are still required. Failed studies leave existing saved production data unchanged;
   local long-film rendering does not prove large-project conversational support.
   WD41 routes large payloads through private storage parts instead of sending the
   full project through [Vercel's 4.5 MB function limit](https://vercel.com/docs/functions/limitations).

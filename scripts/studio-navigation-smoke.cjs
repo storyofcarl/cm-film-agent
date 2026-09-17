@@ -42,6 +42,15 @@ async function main() {
       nodes.map((node) => node.dataset.shotId),
     );
     assert.equal(allIds.length, 34);
+    assert.equal(
+      await page.locator(".project-nav .tree, .project-nav .add-scene").count(),
+      0,
+    );
+    assert.ok(
+      (await strip.getByLabel("Project details").textContent()).includes(
+        "34 shots · 4:32 planned",
+      ),
+    );
     assert.equal(await strip.locator(".strip-actions").count(), 0);
     assert.equal(await strip.getByRole("combobox").count(), 0);
     assert.equal(await strip.locator(".strip-down, .strip-up").count(), 0);
@@ -134,8 +143,8 @@ async function main() {
       "Act label stays readable while panning inside its range.",
     );
     await page
-      .locator(".project-nav")
-      .getByRole("button", { name: /What we carry/ })
+      .locator(".project-strip")
+      .getByRole("button", { name: /^View scene .*What we carry/ })
       .click();
     const lastScene = await strip
       .locator('[data-range-id="sc3"]')
@@ -151,17 +160,26 @@ async function main() {
       allIds,
     );
     await page.setViewportSize({ width: 1600, height: 1000 });
-    await page.locator(".project-nav").getByRole("button", { name: "Act II · The crossing", exact: true }).click();
+    await strip
+      .getByRole("button", { name: /^View act .*Act II · The crossing/ })
+      .click();
     await strip.screenshot({ path: "artifacts/studio-strip-act-two.png" });
     await page.setViewportSize({ width: 5000, height: 1000 });
     await expect(strip.locator(".strip-empty-shot").first()).toBeVisible();
     const filler = await strip.locator(".strip-placeholders").boundingBox();
     const wideTrack = await track.boundingBox();
-    assert.ok(Math.abs(filler.x + filler.width - wideTrack.x - wideTrack.width) < 2, "Placeholders fill the available trailing width.");
+    assert.ok(
+      Math.abs(filler.x + filler.width - wideTrack.x - wideTrack.width) < 2,
+      "Placeholders fill the available trailing width.",
+    );
     await strip.locator(".strip-empty-shot").first().click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.keyboard.press("Escape");
-    assert.equal(await thumbs.count(), 34, "Opening a placeholder does not create a real shot.");
+    assert.equal(
+      await thumbs.count(),
+      34,
+      "Opening a placeholder does not create a real shot.",
+    );
     await page.setViewportSize({ width: 1600, height: 1000 });
     await thumbs.first().click();
     const media = await page.locator(".media-viewer").boundingBox();
@@ -277,7 +295,10 @@ async function main() {
         .count(),
       0,
     );
-    assert.equal(await strip.getByRole("button", { name: /^Project status:/ }).count(), 0);
+    assert.equal(
+      await strip.getByRole("button", { name: /^Project status:/ }).count(),
+      0,
+    );
     await strip.screenshot({ path: "artifacts/studio-strip-module.png" });
     const sidebar = await page.locator(".project-nav").boundingBox();
     const stripBounds = await strip.boundingBox();

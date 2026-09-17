@@ -1,5 +1,6 @@
 /** @jest-environment node */
-import { createProject } from "../apps/studio/lib/domain";
+import { createProject, applyCommand } from "../apps/studio/lib/domain";
+import { sampleProject } from "../apps/studio/lib/sample";
 import {
   startCrewRun,
   advanceCrewRun,
@@ -202,4 +203,164 @@ test("changed replay input pauses before another model call", async () => {
   await advanceCrewRun(state.id, id);
   expect(state.crewRuns[0].state).toBe("attention");
   expect(invokeHandler).toHaveBeenCalledTimes(1);
+});
+
+test("large multi-scene writing and prompt updates assemble after the last saved part without changing approvals", async () => {
+  state = sampleProject({ extended: true });
+  state.artifacts.push({
+    id: "script-v1",
+    documentId: "script-v1",
+    documentArea: "scripts",
+    number: 1,
+    title: "Screenplay",
+    content: "Approved original",
+    review: "approved",
+  });
+  const scenes = state.nodes.filter((node) => node.type === "scene");
+  const history = JSON.stringify(state.shots.map((shot) => shot.versions));
+  const plan = {
+    scope: "project",
+    title: "Whole film revision",
+    parts: scenes.map((scene) => ({
+      id: scene.id,
+      title: scene.title,
+      sceneIds: [scene.id],
+    })),
+  };
+  const sections = scenes.map((scene) =>
+    `${scene.title}: complete scene.\n`.repeat(800),
+  );
+  invokeHandler.mockImplementation(async (_handler, request) => {
+    if (!request.prompt.includes("OUTPUT PART REQUEST\n"))
+      return { content: JSON.stringify({ outputPlan: plan }) };
+    const input = JSON.parse(request.prompt.split("OUTPUT PART REQUEST\n")[1]);
+    const index = scenes.findIndex(
+      (scene) => scene.id === input.currentPart.id,
+    );
+    return {
+      content: JSON.stringify({
+        outputPart: {
+          id: input.currentPart.id,
+          documents: [
+            {
+              key: "screenplay",
+              title: "Screenplay",
+              area: "scripts",
+              revisesId: "script-v1",
+              content: sections[index],
+            },
+          ],
+          proposal: {
+            updates: state.shots
+              .filter((shot) => shot.sceneId === input.currentPart.id)
+              .map((shot) => ({
+                id: shot.id,
+                previousPrompt: shot.prompt,
+                prompt:
+                  `${shot.title}: complete revised camera direction. `.repeat(
+                    100,
+                  ),
+              })),
+          },
+        },
+      }),
+    };
+  });
+  const id = await start();
+  for (let tick = 0; tick <= scenes.length; tick++) {
+    const calls = invokeHandler.mock.calls.length;
+    await advanceCrewRun(state.id, id);
+    expect(invokeHandler.mock.calls.length - calls).toBe(1);
+    if (tick < scenes.length) {
+      expect(
+        state.artifacts.filter((entry) => entry.documentArea === "scripts"),
+      ).toHaveLength(1);
+      expect(
+        state.artifacts.find((entry) => entry.crewRunId === id).proposal,
+      ).toBeUndefined();
+    }
+  }
+  expect(state.crewRuns[0].state).toBe("completed");
+  const reply = state.artifacts.find((entry) => entry.crewRunId === id);
+  expect(reply.contextStudy.mode).toBe("partitioned");
+  expect(reply.contextStudy.transcript).toHaveLength(scenes.length + 1);
+  const scripts = state.artifacts.filter(
+    (entry) => entry.documentArea === "scripts",
+  );
+  expect(scripts).toHaveLength(2);
+  expect(scripts[0]).toMatchObject({
+    content: "Approved original",
+    review: "approved",
+  });
+  expect(scripts[1]).toMatchObject({
+    content: sections.join("\n\n"),
+    number: 2,
+    review: "pending",
+    revisesId: "script-v1",
+  });
+  expect(reply.proposal.updates).toHaveLength(34);
+  expect(JSON.stringify(state.shots.map((shot) => shot.versions))).toBe(
+    history,
+  );
+  const applied = applyCommand(state, {
+    type: "artifact.apply",
+    payload: { id: reply.id },
+  });
+  expect(
+    applied.shots.every((shot) =>
+      shot.prompt.includes("complete revised camera direction"),
+    ),
+  ).toBe(true);
+  expect(JSON.stringify(applied.shots.map((shot) => shot.versions))).toBe(
+    history,
+  );
+  expect(applied.batches).toEqual([]);
+  await advanceCrewRun(state.id, id);
+  expect(invokeHandler).toHaveBeenCalledTimes(scenes.length + 1);
+});
+
+test("a failed later output part retains earlier calls without publishing the partial document", async () => {
+  state.nodes = [];
+  invokeHandler
+    .mockResolvedValueOnce({
+      content: JSON.stringify({
+        outputPlan: {
+          scope: "project",
+          title: "Two sections",
+          parts: [
+            { id: "a", title: "First", sceneIds: [] },
+            { id: "b", title: "Second", sceneIds: [] },
+          ],
+        },
+      }),
+    })
+    .mockResolvedValueOnce({
+      content: JSON.stringify({
+        outputPart: {
+          id: "a",
+          documents: [
+            {
+              key: "story",
+              title: "Story",
+              area: "scripts",
+              content: "A complete first section",
+            },
+          ],
+        },
+      }),
+    })
+    .mockResolvedValueOnce({ content: '{"outputPart":' });
+  const id = await start();
+  await advanceCrewRun(state.id, id);
+  await advanceCrewRun(state.id, id);
+  await advanceCrewRun(state.id, id);
+  expect(state.crewRuns[0].state).toBe("attention");
+  expect(state.crewRuns[0].calls).toHaveLength(3);
+  expect(state.crewRuns[0].calls[1].result.content).toContain(
+    "A complete first section",
+  );
+  expect(state.artifacts).toHaveLength(1);
+  expect(state.artifacts[0].documentIds).toBeUndefined();
+  await advanceCrewRun(state.id, id);
+  expect(invokeHandler).toHaveBeenCalledTimes(3);
 });

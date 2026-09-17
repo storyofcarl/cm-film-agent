@@ -772,61 +772,6 @@ export default function Studio({
               <small>{project?.scope || "Production workspace"}</small>
             </span>
           </button>
-          <div className="tree" aria-label="Creative hierarchy">
-            {project?.nodes
-              .filter((node) => node.type === "act")
-              .sort((a, b) => a.order - b.order)
-              .map((act) => (
-                <div key={act.id}>
-                  <button className="tree-act" onClick={() => navigate(act.id)}>
-                    {act.title}
-                  </button>
-                  {project.nodes
-                    .filter((node) => node.parentId === act.id)
-                    .sort((a, b) => a.order - b.order)
-                    .map((sequence) => (
-                      <div key={sequence.id}>
-                        <button
-                          className="tree-sequence"
-                          onClick={() => navigate(sequence.id)}
-                        >
-                          <span>⌄</span>
-                          {sequence.title}
-                        </button>
-                        {project.nodes
-                          .filter((node) => node.parentId === sequence.id)
-                          .sort((a, b) => a.order - b.order)
-                          .map((entry) => (
-                            <button
-                              key={entry.id}
-                              className={`tree-scene ${entry.id === sceneId ? "active" : ""}`}
-                              onClick={() => {
-                                navigate(entry.id);
-                                setTab("Review");
-                              }}
-                            >
-                              <span className="scene-number">
-                                {entry.code || entry.id}
-                              </span>
-                              <span>{entry.title}</span>
-                              <span
-                                className={`scene-dot ${sceneIsApproved(project, entry.id) ? "green" : ""}`}
-                              />
-                            </button>
-                          ))}
-                      </div>
-                    ))}
-                </div>
-              ))}
-          </div>
-          {project && (
-            <button
-              className="text-button add-scene"
-              onClick={() => setModal("scene")}
-            >
-              <Icon name="plus" size={15} /> Add scene
-            </button>
-          )}
           <div className="nav-divider" />
           {[
             "Overview",
