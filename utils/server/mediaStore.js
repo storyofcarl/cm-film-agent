@@ -14,7 +14,8 @@ export const storeKeyFromUrl = (url) => /\/api\/film\/media\?key=([a-f0-9]{16,64
 export const mediaUrl = (key) => '/api/film/media?key=' + encodeURIComponent(key);
 export const objectPath = (key) => {
   if (!KEY_RE.test(String(key))) throw new Error('Invalid media key');
-  return requestContext().user.id + '/' + key;
+  const context = requestContext();
+  return context.user.id + (context.namespace === 'studio' ? '/studio/' : '/') + key;
 };
 export const mediaFilePath = (key) => path.join(os.tmpdir(), 'film-agent-media', objectPath(key));
 export const mediaFileExists = (key) => fs.existsSync(mediaFilePath(key));

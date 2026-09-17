@@ -17,6 +17,11 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --target .local/otio opentimelineio==0.18.1
       - run: npm run lint
       - run: npm test -- --runInBand
       - run: npm run build
+      - run: npm run studio:build

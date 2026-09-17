@@ -30,7 +30,7 @@ const fetchWithTimeout = async (url, opts = {}, ms = 120000) => {
   }
 };
 
-async function imagineHandler(req, res) {
+export async function imagineHandler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);

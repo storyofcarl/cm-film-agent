@@ -76,8 +76,8 @@ export const buildFalInput = (spec, params, content) => {
 };
 
 const submit = async (spec, endpoint, input) => {
-  const { user } = requestContext(); const db = createAdminSupabase();
-  const { data: job, error } = await db.from('film_jobs').insert({ owner_id: user.id, kind: spec.kind, status: 'submitting', request: { model: spec.id, prompt: input.prompt || input.content?.find((c) => c.type === 'text')?.text, provider: spec.provider, endpoint } }).select('id').single();
+  const { user, namespace, studioJobId } = requestContext(); const db = createAdminSupabase();
+  const { data: job, error } = await db.from('film_jobs').insert({ owner_id: user.id, kind: spec.kind, status: 'submitting', request: { model: spec.id, prompt: input.prompt || input.content?.find((c) => c.type === 'text')?.text, provider: spec.provider, endpoint, ...(namespace ? { namespace, studioJobId } : {}) } }).select('id').single();
   if (error) throw error;
   try {
     const data = await json(await safeFetch(({ fal: FAL, wavespeed: WAVE, minimax: MINIMAX })[spec.provider] + '/' + endpoint, { method: 'POST', headers: headersFor(spec.provider), body: JSON.stringify(input) }));

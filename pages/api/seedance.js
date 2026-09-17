@@ -8,7 +8,7 @@ import { providerModel } from '../../utils/providerModels';
 import { submitFalVideo, submitMiniMaxVideo } from '../../utils/server/providerJobs';
 
 export const config = { api: { bodyParser: { sizeLimit: '4mb' } }, maxDuration: 300 };
-export default withAuth(async (req, res) => {
+export const seedanceHandler = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).end();
   if (providerModel(req.body?.model)?.provider === 'minimax') {
     try { return res.status(202).json(await submitMiniMaxVideo(req.body)); }
@@ -22,7 +22,7 @@ export default withAuth(async (req, res) => {
   const models = ['MODELARK_MODEL_SEEDANCE', 'MODELARK_MODEL_SEEDANCE_FAST', 'MODELARK_MODEL_SEEDANCE_MINI', 'MODELARK_MODEL_SEEDANCE_25'].map((k) => process.env[k]).filter(Boolean);
   if (!models.includes(model)) return res.status(400).json({ error: 'Choose a configured video model' });
   if (!Array.isArray(content) || content.length > 60) return res.status(400).json({ error: 'Invalid generation content' });
-  const { supabase: userClient, user } = requestContext();
+  const { supabase: userClient, user, namespace, studioJobId } = requestContext();
   const supabase = createAdminSupabase();
   const normalized = [];
   for (const item of content) {
@@ -43,7 +43,7 @@ export default withAuth(async (req, res) => {
     if (item.type === 'audio_url' && key && !key.endsWith('.mp3')) return res.status(400).json({ error: 'Seedance audio references must be MP3' });
     normalized.push({ ...item, [item.type]: { ...item[item.type], url: key ? await signedMediaUrl(key) : source } });
   }
-  const { data: job, error } = await supabase.from('film_jobs').insert({ owner_id: user.id, kind: 'video', status: 'submitting', request: { model, content, ...params } }).select('id').single();
+  const { data: job, error } = await supabase.from('film_jobs').insert({ owner_id: user.id, kind: 'video', status: 'submitting', request: { model, content, ...params, ...(namespace ? { namespace, studioJobId } : {}) } }).select('id').single();
   if (error) throw error;
   try {
     const response = await safeFetch(getEndpointUrl('video'), {
@@ -65,4 +65,5 @@ export default withAuth(async (req, res) => {
     // ambiguous submission visible and never automatically generate a duplicate.
     return res.status(502).json({ error: error.message, jobId: job.id });
   }
-});
+};
+export default withAuth(seedanceHandler);

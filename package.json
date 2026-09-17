@@ -2,11 +2,17 @@
   "name": "modelark-starter-kit",
   "version": "1.0.0",
   "private": true,
-  "engines": { "node": "24.x" },
+  "engines": {
+    "node": "24.x"
+  },
   "author": "BytePlus Team",
   "description": "Starter kit for Seedream, Seedance, and Seed APIs",
   "main": "electron/main.js",
   "scripts": {
+    "studio:dev": "node scripts/studio.cjs dev",
+    "studio:build": "node scripts/studio.cjs build",
+    "studio:start": "node scripts/studio.cjs start",
+    "studio:test": "jest --runInBand tests/studio",
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
@@ -38,6 +44,7 @@
     "undici": "^8.10.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "concurrently": "^10.0.3",
@@ -50,6 +57,7 @@
     "jest": "^30.2.0",
     "jest-environment-jsdom": "^30.2.0",
     "node-mocks-http": "^1.17.2",
+    "prettier": "^3.9.7",
     "vercel": "^59.19.0",
     "wait-on": "^9.0.10",
     "whatwg-fetch": "^3.6.20"

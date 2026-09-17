@@ -1,0 +1,2056 @@
+/* eslint-disable @next/next/no-img-element */
+import Head from "next/head";
+import BatchPanel from "./BatchPanel";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { getBrowserSupabase } from "../../../utils/supabase/browser";
+import {
+  ReviewGrid,
+  HierarchyStrip,
+  GuidesPanel,
+  DeliveryPanel,
+} from "./ProductionViews";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  applyCommand,
+  createProject,
+  selectedVersion,
+  sceneShots,
+  revisionItems,
+  REVIEW_LABELS,
+  lookdevRequirement,
+  sceneIsApproved,
+} from "../lib/domain";
+import { METHODS, methodLabel } from "../lib/methods";
+
+const paths = {
+  film: "M4 4h16v16H4z M4 8h16M4 16h16M8 4v4M16 4v4M8 16v4M16 16v4",
+  grid: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
+  layers: "m12 3 10 6-10 6L2 9l10-6Zm-9 11 9 5 9-5M3 18l9 5 9-5",
+  clock: "M12 8v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  plus: "M12 5v14M5 12h14",
+  chevron: "m9 5 7 7-7 7",
+  arrow: "M4 12h16m-6-6 6 6-6 6",
+  check: "m5 12 4 4L19 6",
+  spark: "m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z",
+  play: "m8 4 12 8-12 8V4Z",
+  download: "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5",
+  settings: "M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6",
+  close: "m6 6 12 12M6 18 18 6",
+};
+function Icon({ name, size = 18 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.55"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={paths[name] || paths.film} />
+    </svg>
+  );
+}
+function Badge({ status = "pending" }) {
+  return (
+    <span className={`badge ${status}`}>
+      <i />
+      {REVIEW_LABELS[status] || status}
+    </span>
+  );
+}
+const duration = (seconds) =>
+  `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, "0")}`;
+const jsonFetch = async (url, options) => {
+  const response = await fetch(url, options);
+  const data = await response.json();
+  if (!response.ok)
+    throw Object.assign(new Error(data.error || "Request failed"), {
+      status: response.status,
+    });
+  return data;
+};
+const post = (body) => ({
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+export default function Studio({
+  initialProject = null,
+  demo = false,
+  userEmail = "",
+}) {
+  const router = useRouter();
+  const [project, setProject] = useState(initialProject);
+  const [projects, setProjects] = useState([]);
+  const [revision, setRevision] = useState(0);
+  const [sceneId, setSceneId] = useState(
+    initialProject?.nodes.find((node) => node.type === "scene")?.id || null,
+  );
+  const [itemId, setItemId] = useState(initialProject?.shots[0]?.id || null);
+  const [reviewVersionId, setReviewVersionId] = useState(null);
+  const [tab, setTab] = useState("Cut");
+  const [containerId, setContainerId] = useState(null);
+  const [newContainerType, setNewContainerType] = useState("act");
+  const [panel, setPanel] = useState("Details");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [modal, setModal] = useState(null);
+  const closeModal = useCallback(() => setModal(null), []);
+  const [method, setMethod] = useState("film.shots");
+  const [instruction, setInstruction] = useState("");
+  const [note, setNote] = useState("");
+  const [noteVersionId, setNoteVersionId] = useState(null);
+  const [uploadPurpose, setUploadPurpose] = useState("take");
+  const [models, setModels] = useState({});
+  const [catalog, setCatalog] = useState([]);
+  const [imageModel, setImageModel] = useState("");
+  const [llmModel, setLlmModel] = useState("");
+  const [videoModel, setVideoModel] = useState("");
+  const [revisionRoute, setRevisionRoute] = useState("frames");
+  const importInput = useRef(null);
+  const mediaInput = useRef(null);
+  const pollCursor = useRef(0);
+
+  useEffect(() => {
+    if (demo) return undefined;
+    let active = true;
+    Promise.all([
+      jsonFetch("/api/studio/projects"),
+      jsonFetch("/api/film/config"),
+    ])
+      .then(([data, config]) => {
+        if (!active) return;
+        setProjects(data.items || []);
+        setModels(config.models || {});
+        setCatalog(config.catalog || []);
+        setImageModel(
+          config.models?.seedreamPro ||
+            config.catalog?.find((entry) => entry.kind === "image")?.id ||
+            "",
+        );
+        setLlmModel(config.models?.reasoner || "");
+        setVideoModel(
+          config.models?.seedance25 || config.models?.seedance || "",
+        );
+        if (data.items?.length)
+          return jsonFetch(
+            `/api/studio/projects?id=${encodeURIComponent(data.items[0].id)}`,
+          ).then((loaded) => {
+            if (active) {
+              setProject(loaded.project);
+              setRevision(loaded.revision);
+              setSceneId(
+                loaded.project.nodes.find((node) => node.type === "scene")?.id,
+              );
+              setItemId(loaded.project.shots[0]?.id || null);
+            }
+          });
+        return undefined;
+      })
+      .catch((error) => {
+        if (active) setMessage(error.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [demo]);
+
+  useEffect(() => {
+    if (demo || busy || modal || !project) return undefined;
+    const batches = project.batches.filter(
+      (batch) =>
+        batch.approval &&
+        ["approved", "running", "attention"].includes(batch.state),
+    );
+    if (!batches.length) return undefined;
+    const controller = new AbortController();
+    let active = true;
+    const timer = setTimeout(() => {
+      const batch = batches[pollCursor.current++ % batches.length];
+      jsonFetch("/api/studio/batches", {
+        ...post({
+          action: "tick",
+          id: project.id,
+          revision,
+          batchId: batch.id,
+        }),
+        signal: controller.signal,
+      })
+        .then((result) => {
+          if (active) {
+            setProject(result.project);
+            setRevision(result.revision);
+          }
+        })
+        .catch(async (error) => {
+          if (active && error.status === 409) {
+            const current = await jsonFetch(
+              `/api/studio/projects?id=${encodeURIComponent(project.id)}`,
+            ).catch(() => null);
+            if (active && current) {
+              setProject(current.project);
+              setRevision(current.revision);
+            }
+          }
+        });
+    }, 12000);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [demo, busy, modal, project, revision]);
+
+  const run = async (operation) => {
+    setBusy(true);
+    setMessage("");
+    try {
+      return await operation();
+    } catch (error) {
+      setMessage(error.message || "Something went wrong.");
+      if (error.status === 409 && project?.id && !demo) {
+        const current = await jsonFetch(
+          `/api/studio/projects?id=${encodeURIComponent(project.id)}`,
+        ).catch(() => null);
+        if (current) {
+          setProject(current.project);
+          setRevision(current.revision);
+          setMessage(
+            "Production refreshed after another edit or completed job. Your last action was not applied; review and save again.",
+          );
+        }
+      }
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  };
+  const command = (type, payload) =>
+    run(async () => {
+      if (demo) {
+        const next = applyCommand(project, { type, payload });
+        setProject(next);
+        return next;
+      }
+      const result = await jsonFetch(
+        "/api/studio/projects",
+        post({
+          action: "command",
+          id: project.id,
+          revision,
+          command: { type, payload },
+        }),
+      );
+      setProject(result.project);
+      setRevision(result.revision);
+      return result.project;
+    });
+  const load = (id) =>
+    run(async () => {
+      const result = await jsonFetch(
+        `/api/studio/projects?id=${encodeURIComponent(id)}`,
+      );
+      setProject(result.project);
+      setRevision(result.revision);
+      setSceneId(
+        result.project.nodes.find((node) => node.type === "scene")?.id,
+      );
+      setItemId(null);
+      setReviewVersionId(null);
+    });
+  const newProject = (form) =>
+    run(async () => {
+      const created = createProject({
+        title: form.title,
+        scope: form.scope,
+        brief: form.brief,
+      });
+      if (!demo) {
+        const result = await jsonFetch(
+          "/api/studio/projects",
+          post({ action: "create", project: created }),
+        );
+        setRevision(result.revision);
+        setProjects((items) => [
+          { id: created.id, title: created.title },
+          ...items,
+        ]);
+      }
+      setProject(created);
+      setSceneId(created.nodes.find((node) => node.type === "scene").id);
+      setItemId(null);
+      setModal(null);
+    });
+  const selectItem = (item) => {
+    setItemId(item.id);
+    setReviewVersionId(null);
+    setNoteVersionId(null);
+    setNote("");
+    if (item.sceneId) setSceneId(item.sceneId);
+  };
+  const download = (value, filename) => {
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }),
+    );
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+  const importProject = (file) =>
+    run(async () => {
+      if (!file) return;
+      if (demo)
+        throw new Error(
+          "Open the authenticated studio to validate and import your project.",
+        );
+      const content = await file.text();
+      if (!/\.json$/i.test(file.name)) {
+        let current = project
+          ? { project, revision }
+          : await jsonFetch(
+              "/api/studio/projects",
+              post({
+                action: "create",
+                project: createProject({
+                  title: file.name.replace(/\.[^.]+$/, ""),
+                  scope: "film",
+                }),
+              }),
+            );
+        current = await jsonFetch(
+          "/api/studio/projects",
+          post({
+            action: "command",
+            id: current.project.id,
+            revision: current.revision,
+            command: {
+              type: "artifact.add",
+              payload: { title: file.name, content },
+            },
+          }),
+        );
+        setProject(current.project);
+        setRevision(current.revision);
+        setSceneId(
+          current.project.nodes.find((node) => node.type === "scene")?.id,
+        );
+        setTab("Overview");
+        setMessage(
+          "Supplied document preserved in full. Use Validate supplied work for a completeness check, or direct the crew to work from it.",
+        );
+        return;
+      }
+      const manifest = JSON.parse(content);
+      const result = await jsonFetch(
+        "/api/studio/projects",
+        post({ action: "import", project: manifest }),
+      );
+      setProject(result.project);
+      setRevision(result.revision);
+      setSceneId(
+        result.project.nodes.find((node) => node.type === "scene")?.id,
+      );
+      setItemId(null);
+      setMessage(
+        `Imported ${result.report?.approved || 0} complete versions. ${result.report?.gaps?.length || 0} gaps flagged for the crew.`,
+      );
+    });
+  const crew = () =>
+    run(async () => {
+      if (demo)
+        throw new Error(
+          "This sample is for exploring the workspace. Sign in to run your crew.",
+        );
+      const result = await jsonFetch(
+        "/api/studio/crew",
+        post({
+          id: project.id,
+          revision,
+          method,
+          instruction,
+          model: llmModel,
+          sceneId,
+          itemId,
+        }),
+      );
+      setProject(result.project);
+      setRevision(result.revision);
+      setMessage("Crew output saved. Review it in the project notes below.");
+      setInstruction("");
+    });
+  const batchAction = (action, extra = {}) =>
+    run(async () => {
+      if (demo)
+        throw new Error(
+          "Sample workspace: no provider jobs or paid batches can run. Create a project in the authenticated studio.",
+        );
+      const result = await jsonFetch(
+        "/api/studio/batches",
+        post({
+          action,
+          id: project.id,
+          revision,
+          sceneId,
+          model: videoModel,
+          imageModel,
+          llmModel,
+          route: revisionRoute,
+          ...extra,
+        }),
+      );
+      setProject(result.project);
+      setRevision(result.revision);
+      setTab("Batches");
+    });
+
+  const deliveryAction = (action, extra = {}) =>
+    run(async () => {
+      if (demo)
+        throw new Error("Sign in to assemble or export production media.");
+      const result = await jsonFetch(
+        "/api/studio/delivery",
+        post({ action, id: project.id, ...extra }),
+      );
+      if (result.manifest) {
+        download(result, `${project.title.replace(/\W+/g, "-")}.delivery.json`);
+        return;
+      }
+      setProject(result.project);
+      setRevision(result.revision);
+      setTab("Overview");
+    });
+  const navigate = (id) => {
+    setContainerId(id);
+    setTab("Hierarchy");
+  };
+  const switchTab = (next) => {
+    setTab(next);
+    if (next === "Assets") {
+      setItemId(project?.assets[0]?.id || null);
+      setReviewVersionId(null);
+    }
+  };
+  const scene = project?.nodes.find((node) => node.id === sceneId);
+  const shots = project ? sceneShots(project, sceneId) : [];
+  const item =
+    project &&
+    [...project.assets, ...project.shots].find(
+      (candidate) => candidate.id === itemId,
+    );
+  const version =
+    item?.versions.find((candidate) => candidate.id === reviewVersionId) ||
+    selectedVersion(item) ||
+    item?.versions.at(-1);
+  const revisions = project ? revisionItems(project) : [];
+  const displayNote =
+    noteVersionId === version?.id ? note : version?.note || "";
+  const allVersions = project
+    ? [...project.assets, ...project.shots].flatMap((entry) => entry.versions)
+    : [];
+  const approved = allVersions.filter(
+    (entry) => entry.review === "approved",
+  ).length;
+  const requirement =
+    project && sceneId ? lookdevRequirement(project, sceneId) : null;
+
+  return (
+    <div className="studio-shell">
+      <Head>
+        <title>{`${project ? `${project.title} — ` : ""}Film Agent Studio`}</title>
+        <meta
+          name="description"
+          content="Your director’s workspace. One production, every possibility."
+        />
+        <meta name="robots" content="noindex,nofollow" />
+      </Head>
+      <header className="studio-header">
+        <a className="brand" href={demo ? "/demo" : "/"}>
+          <span className="brand-mark">
+            <Icon name="film" size={20} />
+          </span>
+          <strong>FILM AGENT</strong>
+          <span className="brand-sub">STUDIO</span>
+        </a>
+        <div className="project-switch">
+          <span className="muted">Workspace</span>
+          <span>/</span>
+          {project ? (
+            <button onClick={() => setModal("projects")}>
+              {project.title}
+              <span className="tiny">⌄</span>
+            </button>
+          ) : (
+            <span>New production</span>
+          )}
+        </div>
+        <div className="header-right">
+          {!demo && (
+            <button
+              className="text-button"
+              disabled={busy}
+              onClick={() =>
+                run(async () => {
+                  const { error } = await getBrowserSupabase().auth.signOut();
+                  if (error) throw error;
+                  await router.replace("/login");
+                })
+              }
+            >
+              Sign out
+            </button>
+          )}
+          <span className="save-state">
+            <i />
+            {busy
+              ? "Working…"
+              : demo
+                ? "Sample workspace"
+                : "Private workspace"}
+          </span>
+          <button
+            className="avatar"
+            title={userEmail || "Sample director"}
+            onClick={() => setPanel(panel === "Crew" ? "Details" : "Crew")}
+          >
+            {userEmail ? userEmail[0].toUpperCase() : "D"}
+          </button>
+        </div>
+      </header>
+      {demo && (
+        <div className="demo-bar">
+          <span>EXAMPLE PROJECT</span> Explore the workflow with illustrated
+          storyboard fixtures. No AI jobs will run.
+          <Link href="/">
+            Open your studio <Icon name="arrow" size={14} />
+          </Link>
+        </div>
+      )}
+      <div className="studio-body">
+        <aside className="project-nav">
+          <div className="nav-heading">
+            PRODUCTION{" "}
+            <button
+              className="icon-button"
+              title="New project"
+              onClick={() => setModal("new")}
+            >
+              <Icon name="plus" size={16} />
+            </button>
+          </div>
+          <button
+            className={`nav-project ${tab === "Overview" ? "active" : ""}`}
+            onClick={() => navigate(null)}
+          >
+            <Icon name="film" />
+            <span>
+              {project?.title || "Your next picture"}
+              <small>{project?.scope || "Production workspace"}</small>
+            </span>
+          </button>
+          <div className="tree" aria-label="Creative hierarchy">
+            {project?.nodes
+              .filter((node) => node.type === "act")
+              .sort((a, b) => a.order - b.order)
+              .map((act) => (
+                <div key={act.id}>
+                  <button className="tree-act" onClick={() => navigate(act.id)}>
+                    {act.title}
+                  </button>
+                  {project.nodes
+                    .filter((node) => node.parentId === act.id)
+                    .sort((a, b) => a.order - b.order)
+                    .map((sequence) => (
+                      <div key={sequence.id}>
+                        <button
+                          className="tree-sequence"
+                          onClick={() => navigate(sequence.id)}
+                        >
+                          <span>⌄</span>
+                          {sequence.title}
+                        </button>
+                        {project.nodes
+                          .filter((node) => node.parentId === sequence.id)
+                          .sort((a, b) => a.order - b.order)
+                          .map((entry, index) => (
+                            <button
+                              key={entry.id}
+                              className={`tree-scene ${entry.id === sceneId ? "active" : ""}`}
+                              onClick={() => {
+                                setSceneId(entry.id);
+                                setTab("Cut");
+                                const first = sceneShots(project, entry.id)[0];
+                                setItemId(first?.id || null);
+                                setReviewVersionId(null);
+                              }}
+                            >
+                              <span className="scene-number">
+                                {String(index + 1).padStart(2, "0")}
+                              </span>
+                              <span>{entry.title}</span>
+                              <span
+                                className={`scene-dot ${sceneIsApproved(project, entry.id) ? "green" : ""}`}
+                              />
+                            </button>
+                          ))}
+                      </div>
+                    ))}
+                </div>
+              ))}
+          </div>
+          {project && (
+            <button
+              className="text-button add-scene"
+              onClick={() => setModal("scene")}
+            >
+              <Icon name="plus" size={15} /> Add scene
+            </button>
+          )}
+          <div className="nav-divider" />
+          {["Assets", "Batches", "History"].map((entry) => (
+            <button
+              key={entry}
+              className={`nav-item ${tab === entry ? "active" : ""}`}
+              onClick={() => {
+                setTab(entry);
+                if (entry === "Assets") {
+                  setItemId(project?.assets[0]?.id);
+                  setReviewVersionId(null);
+                }
+              }}
+            >
+              <Icon
+                name={
+                  { Assets: "grid", Batches: "layers", History: "clock" }[entry]
+                }
+              />
+              {entry}
+              <span className="nav-count">
+                {entry === "Assets"
+                  ? project?.assets.length || 0
+                  : entry === "Batches"
+                    ? project?.batches.length || 0
+                    : ""}
+              </span>
+            </button>
+          ))}
+          <div className="nav-bottom">
+            <div className="crew-emblem">
+              <Icon name="spark" />
+              <div>
+                Your crew is ready<small>You direct. We assemble.</small>
+              </div>
+            </div>
+            <button
+              className="secondary full"
+              onClick={() => setModal("settings")}
+              disabled={!project}
+            >
+              <Icon name="settings" /> Production settings
+            </button>
+          </div>
+        </aside>
+        <main className="workspace">
+          {message && (
+            <div className="notice" role="status">
+              <span>{message}</span>
+              <button
+                className="icon-button"
+                aria-label="Dismiss message"
+                onClick={() => setMessage("")}
+              >
+                <Icon name="close" size={16} />
+              </button>
+            </div>
+          )}
+          {!project ? (
+            <div className="welcome">
+              <span className="eyebrow">A NEW WAY TO MAKE PICTURES</span>
+              <h1>
+                Your vision.
+                <br />A whole crew behind it.
+              </h1>
+              <p>
+                Start with an idea, or bring the work you already have.
+                <br />
+                Build and review your production in complete batches.
+              </p>
+              <div className="button-row">
+                <button className="primary" onClick={() => setModal("new")}>
+                  <Icon name="plus" /> New production
+                </button>
+                <button
+                  className="secondary"
+                  onClick={() => importInput.current.click()}
+                >
+                  Import project
+                </button>
+                <a className="text-button" href="/demo">
+                  Explore a sample <Icon name="arrow" />
+                </a>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="workspace-heading">
+                <div>
+                  <div className="eyebrow">
+                    {tab === "Cut"
+                      ? `${project.scope.toUpperCase()} / ${scene?.location || "SCENE WORKSPACE"}`
+                      : "YOUR PRODUCTION"}
+                  </div>
+                  <h1>
+                    {tab === "Cut"
+                      ? scene?.title || "Select a scene"
+                      : tab === "Overview"
+                        ? project.title
+                        : tab}
+                  </h1>
+                  <p>
+                    {tab === "Cut"
+                      ? `${shots.length} shots · ${duration(shots.reduce((sum, shot) => sum + Number(shot.duration || 0), 0))} planned · ${scene?.time || "Time not set"}`
+                      : tab === "Assets"
+                        ? "Reusable identities, worlds, and the details that make them yours."
+                        : tab === "Batches"
+                          ? "Plan together. Approve once. Let the crew do the work."
+                          : tab === "History"
+                            ? "Every version. Every prompt. Every decision."
+                            : project.brief}
+                  </p>
+                </div>
+                <div className="button-row">
+                  <button
+                    className="secondary"
+                    onClick={() =>
+                      download(
+                        project,
+                        `${project.title.replace(/\W+/g, "-")}.studio.json`,
+                      )
+                    }
+                  >
+                    <Icon name="download" /> Export project
+                  </button>
+                  <button
+                    className="primary"
+                    disabled={busy}
+                    onClick={() => setPanel("Crew")}
+                  >
+                    <Icon name="spark" /> Ask the crew
+                  </button>
+                </div>
+              </div>
+              <nav
+                className="mobile-navigation"
+                aria-label="Workspace sections"
+              >
+                {[
+                  "Cut",
+                  "Hierarchy",
+                  "Assets",
+                  "Batches",
+                  "History",
+                  "Overview",
+                ].map((entry) => (
+                  <button
+                    key={entry}
+                    className={tab === entry ? "active" : ""}
+                    onClick={() => switchTab(entry)}
+                  >
+                    {entry}
+                  </button>
+                ))}
+                <button onClick={() => setModal("settings")}>Settings</button>
+                <select
+                  aria-label="Scene navigation"
+                  value={sceneId || ""}
+                  onChange={(event) => {
+                    setSceneId(event.target.value);
+                    setItemId(
+                      project.shots.find(
+                        (shot) => shot.sceneId === event.target.value,
+                      )?.id || null,
+                    );
+                    setTab("Cut");
+                  }}
+                >
+                  {project.nodes
+                    .filter((node) => node.type === "scene")
+                    .map((node) => (
+                      <option key={node.id} value={node.id}>
+                        {node.title}
+                      </option>
+                    ))}
+                </select>
+              </nav>
+              <div className="workspace-tabs">
+                <div>
+                  {["Cut", "Review", "Overview"].map((entry) => (
+                    <button
+                      className={tab === entry ? "selected" : ""}
+                      key={entry}
+                      onClick={() => setTab(entry)}
+                    >
+                      {entry === "Cut"
+                        ? "Scene workspace"
+                        : entry === "Review"
+                          ? "Review all shots"
+                          : "Production overview"}
+                    </button>
+                  ))}
+                </div>
+                <span className="quiet-stat">
+                  {approved} approved versions <span>·</span> {revisions.length}{" "}
+                  need revision
+                </span>
+              </div>
+              {tab === "Cut" && (
+                <>
+                  <div className="viewer-top">
+                    <span>
+                      <b>
+                        {item?.kind === "shot"
+                          ? `SHOT ${String(project.shots.indexOf(item) + 1).padStart(3, "0")}`
+                          : "SCENE REVIEW"}
+                      </b>
+                      <span className="muted"> / </span>
+                      {item?.title || "Select a shot below"}
+                    </span>
+                    {version && <Badge status={version.review} />}
+                  </div>
+                  <div className="media-viewer">
+                    {version?.media?.url ? (
+                      version.media.type === "video" ? (
+                        <video
+                          key={version.id}
+                          src={version.media.url}
+                          controls
+                          playsInline
+                        />
+                      ) : (
+                        <img
+                          src={version.media.url}
+                          alt={item?.title || "Production frame"}
+                        />
+                      )
+                    ) : (
+                      <div className="viewer-empty">
+                        <Icon name="film" size={42} />
+                        <h2>Give this scene its first frame.</h2>
+                        <p>
+                          Add your shots, bring in existing media, or prepare a
+                          generation batch.
+                        </p>
+                        <button
+                          className="secondary"
+                          onClick={() => setModal("shot")}
+                        >
+                          <Icon name="plus" /> Add shot
+                        </button>
+                      </div>
+                    )}
+                    {version && (
+                      <div className="viewer-caption">
+                        <span>
+                          {version.origin === "fixture"
+                            ? "ILLUSTRATED STORYBOARD · SAMPLE"
+                            : version.media?.type === "video"
+                              ? "DRAFT TAKE"
+                              : "PRODUCTION FRAME"}
+                        </span>
+                        <span>
+                          V{version.number}{" "}
+                          <span className="caption-divider">/</span>{" "}
+                          {project.settings.aspectRatio}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="viewer-toolbar">
+                    <div className="button-row">
+                      <button
+                        className="secondary compact"
+                        disabled={!shots.length || busy}
+                        onClick={() => {
+                          setTab("Overview");
+                          deliveryAction("review", { sceneId });
+                        }}
+                      >
+                        Watch scene assembly
+                      </button>
+                      <button
+                        className="secondary compact"
+                        disabled={!shots.length || busy}
+                        onClick={() => command("scene.approve", { sceneId })}
+                      >
+                        <Icon name="check" size={15} />
+                        {sceneIsApproved(project, sceneId)
+                          ? "Scene approved"
+                          : "Approve scene"}
+                      </button>
+                      <span className="muted">
+                        {requirement?.required
+                          ? `Lookdev · ${requirement.scope === "picture" ? "whole picture" : "scene review required"}`
+                          : "Lookdev · below scene threshold"}
+                      </span>
+                    </div>
+                    <button
+                      className="text-button"
+                      onClick={() => setModal("shot")}
+                    >
+                      <Icon name="plus" size={15} /> Add shot
+                    </button>
+                  </div>
+                  <div className="strip-header">
+                    <span>SHOT STRIP</span>
+                    <span>Scene → shots · select a frame to direct</span>
+                  </div>
+                  <div className="shot-strip">
+                    {shots.map((shot, index) => {
+                      const take = selectedVersion(shot);
+                      return (
+                        <button
+                          key={shot.id}
+                          className={`shot-card ${itemId === shot.id ? "selected" : ""}`}
+                          onClick={() => selectItem(shot)}
+                        >
+                          <div className="shot-thumb">
+                            {take?.media?.type === "video" && take.media.url ? (
+                              <video
+                                muted
+                                preload="metadata"
+                                src={take.media.url + "#t=0.1"}
+                              />
+                            ) : take?.media?.type !== "video" &&
+                              take?.media?.url ? (
+                              <img src={take.media.url} alt="" />
+                            ) : (
+                              <Icon name="film" size={28} />
+                            )}
+                            <span>{duration(shot.duration)}</span>
+                            <i
+                              className={`review-dot ${take?.review || "pending"}`}
+                            />
+                          </div>
+                          <div className="shot-label">
+                            <b>{String(index + 1).padStart(3, "0")}</b>
+                            <span>{shot.title}</span>
+                          </div>
+                          <div className="shot-meta">
+                            {shot.versions.length
+                              ? `V${take?.number || 1} · ${REVIEW_LABELS[take?.review]}`
+                              : "No takes yet"}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    <button
+                      className="add-shot-card"
+                      onClick={() => setModal("shot")}
+                    >
+                      <Icon name="plus" size={24} />
+                      <span>New shot</span>
+                    </button>
+                  </div>
+                </>
+              )}
+              {tab === "Hierarchy" && (
+                <HierarchyStrip
+                  project={project}
+                  containerId={containerId}
+                  onNavigate={navigate}
+                  onAdd={(type) => {
+                    if (type === "shot") {
+                      setSceneId(containerId);
+                      setModal("shot");
+                    } else {
+                      setNewContainerType(type);
+                      setModal("container");
+                    }
+                  }}
+                  onEdit={() => setModal("container-edit")}
+                  onShot={(shot) => {
+                    selectItem(shot);
+                    setTab("Cut");
+                  }}
+                />
+              )}
+              {tab === "Review" && (
+                <ReviewGrid
+                  items={project.shots}
+                  {...{ busy, command, selectItem }}
+                />
+              )}
+              {tab === "Assets" && (
+                <div className="asset-section">
+                  <div className="section-actions">
+                    <span>
+                      {project.assets.length} assets · review the full batch
+                      together
+                    </span>
+                    <button
+                      className="secondary"
+                      onClick={() => setModal("asset")}
+                    >
+                      <Icon name="plus" /> Add asset
+                    </button>
+                  </div>
+                  <ReviewGrid
+                    items={project.assets}
+                    {...{ busy, command, selectItem }}
+                  />
+                </div>
+              )}
+              {tab === "Batches" && (
+                <BatchPanel
+                  {...{
+                    project,
+                    revisions,
+                    revisionRoute,
+                    setRevisionRoute,
+                    busy,
+                    command,
+                    batchAction,
+                    catalog,
+                  }}
+                />
+              )}
+              {tab === "History" && (
+                <div className="history-list">
+                  {[...project.events].reverse().map((event) => (
+                    <article key={event.id}>
+                      <div className="history-marker">
+                        <Icon name="clock" size={16} />
+                      </div>
+                      <div>
+                        <h3>{event.kind.replaceAll(".", " · ")}</h3>
+                        <p>
+                          {event.itemId ||
+                            event.sceneId ||
+                            event.batchId ||
+                            event.note ||
+                            "Production record"}
+                          {event.versionId ? ` / ${event.versionId}` : ""}
+                        </p>
+                        <small>
+                          {event.actor} · {new Date(event.at).toLocaleString()}
+                        </small>
+                        {event.review && <Badge status={event.review} />}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+              {tab === "Overview" && (
+                <div className="overview">
+                  <div className="overview-stats">
+                    {[
+                      [
+                        "Scenes",
+                        project.nodes.filter((node) => node.type === "scene")
+                          .length,
+                      ],
+                      ["Shots", project.shots.length],
+                      ["Assets", project.assets.length],
+                      ["Revisions", revisions.length],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <span>{label}</span>
+                        <strong>{value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                  <section className="overview-card">
+                    <span className="eyebrow">GLOBAL STYLE</span>
+                    <p>
+                      {project.globalStyle ||
+                        "Define the visual language that carries through the production."}
+                    </p>
+                    <button
+                      className="text-button"
+                      onClick={() => setModal("settings")}
+                    >
+                      Edit production direction <Icon name="arrow" size={15} />
+                    </button>
+                  </section>
+                  <section className="overview-card">
+                    <span className="eyebrow">CREW NOTES & DEVELOPMENT</span>
+                    {project.artifacts.length ? (
+                      project.artifacts.map((artifact) => (
+                        <details key={artifact.id}>
+                          <summary>
+                            {artifact.title || methodLabel(artifact.method)}
+                          </summary>
+                          <pre>{artifact.content}</pre>
+                          <label className="field">
+                            Document approval
+                            <select
+                              value={artifact.review || "pending"}
+                              disabled={busy}
+                              onChange={(event) =>
+                                command("artifact.review", {
+                                  id: artifact.id,
+                                  review: event.target.value,
+                                })
+                              }
+                            >
+                              {Object.entries(REVIEW_LABELS).map(
+                                ([value, label]) => (
+                                  <option key={value} value={value}>
+                                    {label}
+                                  </option>
+                                ),
+                              )}
+                            </select>
+                          </label>
+                          {artifact.validation?.gaps?.length > 0 && (
+                            <p className="gate-message">
+                              {artifact.validation.gaps.join(" ")}
+                            </p>
+                          )}
+                          {artifact.prompt && (
+                            <details>
+                              <summary>
+                                Method & exact preparation recipe
+                              </summary>
+                              <p>
+                                {methodLabel(artifact.method)} ·{" "}
+                                {artifact.model} · {artifact.methodVersion}
+                              </p>
+                              <pre>{artifact.prompt}</pre>
+                            </details>
+                          )}
+                          {artifact.decisions?.length > 0 && (
+                            <p className="gate-message">
+                              Working decisions:{" "}
+                              {artifact.decisions.join(" • ")}
+                            </p>
+                          )}
+                          {artifact.proposal && !artifact.appliedAt && (
+                            <button
+                              className="secondary"
+                              disabled={busy}
+                              onClick={() =>
+                                command("artifact.apply", { id: artifact.id })
+                              }
+                            >
+                              Apply proposed production changes
+                            </button>
+                          )}
+                        </details>
+                      ))
+                    ) : (
+                      <p>
+                        Your writing, direction, analysis, and shot-planning
+                        outputs will live here, with their methods and prompts.
+                      </p>
+                    )}
+                  </section>
+                  <div className="button-row">
+                    <button
+                      className="secondary"
+                      onClick={() => importInput.current.click()}
+                    >
+                      Import completed work
+                    </button>
+                    <button
+                      className="secondary"
+                      onClick={() => deliveryAction("review", { sceneId })}
+                    >
+                      <Icon name="download" /> Render scene assembly
+                    </button>
+                  </div>
+                  <GuidesPanel {...{ project, busy, command }} />
+                  <DeliveryPanel
+                    {...{ project, sceneId, busy, command }}
+                    action={deliveryAction}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        </main>
+        <aside className="inspector">
+          <div className="inspector-tabs">
+            {["Details", "Crew"].map((entry) => (
+              <button
+                className={panel === entry ? "active" : ""}
+                key={entry}
+                onClick={() => setPanel(entry)}
+              >
+                {entry === "Crew" && <Icon name="spark" size={15} />}
+                {entry}
+              </button>
+            ))}
+          </div>
+          {panel === "Details" ? (
+            item ? (
+              <>
+                <div className="inspector-title">
+                  <span className="eyebrow">
+                    {item.kind === "asset" ? item.type : "SHOT DETAILS"}
+                  </span>
+                  <h2>{item.title}</h2>
+                </div>
+                <label className="field">
+                  Reviewing version
+                  <select
+                    value={version?.id || ""}
+                    onChange={(event) => {
+                      setReviewVersionId(event.target.value);
+                      setNoteVersionId(null);
+                      setNote(
+                        item.versions.find(
+                          (candidate) => candidate.id === event.target.value,
+                        )?.note || "",
+                      );
+                    }}
+                  >
+                    {!item.versions.length && (
+                      <option value="">No versions yet</option>
+                    )}
+                    {item.versions.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        V{entry.number} · {REVIEW_LABELS[entry.review]}
+                        {entry.id === item.selectedVersionId
+                          ? " · selected"
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  Approval status
+                  <select
+                    aria-label="Approval status"
+                    className={`review-select ${version?.review || ""}`}
+                    disabled={!version || busy}
+                    value={version?.review || "pending"}
+                    onChange={(event) =>
+                      command("version.review", {
+                        itemId: item.id,
+                        versionId: version.id,
+                        review: event.target.value,
+                        note: displayNote,
+                      })
+                    }
+                  >
+                    {Object.entries(REVIEW_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="selected-version-note">
+                  {item.versions
+                    .filter((entry) => entry.review === "approved")
+                    .map((entry) => `V${entry.number}`)
+                    .join(", ") || "No version"}{" "}
+                  approved ·{" "}
+                  {selectedVersion(item)
+                    ? `V${selectedVersion(item).number} selected`
+                    : "nothing selected"}
+                </div>
+                {version && version.id !== item.selectedVersionId && (
+                  <button
+                    className="secondary full"
+                    disabled={busy}
+                    onClick={() =>
+                      command("version.select", {
+                        itemId: item.id,
+                        versionId: version.id,
+                      })
+                    }
+                  >
+                    Select V{version.number} for this item
+                  </button>
+                )}
+                <div className="inspector-rule" />
+                <label className="field">
+                  Revision notes
+                  <textarea
+                    rows={3}
+                    placeholder="What should change in the next batch?"
+                    value={displayNote}
+                    onChange={(event) => {
+                      setNote(event.target.value);
+                      setNoteVersionId(version?.id || null);
+                    }}
+                  />
+                </label>
+                {item.kind === "shot" && version && (
+                  <label className="field">
+                    Repair method for this version
+                    <select
+                      disabled={busy}
+                      value={version.repairRoute || ""}
+                      onChange={(event) =>
+                        command("version.review", {
+                          itemId: item.id,
+                          versionId: version.id,
+                          review: version.review,
+                          note: displayNote,
+                          repairRoute: event.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Use batch method</option>
+                      <option value="frames">Extract & revise frames</option>
+                      <option value="video-edit">Targeted video edit</option>
+                      <option value="rerun">Full clip rerun</option>
+                    </select>
+                  </label>
+                )}
+                <button
+                  className="secondary full"
+                  disabled={!version || busy}
+                  onClick={() =>
+                    command("version.review", {
+                      itemId: item.id,
+                      versionId: version.id,
+                      review: "revision",
+                      note: displayNote,
+                    })
+                  }
+                >
+                  Add to revision batch
+                </button>
+                <div className="inspector-rule" />
+                <span className="eyebrow">GENERATION RECIPE</span>
+                <label className="field">
+                  Exact prompt
+                  <textarea
+                    readOnly
+                    rows={7}
+                    value={
+                      version ? (version.prompt ?? "") : (item.prompt ?? "")
+                    }
+                    placeholder="Original prompt is unknown for this imported version."
+                  />
+                </label>
+                <dl className="recipe-meta">
+                  <dt>Method</dt>
+                  <dd>{methodLabel(version?.method)}</dd>
+                  <dt>Model</dt>
+                  <dd>{version?.model || "Not recorded"}</dd>
+                  <dt>Seed</dt>
+                  <dd>{version?.seed ?? "Not recorded"}</dd>
+                  <dt>Duration</dt>
+                  <dd>
+                    {item.kind === "shot" ? `${item.duration}s` : "Still image"}
+                  </dd>
+                </dl>
+                <button
+                  className="secondary full"
+                  disabled={busy}
+                  onClick={() => mediaInput.current.click()}
+                >
+                  <Icon name="plus" />{" "}
+                  {uploadPurpose === "take" || item.kind === "asset"
+                    ? "Import a new version"
+                    : "Import guide media"}
+                </button>
+                {item.kind === "shot" && (
+                  <label className="field">
+                    Import media as
+                    <select
+                      value={uploadPurpose}
+                      onChange={(event) => setUploadPurpose(event.target.value)}
+                    >
+                      <option value="take">Shot version</option>
+                      <option value="board">
+                        Storyboard / production frame
+                      </option>
+                      <option value="previs">Previs video reference</option>
+                    </select>
+                  </label>
+                )}
+                {item.kind === "shot" && (
+                  <button
+                    className="text-button full"
+                    onClick={() => setModal("edit-shot")}
+                  >
+                    Edit shot intent
+                  </button>
+                )}
+                {item.kind === "asset" && (
+                  <button
+                    className="text-button full"
+                    onClick={() => setModal("edit-asset")}
+                  >
+                    Edit asset intent
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="inspector-empty">
+                <Icon name="film" size={30} />
+                <p>
+                  Select an asset or shot to review its versions, prompts, and
+                  production details.
+                </p>
+              </div>
+            )
+          ) : (
+            <div className="crew-panel">
+              <span className="eyebrow">YOUR PRODUCTION CREW</span>
+              <h2>What are we making?</h2>
+              <p>
+                Give direction across the project or focus on the selected scene
+                and shot.
+              </p>
+              <label className="field">
+                Method
+                <select
+                  value={method}
+                  onChange={(event) => setMethod(event.target.value)}
+                >
+                  {METHODS.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="method-description">
+                {METHODS.find((entry) => entry.id === method)?.description}
+              </p>
+              <label className="field">
+                Director’s instruction
+                <textarea
+                  rows={7}
+                  placeholder="Develop the next sequence, analyze this script, or refine the selected shot…"
+                  value={instruction}
+                  onChange={(event) => setInstruction(event.target.value)}
+                />
+              </label>
+              <button
+                className="primary full"
+                disabled={busy || !project || !instruction.trim()}
+                onClick={crew}
+              >
+                <Icon name="spark" /> Prepare with crew
+              </button>
+              <div className="inspector-rule" />
+              <label className="field">
+                Reasoning model
+                <select
+                  value={llmModel}
+                  onChange={(event) => setLlmModel(event.target.value)}
+                >
+                  {catalog
+                    .filter((entry) => entry.kind === "llm")
+                    .map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.label}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="field">
+                Image model
+                <select
+                  value={imageModel}
+                  onChange={(event) => setImageModel(event.target.value)}
+                >
+                  {catalog
+                    .filter((entry) => entry.kind === "image")
+                    .map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.label}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="field">
+                Video model
+                <select
+                  value={videoModel}
+                  onChange={(event) => setVideoModel(event.target.value)}
+                >
+                  <option value="">Select a configured model</option>
+                  {Object.entries(models)
+                    .filter(([key]) => /seedance|minimax/i.test(key))
+                    .map(([key, value]) => (
+                      <option key={key} value={value}>
+                        {key} · {value}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <button
+                className="secondary full"
+                disabled={busy || !sceneId || !videoModel}
+                onClick={() =>
+                  command("segments.compile", {
+                    sceneId,
+                    profile: {
+                      model: videoModel,
+                      minDuration:
+                        catalog.find((entry) => entry.id === videoModel)
+                          ?.minDuration || 5,
+                      maxDuration:
+                        catalog.find((entry) => entry.id === videoModel)
+                          ?.maxDuration || 15,
+                      resolution: project.settings.draftResolution,
+                    },
+                  })
+                }
+              >
+                Compile scene segments
+              </button>
+              <div className="crew-footnote">
+                <Icon name="layers" />
+                <p>
+                  Preparation produces reviewable work. Generation batches have
+                  their own approval gates.
+                </p>
+              </div>
+            </div>
+          )}
+        </aside>
+      </div>
+      <footer className="studio-footer">
+        <span>
+          <i />
+          {demo
+            ? "Sample · changes are temporary"
+            : "Private production workspace"}
+        </span>
+        <span>
+          {project
+            ? `${project.shots.length} shots · ${project.segments.length} segments`
+            : "Film Agent Studio"}
+          <span className="footer-divider">/</span>DIRECTOR + CREW
+        </span>
+      </footer>
+      <input
+        ref={importInput}
+        hidden
+        type="file"
+        accept="application/json,.json,text/plain,.txt,.md,.fountain"
+        onChange={(event) => {
+          importProject(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+      <input
+        ref={mediaInput}
+        hidden
+        type="file"
+        accept="image/png,image/jpeg,image/webp,video/mp4,video/webm"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file || !item) return;
+          run(async () => {
+            if (demo)
+              throw new Error("Sign in to upload media to your production.");
+            const { uploadMedia } =
+              await import("../../../utils/film/uploadMedia");
+            const result = await uploadMedia(file);
+            if (uploadPurpose !== "take" && item.kind === "shot")
+              return command("guide.add", {
+                targetId: item.id,
+                kind: uploadPurpose,
+                media: {
+                  url: result.url,
+                  type: file.type.startsWith("video") ? "video" : "image",
+                },
+              });
+            return command("version.add", {
+              itemId: item.id,
+              media: {
+                url: result.url,
+                type: file.type.startsWith("video") ? "video" : "image",
+              },
+            });
+          });
+        }}
+      />
+      {modal && (
+        <FormModal
+          kind={modal}
+          project={project}
+          item={item}
+          projects={projects}
+          container={project?.nodes.find((node) => node.id === containerId)}
+          containerType={newContainerType}
+          busy={busy}
+          onClose={closeModal}
+          onLoad={(id) => {
+            load(id);
+            setModal(null);
+          }}
+          onSubmit={async (form) => {
+            if (modal === "new") return newProject(form);
+            let saved;
+            if (modal === "container")
+              saved = await command("node.add", {
+                type: newContainerType,
+                parentId: containerId,
+                title: form.title,
+                location: form.location,
+                time: form.time,
+              });
+            if (modal === "container-edit")
+              saved = await command("node.update", {
+                id: containerId,
+                title: form.title,
+                location: form.location,
+                time: form.time,
+                order: Number(form.order),
+              });
+            if (modal === "settings")
+              saved = await command("project.update", {
+                title: form.title,
+                brief: form.brief,
+                globalStyle: form.style,
+                settings: {
+                  lookdevMode: form.lookdev,
+                  aspectRatio: form.ratio,
+                  draftResolution: form.draftResolution,
+                  deliveryResolution: form.deliveryResolution,
+                  seed: form.seed === "" ? null : Number(form.seed),
+                  audio: form.audio === "on",
+                },
+              });
+            if (modal === "scene")
+              saved = await command("node.add", {
+                type: "scene",
+                parentId: form.sequence,
+                title: form.title,
+                location: form.location,
+                time: form.time,
+              });
+            if (["shot", "asset"].includes(modal))
+              saved = await command("item.add", {
+                kind: modal,
+                title: form.title,
+                prompt: form.prompt,
+                duration: Number(form.duration),
+                sceneId,
+                assetType: form.assetType,
+              });
+            if (modal === "edit-shot")
+              saved = await command("item.update", {
+                id: item.id,
+                title: form.title,
+                prompt: form.prompt,
+                duration: Number(form.duration),
+                beats: form.beats?.trim()
+                  ? form.beats
+                      .trim()
+                      .split("\n")
+                      .map((line) => {
+                        const split = line.indexOf("|");
+                        return {
+                          duration: Number(line.slice(0, split).trim()),
+                          text: line.slice(split + 1).trim(),
+                        };
+                      })
+                  : [],
+                assetIds: form.assetIds
+                  ? form.assetIds.split(",").filter(Boolean)
+                  : [],
+              });
+            if (modal === "edit-asset")
+              saved = await command("item.update", {
+                id: item.id,
+                title: form.title,
+                prompt: form.prompt,
+                type: form.assetType,
+              });
+            if (saved) setModal(null);
+            return null;
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function FormModal({
+  kind,
+  project,
+  item,
+  projects,
+  busy,
+  onClose,
+  onSubmit,
+  onLoad,
+  container,
+  containerType,
+}) {
+  const dialog = useRef(null);
+  useEffect(() => {
+    const previous = document.activeElement;
+    const keyboard = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key !== "Tab") return;
+      const controls = [
+        ...dialog.current.querySelectorAll(
+          'button:not(:disabled),input:not([type="hidden"]):not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]',
+        ),
+      ];
+      const first = controls[0];
+      const last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    dialog.current?.querySelector("input,button")?.focus();
+    document.addEventListener("keydown", keyboard);
+    return () => {
+      document.removeEventListener("keydown", keyboard);
+      previous?.focus?.();
+    };
+  }, [onClose]);
+  const title = {
+    new: "Start a production",
+    settings: "Production settings",
+    scene: "Add a scene",
+    shot: "Add a shot",
+    asset: "Add an asset",
+    "edit-shot": "Edit shot intent",
+    "edit-asset": "Edit asset intent",
+    projects: "Your productions",
+    container: `Add ${containerType}`,
+    "container-edit": `Edit ${container?.type || "container"}`,
+  }[kind];
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <section
+        ref={dialog}
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header>
+          <h2>{title}</h2>
+          <button
+            className="icon-button"
+            aria-label="Close dialog"
+            onClick={onClose}
+          >
+            <Icon name="close" />
+          </button>
+        </header>
+        {kind === "projects" ? (
+          <div className="project-list">
+            {projects.length ? (
+              projects.map((entry) => (
+                <button
+                  className="secondary full"
+                  key={entry.id}
+                  onClick={() => onLoad(entry.id)}
+                >
+                  {entry.title}
+                </button>
+              ))
+            ) : (
+              <p>This sample is not saved to your account.</p>
+            )}
+          </div>
+        ) : (
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget);
+              if (kind === "edit-shot")
+                data.set("assetIds", data.getAll("assetSelection").join(","));
+              onSubmit(Object.fromEntries(data));
+            }}
+          >
+            <label className="field">
+              Title
+              <input
+                autoFocus
+                name="title"
+                required
+                defaultValue={
+                  kind === "settings"
+                    ? project.title
+                    : kind === "container-edit"
+                      ? container.title
+                      : ["edit-shot", "edit-asset"].includes(kind)
+                        ? item.title
+                        : ""
+                }
+                placeholder={kind === "new" ? "Your next picture" : title}
+              />
+            </label>
+            {kind === "new" && (
+              <label className="field">
+                Deliverable scope
+                <select name="scope">
+                  <option value="film">Film</option>
+                  <option value="episode">Episode</option>
+                  <option value="scene">Scene</option>
+                </select>
+              </label>
+            )}
+            {["new", "settings"].includes(kind) && (
+              <label className="field">
+                Brief
+                <textarea
+                  name="brief"
+                  rows={3}
+                  defaultValue={project?.brief || ""}
+                  placeholder="What are we making? What do you already have?"
+                />
+              </label>
+            )}
+            {kind === "settings" && (
+              <>
+                <label className="field">
+                  Global style
+                  <textarea
+                    name="style"
+                    rows={5}
+                    defaultValue={project.globalStyle}
+                  />
+                </label>
+                <label className="field">
+                  Lookdev coverage
+                  <select
+                    name="lookdev"
+                    defaultValue={project.settings.lookdevMode}
+                  >
+                    <option value="scene">
+                      Default · scenes with more than 3 segments
+                    </option>
+                    <option value="picture">
+                      Reduced · one for the whole picture
+                    </option>
+                  </select>
+                </label>
+                <label className="field">
+                  Aspect ratio
+                  <select
+                    name="ratio"
+                    defaultValue={project.settings.aspectRatio}
+                  >
+                    <option>16:9</option>
+                    <option>2.39:1</option>
+                    <option>9:16</option>
+                    <option>1:1</option>
+                  </select>
+                </label>
+                <label className="field">
+                  Draft resolution
+                  <select
+                    name="draftResolution"
+                    defaultValue={project.settings.draftResolution}
+                  >
+                    {["480p", "720p", "768p", "1080p", "2K", "4K"].map(
+                      (entry) => (
+                        <option key={entry}>{entry}</option>
+                      ),
+                    )}
+                  </select>
+                </label>
+                <label className="field">
+                  Delivery resolution
+                  <select
+                    name="deliveryResolution"
+                    defaultValue={project.settings.deliveryResolution}
+                  >
+                    {["1080p", "2K", "4K"].map((entry) => (
+                      <option key={entry}>{entry}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  Fixed seed (optional)
+                  <input
+                    name="seed"
+                    type="number"
+                    min="0"
+                    step="1"
+                    defaultValue={project.settings.seed ?? ""}
+                    placeholder="Fresh seed for each request"
+                  />
+                </label>
+                <label className="checkbox-field">
+                  <input
+                    type="checkbox"
+                    name="audio"
+                    defaultChecked={project.settings.audio !== false}
+                  />{" "}
+                  Generate native sound when supported
+                </label>
+                <p className="modal-hint">
+                  Unsupported draft sizes use the model’s lowest supported
+                  resolution and are shown in the batch plan. Changing the
+                  shared setup can invalidate prior lookdev. Historical versions
+                  keep their original prompts.
+                </p>
+              </>
+            )}
+            {kind === "scene" && (
+              <>
+                <label className="field">
+                  Sequence
+                  <select name="sequence">
+                    {project.nodes
+                      .filter((node) => node.type === "sequence")
+                      .map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {node.title}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label className="field">
+                  Location
+                  <input name="location" placeholder="INT. CONTROL ROOM" />
+                </label>
+                <label className="field">
+                  Time
+                  <input name="time" placeholder="NIGHT" />
+                </label>
+              </>
+            )}
+            {((kind === "container" && containerType === "scene") ||
+              (kind === "container-edit" && container?.type === "scene")) && (
+              <>
+                <label className="field">
+                  Location
+                  <input
+                    name="location"
+                    defaultValue={container?.location || ""}
+                  />
+                </label>
+                <label className="field">
+                  Time
+                  <input name="time" defaultValue={container?.time || ""} />
+                </label>
+              </>
+            )}
+            {kind === "container-edit" && (
+              <label className="field">
+                Position among siblings
+                <input
+                  name="order"
+                  type="number"
+                  step="1"
+                  min="0"
+                  defaultValue={container.order}
+                />
+              </label>
+            )}
+            {["shot", "asset", "edit-shot", "edit-asset"].includes(kind) && (
+              <>
+                <label className="field">
+                  {["asset", "edit-asset"].includes(kind)
+                    ? "Design description"
+                    : "Shot intent / prompt"}
+                  <textarea
+                    name="prompt"
+                    rows={5}
+                    defaultValue={
+                      ["edit-shot", "edit-asset"].includes(kind)
+                        ? item.prompt || item.description || ""
+                        : ""
+                    }
+                    required
+                  />
+                </label>
+                {["asset", "edit-asset"].includes(kind) ? (
+                  <label className="field">
+                    Asset type
+                    <select
+                      name="assetType"
+                      defaultValue={item?.type || "character"}
+                    >
+                      <option value="character">Character</option>
+                      <option value="location">Location</option>
+                      <option value="prop">Prop</option>
+                      <option value="creature">Creature</option>
+                    </select>
+                  </label>
+                ) : (
+                  <label className="field">
+                    Used duration (seconds)
+                    <input
+                      name="duration"
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      defaultValue={kind === "edit-shot" ? item.duration : 5}
+                      required
+                    />
+                  </label>
+                )}
+                {kind === "edit-shot" && (
+                  <>
+                    <label className="field">
+                      Timed continuation beats
+                      <textarea
+                        name="beats"
+                        rows={5}
+                        defaultValue={(item.beats || [])
+                          .map((beat) => `${beat.duration} | ${beat.text}`)
+                          .join("\n")}
+                        placeholder="14 | Complete sentence or action.&#10;6 | Next complete action."
+                      />
+                    </label>
+                    <p className="modal-hint">
+                      One duration | action per line. Beats must add up to the
+                      shot duration. A beat stays intact when the model needs
+                      multiple segments.
+                    </p>
+                    <label className="field">
+                      Asset references
+                      <select
+                        multiple
+                        name="assetSelection"
+                        defaultValue={item.assetIds || []}
+                      >
+                        {project.assets.map((asset) => (
+                          <option key={asset.id} value={asset.id}>
+                            {asset.title}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="hidden"
+                        name="assetIds"
+                        value={(item.assetIds || []).join(",")}
+                      />
+                    </label>
+                  </>
+                )}
+              </>
+            )}
+            <footer>
+              <button type="button" className="secondary" onClick={onClose}>
+                Cancel
+              </button>
+              <button disabled={busy} type="submit" className="primary">
+                {kind === "new" ? "Create production" : "Save changes"}
+              </button>
+            </footer>
+          </form>
+        )}
+      </section>
+    </div>
+  );
+}

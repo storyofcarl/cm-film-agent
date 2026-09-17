@@ -2,7 +2,7 @@ import next from 'eslint-config-next';
 
 export default [
   ...next,
-  { ignores: ['.next/**', 'node_modules/**', '.local/**', 'artifacts/**', 'electron/**'] },
+  { ignores: ['**/.next/**', '**/node_modules/**', '.local/**', 'artifacts/**', 'electron/**', '**/test-results/**', '**/playwright-report/**'] },
   // The imported canvas predates React Compiler. Keep these migration diagnostics
   // visible without making compiler adoption a requirement for hosted deployment.
   { files: ['components/**/*.js', 'pages/index.js'], rules: {
