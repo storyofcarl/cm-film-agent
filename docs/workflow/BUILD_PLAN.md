@@ -154,6 +154,11 @@ Deliverable: verified production workflow, delivery package, and migration plan.
 
 ## Current review artifact
 
+WD39 separates thumbnail selection from strip scope: object clicks open the center,
+while level/title selectors control the row. The selected branch guides subsequent
+level changes. Scope editing uses inline Properties. Review this behavior with the
+owner alongside the module grouping; neither is final design acceptance.
+
 Next engineering priority from WD38: support large-film preparation without loading
 all historical text into every reasoning request. Keep the full deliverable scope
 and stable IDs visible, resolve exact versions from retained records, and partition

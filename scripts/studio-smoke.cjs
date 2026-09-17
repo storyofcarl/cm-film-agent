@@ -1023,10 +1023,17 @@ async function main() {
       .click();
     await page.getByRole("button", { name: "Edit act", exact: true }).click();
     const dialog = page.getByRole("dialog");
-    await dialog
-      .getByLabel("Title", { exact: true })
+    const objectProperties = page.getByRole("region", {
+      name: "Selected object properties",
+    });
+    assert.equal(await dialog.count(), 0);
+    await objectProperties
+      .getByLabel("Object title", { exact: true })
       .fill("Act I · Reviewed hierarchy");
-    await dialog.getByRole("button", { name: "Save changes" }).click();
+    await objectProperties
+      .getByRole("button", { name: "Save object properties" })
+      .click();
+    await objectProperties.getByRole("status").waitFor();
     await page
       .getByRole("button", { name: "Add sequence", exact: true })
       .click();
@@ -1037,11 +1044,13 @@ async function main() {
     await page
       .getByRole("heading", { name: "Sequence · Test addition", exact: true })
       .waitFor();
-    await page.getByRole("button", { name: "Edit act", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Add sequence", exact: true })
+      .click();
     await page.keyboard.press("Escape");
     assert.equal(await page.getByRole("dialog").count(), 0);
     findings.push(
-      "Hierarchy edits, nested creation and keyboard dialog dismissal passed.",
+      "Inline hierarchy edits, nested creation and keyboard dialog dismissal passed.",
     );
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
     await page.getByRole("button", { name: "The keeper", exact: true }).click();

@@ -55,6 +55,23 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD39 — Select an object without replacing the strip scope
+
+The strip's level and title selectors control its displayed scope. Clicking an
+act, sequence or scene thumbnail selects that object and opens its central
+workspace/properties; it does not drill into the object or replace its siblings.
+Changing the level follows the selected object's branch. Container selections
+have the same visible selected state as shots and persist across workspace tabs.
+The scope's Edit action opens inline Properties instead of a separate modal,
+including the existing position-among-siblings control.
+Shot thumbnails show the selected production version number beside runtime and
+review state; the detailed version selector continues to control inspection.
+
+This implements the proposed selection/scope distinction as a delegated working
+choice, pending owner review. It does not imply approval of the overall design.
+Browser checks cover non-first scene selection, branch-aware level changes,
+selection across file views, inline edits and desktop/mobile layout.
+
 ### WD38 — Portable document identity and explicit scale limits
 
 Preserve document family codes, explicit version numbers (including gaps), revision

@@ -563,8 +563,7 @@ export default function Studio({
       setRevision(result.revision);
       setTab("Overview");
     });
-  const navigate = (id) => {
-    setContainerId(id);
+  const inspectContainer = (id) => {
     setPropertyTargetId(id || project.id);
     setSelectedShotId(null);
     setItemId(null);
@@ -573,11 +572,17 @@ export default function Studio({
       setSceneId(id);
     } else setSceneId(null);
   };
+  const navigate = (id) => {
+    setContainerId(id);
+    inspectContainer(id);
+  };
   const switchTab = (next) => {
     setTab(next);
   };
   const scene = project?.nodes.find((node) => node.id === sceneId);
-  const navigationNode = project?.nodes.find((node) => node.id === containerId);
+  const inspectedNode = project?.nodes.find(
+    (node) => node.id === propertyTargetId,
+  );
   const shots = project ? sceneShots(project, sceneId) : [];
   const item =
     project &&
@@ -831,8 +836,12 @@ export default function Studio({
               key={project.id}
               project={project}
               containerId={containerId}
-              selectedShotId={selectedShotId}
+              selectedId={inspectedNode?.id || selectedShotId}
               onNavigate={navigate}
+              onInspect={(node) => {
+                inspectContainer(node.id);
+                setTab("Cut");
+              }}
               onAdd={(type) => {
                 if (type === "shot") {
                   setSceneId(containerId);
@@ -842,7 +851,10 @@ export default function Studio({
                   setModal("container");
                 }
               }}
-              onEdit={() => setModal("container-edit")}
+              onEdit={() => {
+                inspectContainer(containerId);
+                setTab("Cut");
+              }}
               onShot={(shot) => {
                 selectItem(shot);
                 setTab("Cut");
@@ -928,10 +940,11 @@ export default function Studio({
 
                   {tab === "Cut" && !scene && (
                     <section className="overview-card">
-                      <h2>{navigationNode?.type || project.scope} workspace</h2>
+                      <h2>{inspectedNode?.title || project.title}</h2>
                       <p>
-                        Use the project strip to open a scene or shot. Edit this
-                        object’s direction and references in Properties.
+                        Edit this {inspectedNode?.type || project.scope}’s
+                        direction and references in Properties. Change the strip
+                        level to view its contents.
                       </p>
                     </section>
                   )}
@@ -945,7 +958,7 @@ export default function Studio({
                               : "SCENE REVIEW"}
                           </b>
                           <span className="muted"> / </span>
-                          {item?.title || "Select a shot in the project strip"}
+                          {item?.title || scene.title}
                         </span>
                         {version && <Badge status={version.review} />}
                       </div>

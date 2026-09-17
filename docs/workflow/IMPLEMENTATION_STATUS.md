@@ -24,6 +24,12 @@ that the conversation is restricted to one object or task.
 
 ## Implemented
 
+- Strip selection is separate from scope (WD39): container thumbnails open their
+  central workspace without replacing the thumbnail row. Level changes follow the
+  selected branch; selection survives file-view switches. Scope edits use inline
+  Properties, and shot cards include the production version number. Owner review
+  remains required; the interface is not described as final.
+
 - Portable document identity (WD38): imports preserve family codes, explicit
   version numbers and gaps, revision links and full source prompts even when
   records arrive out of order. Repeated imports retain their declared review

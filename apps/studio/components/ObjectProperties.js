@@ -15,6 +15,7 @@ export default function ObjectProperties({ project, targetId, busy, command }) {
   const isProject = target === project;
   const isAsset = target.kind === "asset";
   const isShot = target.kind === "shot";
+  const isContainer = !isProject && !isAsset && !isShot;
   const [referenceMode, setReferenceMode] = useState(
     Array.isArray(target.assetIds) ? "explicit" : "inherit",
   );
@@ -58,6 +59,7 @@ export default function ObjectProperties({ project, targetId, busy, command }) {
           if (isProject) payload.brief = data.get("brief");
           if (isShot) payload.duration = Number(data.get("duration"));
           if (isAsset) payload.type = data.get("assetType");
+          if (isContainer) payload.order = Number(data.get("order"));
           if (target.type === "scene") {
             payload.location = data.get("location");
             payload.time = data.get("time");
@@ -80,6 +82,19 @@ export default function ObjectProperties({ project, targetId, busy, command }) {
           Object title
           <input name="title" required defaultValue={target.title} />
         </label>
+        {isContainer && (
+          <label className="field">
+            Position among siblings
+            <input
+              name="order"
+              type="number"
+              min="0"
+              step="1"
+              required
+              defaultValue={target.order}
+            />
+          </label>
+        )}
         {isAsset && (
           <label className="field">
             Asset type
@@ -146,7 +161,7 @@ export default function ObjectProperties({ project, targetId, busy, command }) {
         {isShot && target.beats?.length > 0 && (
           <p className="property-help">
             Timed action beats must still add up to the runtime. Edit their
-            timing under Details → Edit shot intent.
+            timing with Edit shot intent.
           </p>
         )}
         {isProject && (

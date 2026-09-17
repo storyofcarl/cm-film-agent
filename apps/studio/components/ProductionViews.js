@@ -173,8 +173,9 @@ export function ReviewGrid({ items, busy, command, selectItem }) {
 export function HierarchyStrip({
   project,
   containerId,
-  selectedShotId,
+  selectedId,
   onNavigate,
+  onInspect,
   onShot,
   onAdd,
   onEdit,
@@ -187,7 +188,8 @@ export function HierarchyStrip({
           .filter((node) => node.parentId === (containerId || null))
           .sort((a, b) => a.order - b.order);
   const chain = [];
-  let cursor = container;
+  let cursor =
+    project.nodes.find((node) => node.id === selectedId) || container;
   while (cursor) {
     chain.unshift(cursor);
     cursor = project.nodes.find((node) => node.id === cursor.parentId);
@@ -345,14 +347,12 @@ export function HierarchyStrip({
           return (
             <button
               key={node.id}
-              className={`hierarchy-card ${node.id === selectedShotId ? "selected" : ""}`}
+              className={`hierarchy-card ${node.id === selectedId ? "selected" : ""}`}
               data-kind={node.type || "shot"}
               title={`${node.code || node.id} · ${node.title}`}
-              aria-pressed={
-                node.kind === "shot" ? node.id === selectedShotId : undefined
-              }
+              aria-pressed={node.id === selectedId}
               onClick={() =>
-                node.kind === "shot" ? onShot(node) : onNavigate(node.id)
+                node.kind === "shot" ? onShot(node) : onInspect(node)
               }
             >
               <div>
@@ -372,7 +372,7 @@ export function HierarchyStrip({
               <h3>{node.title}</h3>
               <p>
                 {node.kind === "shot"
-                  ? `${Number(node.duration).toFixed(1)}s · ${take ? REVIEW_LABELS[take.review] : "No takes yet"}`
+                  ? `${Number(node.duration).toFixed(1)}s · ${take ? `V${take.number} · ${REVIEW_LABELS[take.review]}` : "No takes yet"}`
                   : `${shots.length} shots · ${shots.reduce((sum, shot) => sum + Number(shot.duration), 0).toFixed(1)}s · ${shots.filter((shot) => selectedVersion(shot)?.review === "approved").length}/${shots.length} shots approved`}
               </p>
             </button>
