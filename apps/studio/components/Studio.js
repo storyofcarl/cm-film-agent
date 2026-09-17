@@ -155,6 +155,38 @@ export default function Studio({
   };
   const mediaInput = useRef(null);
   const pollCursor = useRef(0);
+  const activateProject = useCallback(
+    (result, firstScene = false) => {
+      const next = result.project;
+      const scene = firstScene
+        ? next.nodes.find((node) => node.type === "scene")
+        : null;
+      setProject(next);
+      setRevision(result.revision || 0);
+      setSceneId(scene?.id || null);
+      setContainerId(scene?.id || null);
+      setPropertyTargetId(scene?.id || next.id);
+      setItemId(null);
+      setSelectedShotId(null);
+      setReviewVersionId(null);
+      setFocusDocumentId(null);
+      setInspectingDocumentId(null);
+      setNoteVersionId(null);
+      setNote("");
+      setUploadPurpose("take");
+      // Initial loading must not override navigation already chosen in the shell.
+      if (!firstScene) {
+        setTab("Review");
+        setModal(null);
+      }
+      if (!demo)
+        setProjects((items) => [
+          { id: next.id, title: next.title },
+          ...items.filter((entry) => entry.id !== next.id),
+        ]);
+    },
+    [demo],
+  );
 
   useEffect(() => {
     if (demo) return undefined;
@@ -173,21 +205,7 @@ export default function Studio({
             `/api/studio/projects?id=${encodeURIComponent(data.items[0].id)}`,
           ).then((loaded) => {
             if (active) {
-              setProject(loaded.project);
-              setRevision(loaded.revision);
-              setSceneId(
-                loaded.project.nodes.find((node) => node.type === "scene")?.id,
-              );
-              setItemId(null);
-              setContainerId(
-                loaded.project.nodes.find((node) => node.type === "scene")
-                  ?.id || null,
-              );
-              setSelectedShotId(null);
-              setPropertyTargetId(
-                loaded.project.nodes.find((node) => node.type === "scene")
-                  ?.id || loaded.project.id,
-              );
+              activateProject(loaded, true);
             }
           });
         return undefined;
@@ -198,7 +216,7 @@ export default function Studio({
     return () => {
       active = false;
     };
-  }, [demo]);
+  }, [demo, activateProject]);
 
   useEffect(() => {
     if (demo || busy || modal || !project) return undefined;
@@ -341,15 +359,7 @@ export default function Studio({
       const result = await jsonFetch(
         `/api/studio/projects?id=${encodeURIComponent(id)}`,
       );
-      setProject(result.project);
-      setRevision(result.revision);
-      setSceneId(null);
-      setItemId(null);
-      setReviewVersionId(null);
-      setContainerId(null);
-      setSelectedShotId(null);
-      setPropertyTargetId(result.project.id);
-      setTab("Review");
+      activateProject(result);
     });
   const newProject = (form) =>
     run(async () => {
@@ -358,25 +368,13 @@ export default function Studio({
         scope: form.scope,
         brief: form.brief,
       });
-      if (!demo) {
-        const result = await jsonFetch(
-          "/api/studio/projects",
-          post({ action: "create", project: created }),
-        );
-        setRevision(result.revision);
-        setProjects((items) => [
-          { id: created.id, title: created.title },
-          ...items,
-        ]);
-      }
-      setProject(created);
-      setSceneId(null);
-      setPropertyTargetId(created.id);
-      setContainerId(null);
-      setSelectedShotId(null);
-      setItemId(null);
-      setModal(null);
-      setTab("Review");
+      const result = demo
+        ? { project: created, revision: 0 }
+        : await jsonFetch(
+            "/api/studio/projects",
+            post({ action: "create", project: created }),
+          );
+      activateProject(result);
     });
   const selectItem = (item) => {
     setPropertyTargetId(item.id);
@@ -450,7 +448,7 @@ export default function Studio({
           failures.push(`${file.name}: ${error.message}`);
         }
       }
-      if (!project) setPropertyTargetId(current.project.id);
+      if (!project) activateProject(current);
       setMessage(
         `Processed ${completed} of ${files.length} files.${failures.length ? " Upload issues: " + failures.join("; ") : ""}`,
       );
@@ -492,17 +490,8 @@ export default function Studio({
             },
           }),
         );
-        setProject(current.project);
-        setRevision(current.revision);
-        setSceneId(
-          current.project.nodes.find((node) => node.type === "scene")?.id,
-        );
+        activateProject(current);
         setTab("Overview");
-        setContainerId(
-          current.project.nodes.find((node) => node.type === "scene")?.id ||
-            null,
-        );
-        setSelectedShotId(null);
         setMessage(
           "Supplied document preserved in full. Use Validate supplied work for a completeness check, or direct the crew to work from it.",
         );
@@ -516,16 +505,7 @@ export default function Studio({
         "/api/studio/projects",
         post({ action: "import", ...input }),
       );
-      setProject(result.project);
-      setRevision(result.revision);
-      setSceneId(
-        result.project.nodes.find((node) => node.type === "scene")?.id,
-      );
-      setItemId(null);
-      setContainerId(
-        result.project.nodes.find((node) => node.type === "scene")?.id || null,
-      );
-      setSelectedShotId(null);
+      activateProject(result);
       setMessage(
         `Imported ${result.report?.approved || 0} complete versions. ${result.report?.gaps?.length || 0} gaps flagged for the crew.`,
       );

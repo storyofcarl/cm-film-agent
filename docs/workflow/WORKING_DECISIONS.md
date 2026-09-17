@@ -55,6 +55,17 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD49 — Reset inspection context at project boundaries
+
+Project creation, manifest import and manual project switching share one activation
+path. Reset the selected shot/version, inspected document, review note and parent
+scope; open the new project's root grid and immediately add it to the project
+picker. Chat begins with the new project as context, without IDs from the previous
+project. Keep unsent chat drafts per project and document edits per immutable
+document ID so switching back restores them. Initial account loading preserves
+any work-area navigation already chosen while data was loading. This is a
+correctness choice under D29, not a change to approval or execution authority.
+
 ### WD48 — Explicit manual shot destination and consistent grid scope
 
 Manual shot creation shows its destination scene. Preselect the currently viewed

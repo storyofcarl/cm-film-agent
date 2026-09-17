@@ -35,6 +35,12 @@ opens the new shot, shot-to-grid Add/Edit actions use the scene, and new/loaded
 projects open the root grid. A browser check builds an empty act/sequence/scene,
 adds a shot to a deliberately different scene and verifies unchanged empty
 containers, correct parentage and no implicit record creation from placeholders.
+WD49 consolidates project activation: creation/import/switching clear foreign
+shot, version and document inspection context, open the root grid and update the
+project picker. Unsent chat and document drafts remain available on return.
+Initial loading preserves a work area selected before the project response arrives.
+Authenticated browser checks import from an inspected shot/document, verify fresh
+chat context without a provider call, then switch back and recover both drafts.
 Chat copy follows D39: Chat, Message and Send, with no directing banner implying
 that the conversation is restricted to one object or task.
 

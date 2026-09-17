@@ -1091,6 +1091,107 @@ async function main() {
       path: "artifacts/studio-import-history.png",
       fullPage: true,
     });
+    const preservedDraft =
+      "Unsent script edits belong to the original project.";
+    await portableCard
+      .getByRole("textbox", { name: "Document text", exact: true })
+      .fill(preservedDraft);
+    await chat
+      .getByRole("textbox", { name: "Message", exact: true })
+      .fill("Original project direction, still unsent.");
+    await page.locator(".project-strip .hierarchy-card").first().click();
+    await page.getByTitle("Production overview", { exact: true }).click();
+    const importedTitle = "Imported navigation fixture";
+    const [importResponse] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().endsWith("/api/studio/projects") &&
+          response.request().postDataJSON()?.action === "import",
+      ),
+      page
+        .locator('input[type="file"][accept^="application/json"]')
+        .setInputFiles({
+          name: "navigation-project.json",
+          mimeType: "application/json",
+          buffer: Buffer.from(
+            JSON.stringify({ ...pilot, title: importedTitle }),
+          ),
+        }),
+    ]);
+    assert.equal(importResponse.status(), 201);
+    const activated = await importResponse.json();
+    await page
+      .locator(".project-strip h1")
+      .filter({ hasText: importedTitle })
+      .waitFor();
+    assert.equal(
+      await page
+        .locator('.project-strip .hierarchy-card[aria-pressed="true"]')
+        .count(),
+      0,
+    );
+    assert.equal(await page.locator(".manual-inspector").isVisible(), false);
+    assert.equal(
+      await page.locator(".review-card").count(),
+      activated.project.nodes.filter((node) => !node.parentId).length,
+    );
+    assert.equal(
+      await chat
+        .getByRole("textbox", { name: "Message", exact: true })
+        .inputValue(),
+      "",
+    );
+    let importedRequest;
+    await page.route("**/api/studio/crew", async (route) => {
+      importedRequest = route.request().postDataJSON();
+      return route.fulfill({
+        status: 400,
+        json: { error: "Imported context checked without a model call." },
+      });
+    });
+    await chat
+      .getByRole("textbox", { name: "Message", exact: true })
+      .fill("Review this imported project.");
+    await chat.getByRole("button", { name: "Send", exact: true }).click();
+    await page
+      .getByRole("status")
+      .filter({ hasText: "Imported context checked without a model call." })
+      .waitFor();
+    assert.equal(importedRequest.id, activated.project.id);
+    assert.equal(importedRequest.contextId, activated.project.id);
+    assert.equal(importedRequest.itemId, null);
+    assert.equal(importedRequest.inspectingVersionId, null);
+    assert.equal(importedRequest.inspectingDocumentId, null);
+    await page.unroute("**/api/studio/crew");
+    await page.locator(".project-switch button").click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: importedTitle, exact: true })
+      .waitFor();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: pilot.title, exact: true })
+      .click();
+    await page
+      .locator(".project-strip h1")
+      .filter({ hasText: pilot.title })
+      .waitFor();
+    assert.equal(
+      await chat
+        .getByRole("textbox", { name: "Message", exact: true })
+        .inputValue(),
+      "Original project direction, still unsent.",
+    );
+    await page.getByTitle("Scripts", { exact: true }).click();
+    assert.equal(
+      await portableCard
+        .getByRole("textbox", { name: "Document text", exact: true })
+        .inputValue(),
+      preservedDraft,
+    );
+    findings.push(
+      "Manifest import resets foreign shot/document context, opens the root grid, immediately appears in the project picker and preserves each project's unsent chat/document drafts. Chat was intercepted before any provider call.",
+    );
     await page.goto(base + "/demo");
     await page
       .getByRole("region", { name: "Project strip", exact: true })
@@ -1188,6 +1289,6 @@ async function main() {
   }
 }
 main().catch((error) => {
-  console.error(error.message);
+  console.error(error.stack || error.message);
   process.exitCode = 1;
 });
