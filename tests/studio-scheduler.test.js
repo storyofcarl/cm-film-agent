@@ -5,6 +5,10 @@ import { createAdminSupabase } from "../utils/server/supabase";
 import { reconcileBatch, runBatch } from "../apps/studio/lib/server/execute";
 import { createProject, batchFingerprint } from "../apps/studio/lib/domain";
 import { advanceCrewRun } from "../apps/studio/lib/server/crewRuns";
+import { cleanupTemporaryRecords } from "../apps/studio/lib/server/recordMaintenance";
+jest.mock("../apps/studio/lib/server/recordMaintenance", () => ({
+  cleanupTemporaryRecords: jest.fn(),
+}));
 jest.mock("../apps/studio/lib/server/crewRuns", () => ({
   advanceCrewRun: jest.fn(),
 }));
@@ -40,6 +44,7 @@ const batch = (id, blocked = false) => {
 };
 beforeEach(() => {
   jest.clearAllMocks();
+  cleanupTemporaryRecords.mockResolvedValue({ removed: 0 });
   process.env.CRON_SECRET = "scheduler-test-secret";
   now = jest.spyOn(Date, "now").mockReturnValue(0);
   rows = [];
@@ -93,6 +98,35 @@ async function tick(minute, authorized = true) {
 test("scheduler rejects missing automation authentication before reading projects", async () => {
   expect((await tick(0, false))._getStatusCode()).toBe(401);
   expect(createAdminSupabase).not.toHaveBeenCalled();
+  expect(cleanupTemporaryRecords).not.toHaveBeenCalled();
+});
+
+test("temporary cleanup is bounded to one rotated project and failure does not fail production reconciliation", async () => {
+  rows = ["a", "b"].map((id) => ({
+    id,
+    owner_id: "owner",
+    document: createProject({ id }),
+  }));
+  rows[0].document.batches = [batch("ready")];
+  cleanupTemporaryRecords.mockRejectedValueOnce(
+    new Error("Storage unavailable"),
+  );
+  const first = await tick(0);
+  expect(first._getStatusCode()).toBe(200);
+  expect(runBatch).toHaveBeenCalledWith("a", "ready");
+  expect(runBatch.mock.invocationCallOrder[0]).toBeLessThan(
+    cleanupTemporaryRecords.mock.invocationCallOrder[0],
+  );
+  expect(first._getJSONData().maintenance).toEqual({
+    project: "a",
+    state: "retry-cleanup",
+  });
+  const second = await tick(1);
+  expect(second._getJSONData().maintenance).toEqual({
+    project: "b",
+    removed: 0,
+  });
+  expect(cleanupTemporaryRecords.mock.calls).toEqual([["a"], ["b"]]);
 });
 test("bounded scans reach productions beyond the first fifty", async () => {
   rows = Array.from({ length: 120 }, (_, index) => {

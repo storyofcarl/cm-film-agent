@@ -22,6 +22,11 @@ checks cover purpose/lineage preservation, pending generated/imported drafts,
 source prompts and subsequent chat context. Knowledge records do not authorize
 production or turn model observations into verified results. Actual usefulness
 and director acceptance remain to be assessed in the creative pilot.
+WD52 adds bounded cleanup for new expired transfer copies and abandoned imports.
+Unit and real-storage checks preserve active transfers, retained text/chunks,
+legacy copies and foreign-owner data. Browser checks verify the new transfer
+folders through large imports and exact export. Comprehensive lifecycle work
+remains open for legacy temporary copies and orphaned immutable records.
 
 | Agreed requirement | Implementation and evidence | Remaining acceptance |
 | --- | --- | --- |

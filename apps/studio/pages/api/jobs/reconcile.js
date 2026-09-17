@@ -5,6 +5,7 @@ import { isApprovedUser } from "../../../../../utils/server/withAuth";
 import { runBatch, reconcileBatch } from "../../../lib/server/execute";
 import { jobBlockers } from "../../../lib/domain";
 import { advanceCrewRun } from "../../../lib/server/crewRuns";
+import { cleanupTemporaryRecords } from "../../../lib/server/recordMaintenance";
 export const config = { maxDuration: 300 };
 export default async function reconcile(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -39,10 +40,12 @@ export default async function reconcile(req, res) {
   const results = [];
   const first = data.length ? Math.floor(tick / pages) % data.length : 0;
   const rows = [...data.slice(first), ...data.slice(0, first)];
+  let maintenanceTarget;
   for (const row of rows) {
     if (Date.now() - started > 180000) break;
     const { data: account } = await db.auth.admin.getUserById(row.owner_id);
     if (!isApprovedUser(account?.user)) continue;
+    maintenanceTarget ||= { row, user: account.user };
     const chatTasks = (row.document.crewRuns || []).filter((task) =>
       ["queued", "running"].includes(task.state),
     );
@@ -113,5 +116,20 @@ export default async function reconcile(req, res) {
       }
     }
   }
-  return res.json({ results });
+  let maintenance;
+  if (maintenanceTarget) {
+    const { row, user } = maintenanceTarget;
+    try {
+      maintenance = {
+        project: row.id,
+        ...(await runWithRequest(
+          { user, supabase: db, namespace: "studio" },
+          () => cleanupTemporaryRecords(row.id),
+        )),
+      };
+    } catch {
+      maintenance = { project: row.id, state: "retry-cleanup" };
+    }
+  }
+  return res.json({ results, ...(maintenance ? { maintenance } : {}) });
 }

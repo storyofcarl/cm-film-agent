@@ -174,3 +174,21 @@ test("import tickets are confined to temporary copies and cannot overwrite retai
   ).rejects.toThrow("your own");
   await expect(signProjectImport(0)).rejects.toThrow();
 });
+
+test("new transfer URLs cannot revive an expired cleanup folder", async () => {
+  const now = jest.spyOn(Date, "now");
+  try {
+    const response = {
+      project: { id: "film", content: "x".repeat(3 * 1024 * 1024) },
+    };
+    now.mockReturnValue(1000 * 3600000);
+    const first = await projectResponse(response);
+    now.mockReturnValue(1001 * 3600000);
+    const later = await projectResponse(response);
+    expect(first.$studioTransfer.parts[0].url).toContain("/transfers/v2/1000/");
+    expect(later.$studioTransfer.parts[0].url).toContain("/transfers/v2/1001/");
+    expect(first.$studioTransfer.sha256).toBe(later.$studioTransfer.sha256);
+  } finally {
+    now.mockRestore();
+  }
+});

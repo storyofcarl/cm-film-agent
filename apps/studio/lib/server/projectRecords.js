@@ -241,7 +241,10 @@ export async function projectResponse(value) {
       "This production exceeds the current transfer capacity; its saved records remain intact.",
     );
   const digest = hash(bytes);
-  const path = `${owner()}/${value.project.id}/transfers/${digest}.json`;
+  // Never refresh a signed link to an old cleanup bucket. Deduplicate within the
+  // current hour, then let maintenance remove whole expired transfer buckets.
+  const hour = Math.floor(Date.now() / 3600000);
+  const path = `${owner()}/${value.project.id}/transfers/v2/${hour}/${digest}.json`;
   const parts = await put(path, bytes);
   const signed = new Array(parts.length);
   await pooled(

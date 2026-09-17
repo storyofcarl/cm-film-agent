@@ -180,7 +180,9 @@ round-trip and immutable revision append. This covers record/navigation scale,
 not generated-media playback or the 480 MB ceiling.
 Whole-project memory loading, record lifecycle/garbage collection and upper-bound
 scale validation remain open. Keep the full deliverable scope
-and stable IDs visible, resolve exact versions from retained records, and partition
+visible. WD52 now expires new temporary transfer copies and abandoned imports;
+retained history, legacy transfer migration and orphaned immutable records remain
+outside that cleanup. Keep stable IDs visible, resolve exact versions from retained records, and partition
 work only at valid scene/document boundaries when it exceeds a model's capacity.
 Aggregate complete outputs before the existing human review gates. Do not silently
 truncate scripts/prompts, narrow a batch to the selected scene, or ask the director

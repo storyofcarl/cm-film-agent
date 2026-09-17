@@ -47,6 +47,15 @@ that the conversation is restricted to one object or task.
 
 ## Implemented
 
+- Temporary transfer maintenance (WD52): new response copies use hourly private
+  folders; fresh signed links cannot revive expired folders. The authenticated
+  scheduler cleans one rotated project/owner in bounded batches, after a full
+  day's retention, and reports storage failures for retry independently of jobs.
+  Abandoned imports have the same inactivity window. Real private-storage checks
+  remove only disposable expired copies and retain active, immutable, legacy,
+  fresh-import and foreign-owner files. Legacy transfers and orphaned immutable
+  records remain outside automatic cleanup.
+
 - Project notes and learnings (D51/WD51) have explicit purposes in Production docs,
   inline manual creation, retained versions and normal document review controls.
   Chat receives their content, origin and review state across tasks, with full
@@ -173,7 +182,7 @@ that the conversation is restricted to one object or task.
   navigation, V1/V2 approvals, and persistence after reload. Model requests in the
   browser are intercepted; synthetic writing is clearly labeled test content.
 
-- Latest Studio regression: **119 passing tests across 20 suites**, including
+- Latest Studio regression: **125 passing tests across 21 suites**, including
   PDF/DOCX extraction, writing/version/import, lookdev reuse/invalidation and current
   batch-state chat context. Authenticated browser checks verify a zero-job reused
   lookdev review without conflating it with individual asset approval.

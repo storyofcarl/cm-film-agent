@@ -55,6 +55,24 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD52 — Expire temporary transfer copies without pruning history
+
+Write new large-response copies under private transfer folders grouped by hour.
+Signed downloads still last five minutes; later requests always use the current
+hour, so they cannot renew a link into a folder eligible for cleanup. After a full
+day past the hour's end, maintenance may remove its recognized manifests/chunks.
+Abandoned import tickets/parts require a full day since both creation and last
+update; the installed storage SDK's upload tickets last two hours. Completed
+imports already remove their temporary copies.
+
+The existing authenticated scheduler performs one bounded pass for one rotated
+approved owner's project after production reconciliation, removing at most 300
+recognized temporary objects. Cleanup failure is reported for retry without
+failing reconciled production work. Never scan/delete retained text, media,
+project snapshots, or legacy transfer folders. Existing legacy copies and orphaned
+immutable records need a separately reviewed lifecycle/migration strategy; this
+change does not claim comprehensive garbage collection or history pruning.
+
 ### WD51 — Notes and learnings are versioned project documents
 
 Under D51, add note/learning purposes in Production docs, with inline manual
