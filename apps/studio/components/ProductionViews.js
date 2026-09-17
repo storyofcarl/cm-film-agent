@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
+import ProjectStatus from "./ProjectStatus";
 import {
   REVIEW_LABELS,
   selectedVersion,
@@ -215,79 +216,118 @@ export function HierarchyStrip({
     } while (ids.size !== size);
     return project.shots.filter((shot) => ids.has(shot.sceneId));
   };
+  const scopeShots = container ? descendantShots(container.id) : project.shots;
+  const seconds = Math.round(
+    scopeShots.reduce((sum, shot) => sum + Number(shot.duration || 0), 0),
+  );
+  const runtime = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  const addType =
+    { scene: "shot", sequence: "scene", act: "sequence" }[container?.type] ||
+    "act";
   return (
     <section className="project-strip" aria-label="Project strip">
       <div className="project-strip-heading">
         <div className="strip-navigation">
-          <div
-            className="strip-levels"
-            role="group"
+          <select
+            className="strip-level"
             aria-label="Strip view level"
+            value={container?.type || "project"}
+            onChange={(event) =>
+              onNavigate(
+                event.target.value === "project"
+                  ? null
+                  : targetAtLevel(event.target.value).id,
+              )
+            }
           >
             {["project", "act", "sequence", "scene"].map((level) => (
-              <button
+              <option
                 key={level}
-                type="button"
-                aria-pressed={(container?.type || "project") === level}
+                value={level}
                 disabled={
                   level !== "project" &&
                   !project.nodes.some((node) => node.type === level)
                 }
-                onClick={() =>
-                  onNavigate(
-                    level === "project" ? null : targetAtLevel(level).id,
-                  )
-                }
               >
                 {level[0].toUpperCase() + level.slice(1)}
-              </button>
+              </option>
             ))}
-          </div>
-          {container && (
-            <label className="strip-scope">
-              <select
-                aria-label="Strip scope"
-                value={containerId || ""}
-                onChange={(event) => onNavigate(event.target.value || null)}
-              >
-                {project.nodes
+          </select>
+          <div className="strip-context">
+            <select
+              className="strip-scope"
+              aria-label="Strip scope"
+              value={containerId || ""}
+              onChange={(event) => onNavigate(event.target.value || null)}
+            >
+              {!container && (
+                <option value="">
+                  {project.code} · {project.title}
+                </option>
+              )}
+              {container &&
+                project.nodes
                   .filter((node) => node.type === container.type)
                   .map((node) => (
                     <option key={node.id} value={node.id}>
                       {node.code || node.type} · {node.title}
                     </option>
                   ))}
-              </select>
-            </label>
-          )}
+            </select>
+            <p className="strip-metadata">
+              {[
+                container?.location,
+                container?.time,
+                `${scopeShots.length} shots`,
+                `${runtime} planned`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
         </div>
         <div className="button-row strip-actions">
+          <ProjectStatus
+            project={project}
+            containerId={containerId}
+            onNavigate={onNavigate}
+          />
           <button
-            className="secondary compact"
-            onClick={() =>
-              onAdd(
-                container?.type === "scene"
-                  ? "shot"
-                  : container?.type === "sequence"
-                    ? "scene"
-                    : container?.type === "act"
-                      ? "sequence"
-                      : "act",
-              )
-            }
+            className="icon-button"
+            aria-label={`Add ${addType}`}
+            title={`Add ${addType}`}
+            onClick={() => onAdd(addType)}
           >
-            Add{" "}
-            {container?.type === "scene"
-              ? "shot"
-              : container?.type === "sequence"
-                ? "scene"
-                : container?.type === "act"
-                  ? "sequence"
-                  : "act"}
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.55"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
           </button>
           {container && (
-            <button className="text-button" onClick={() => onEdit(container)}>
-              Edit {container.type}
+            <button
+              className="icon-button"
+              aria-label={`Edit ${container.type}`}
+              title={`Edit ${container.type}`}
+              onClick={() => onEdit(container)}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.55"
+                aria-hidden="true"
+              >
+                <path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z" />
+              </svg>
             </button>
           )}
         </div>
@@ -306,6 +346,8 @@ export function HierarchyStrip({
             <button
               key={node.id}
               className={`hierarchy-card ${node.id === selectedShotId ? "selected" : ""}`}
+              data-kind={node.type || "shot"}
+              title={`${node.code || node.id} · ${node.title}`}
               aria-pressed={
                 node.kind === "shot" ? node.id === selectedShotId : undefined
               }
@@ -326,12 +368,11 @@ export function HierarchyStrip({
                   <span>{node.type || "Shot"}</span>
                 )}
               </div>
-              <small>{node.type || "Shot"}</small>
               <span className="object-code">{node.code || node.id}</span>
               <h3>{node.title}</h3>
               <p>
                 {node.kind === "shot"
-                  ? `${Number(node.duration).toFixed(1)}s · ${take ? `V${take.number} · ${REVIEW_LABELS[take.review]}` : "No takes yet"}`
+                  ? `${Number(node.duration).toFixed(1)}s · ${take ? REVIEW_LABELS[take.review] : "No takes yet"}`
                   : `${shots.length} shots · ${shots.reduce((sum, shot) => sum + Number(shot.duration), 0).toFixed(1)}s · ${shots.filter((shot) => selectedVersion(shot)?.review === "approved").length}/${shots.length} shots approved`}
               </p>
             </button>

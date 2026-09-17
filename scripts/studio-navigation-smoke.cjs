@@ -23,18 +23,45 @@ async function main() {
       ["Project", "act"],
       ["Act", "sequence"],
       ["Sequence", "scene"],
-      ["Scene", "Shot"],
+      ["Scene", "shot"],
     ]) {
-      await strip.getByRole("button", { name: level, exact: true }).click();
+      await strip
+        .getByRole("combobox", { name: "Strip view level" })
+        .selectOption(level.toLowerCase());
       assert.equal(
-        await strip.locator(".strip-levels [aria-pressed=true]").textContent(),
-        level,
+        await strip
+          .getByRole("combobox", { name: "Strip view level" })
+          .inputValue(),
+        level.toLowerCase(),
       );
       assert.equal(
-        await strip.locator(".hierarchy-card small").first().textContent(),
+        await strip
+          .locator(".hierarchy-card")
+          .first()
+          .getAttribute("data-kind"),
         childType,
       );
     }
+    await strip
+      .getByRole("combobox", { name: "Strip scope" })
+      .selectOption("sc3");
+    await strip
+      .getByRole("combobox", { name: "Strip view level" })
+      .selectOption("sequence");
+    assert.equal(
+      await strip.getByRole("combobox", { name: "Strip scope" }).inputValue(),
+      "seq2",
+    );
+    await strip
+      .getByRole("combobox", { name: "Strip view level" })
+      .selectOption("scene");
+    assert.equal(
+      await strip.getByRole("combobox", { name: "Strip scope" }).inputValue(),
+      "sc3",
+    );
+    await strip
+      .getByRole("combobox", { name: "Strip scope" })
+      .selectOption("sc1");
     await strip.locator(".hierarchy-card").first().click();
 
     const chat = page.getByRole("region", { name: "Project chat" });
@@ -106,29 +133,42 @@ async function main() {
       animations: "disabled",
       fullPage: true,
     });
-    await page.getByRole("button", { name: /^Project status:/ }).click();
-    const header = await page
-      .getByRole("banner", { name: "Production header" })
-      .boundingBox();
-    assert.ok(header.y + header.height <= (await strip.boundingBox()).y + 1);
+    assert.equal(await page.locator(".production-header").count(), 0);
     assert.equal(
       await page
-        .locator("main.workspace")
-        .getByRole("button", { name: "Export project" })
+        .getByRole("button", { name: "Scene workspace", exact: true })
         .count(),
       0,
     );
+    assert.ok(
+      (await strip.boundingBox()).height <= 250,
+      "Scope and thumbnails form one compact module.",
+    );
+    assert.ok(
+      await page
+        .getByRole("complementary", { name: "Project navigation" })
+        .getByRole("button", { name: "Export project", exact: true })
+        .isVisible(),
+    );
     assert.equal(
-      await page.getByRole("button", { name: "Details", exact: true }).count(),
+      await strip
+        .getByRole("button", { name: "Export project", exact: true })
+        .count(),
       0,
     );
-    const status = page.getByRole("dialog", { name: "Production status" });
+    await strip
+      .getByRole("button", { name: /^Scene status: 2 of 4 shots approved/ })
+      .click();
+    const status = page.getByRole("dialog", {
+      name: "The observatory · Status",
+    });
     await status
-      .getByText("0 of 3 scenes approved for the current selected versions.", {
+      .getByText("0 of 1 scenes approved for the current selected versions.", {
         exact: true,
       })
       .waitFor();
     await status.getByRole("button", { name: "Close", exact: true }).click();
+    await strip.screenshot({ path: "artifacts/studio-strip-module.png" });
     const sidebar = await page.locator(".project-nav").boundingBox();
     const stripBounds = await strip.boundingBox();
     assert.ok(
@@ -143,8 +183,8 @@ async function main() {
       .locator('.hierarchy-card[aria-pressed="true"]')
       .textContent();
     const level = await strip
-      .locator(".strip-levels [aria-pressed=true]")
-      .textContent();
+      .getByRole("combobox", { name: "Strip view level" })
+      .inputValue();
     assert.equal(
       await strip.getByRole("navigation").count(),
       0,
@@ -154,11 +194,19 @@ async function main() {
       "Assets 3",
       /^Batches \d+$/,
       "History",
-      "Review all shots",
       "Production overview",
-      "Scene workspace",
+      "Shot view",
+      "Shot grid",
     ]) {
-      await page.getByRole("button", { name, exact: true }).click();
+      if (name === "Shot view")
+        await strip.locator(".hierarchy-card[aria-pressed=true]").click();
+      else await page.getByRole("button", { name, exact: true }).click();
+      if (name === "Shot grid")
+        assert.equal(
+          await page.locator(".review-card").count(),
+          4,
+          "Shot grid follows the scene scope.",
+        );
       assert.ok(
         await chat.isVisible(),
         "Crew chat remains visible beside manual views.",
@@ -180,7 +228,9 @@ async function main() {
       assert.equal(await strip.count(), 1);
       assert.ok(await strip.isVisible());
       assert.equal(
-        await strip.locator(".strip-levels [aria-pressed=true]").textContent(),
+        await strip
+          .getByRole("combobox", { name: "Strip view level" })
+          .inputValue(),
         level,
       );
       assert.equal(
@@ -197,7 +247,9 @@ async function main() {
       );
     }
     await page.getByRole("button", { name: "Assets 3", exact: true }).click();
-    await strip.getByRole("button", { name: "Project", exact: true }).click();
+    await strip
+      .getByRole("combobox", { name: "Strip view level" })
+      .selectOption("project");
     const properties = page.getByRole("region", {
       name: "Selected object properties",
     });
@@ -206,7 +258,10 @@ async function main() {
       .waitFor();
     for (const type of ["act", "sequence", "scene"]) {
       assert.equal(
-        await strip.locator(".hierarchy-card small").first().textContent(),
+        await strip
+          .locator(".hierarchy-card")
+          .first()
+          .getAttribute("data-kind"),
         type,
       );
       await strip.locator(".hierarchy-card").first().click();
@@ -219,24 +274,6 @@ async function main() {
           .isVisible(),
         "Hierarchy browsing must not change the active view.",
       );
-      if (type !== "scene") {
-        await page
-          .getByRole("button", { name: "Scene workspace", exact: true })
-          .click();
-        await page
-          .getByRole("heading", { name: `${type} workspace`, exact: true })
-          .waitFor();
-        assert.equal(
-          await page
-            .getByRole("button", { name: "Approve scene", exact: true })
-            .count(),
-          0,
-          "Container selection must not expose approval for a previously selected scene.",
-        );
-        await page
-          .getByRole("button", { name: "Assets 3", exact: true })
-          .click();
-      }
     }
     await properties
       .getByRole("textbox", { name: "Object prompt / direction", exact: true })
@@ -276,9 +313,7 @@ async function main() {
       .fill("Cool dawn light; deliberate camera movement.");
     await page.getByRole("button", { name: "History", exact: true }).click();
     assert.equal(await page.locator(".manual-inspector").isVisible(), false);
-    await page
-      .getByRole("button", { name: "Scene workspace", exact: true })
-      .click();
+    await page.getByRole("button", { name: "Assets 3", exact: true }).click();
     assert.equal(
       await properties
         .getByRole("textbox", {
@@ -288,9 +323,7 @@ async function main() {
         .inputValue(),
       "Cool dawn light; deliberate camera movement.",
     );
-    await page
-      .getByRole("button", { name: "Scene workspace", exact: true })
-      .click();
+    await page.getByRole("button", { name: "Assets 3", exact: true }).click();
     await properties
       .getByRole("heading", { name: "The observatory", exact: true })
       .waitFor();
@@ -312,9 +345,14 @@ async function main() {
         .nth(1)
         .getAttribute("aria-pressed")) === "true",
     );
-    await page
-      .getByRole("heading", { name: "The observatory", exact: true })
-      .waitFor();
+    assert.ok(
+      (
+        await strip
+          .getByRole("combobox", { name: "Strip scope" })
+          .locator("option:checked")
+          .textContent()
+      ).includes("The observatory"),
+    );
     fs.mkdirSync("artifacts", { recursive: true });
     await page.locator(".inspector-object").evaluate((element) => {
       element.scrollTop = 0;
@@ -392,14 +430,10 @@ async function main() {
       "Assets",
       "Batches",
       "History",
-      "Review",
-      "Overview",
-      "Cut",
+      "Production overview",
+      "Footage",
     ]) {
-      await page
-        .getByRole("navigation", { name: "Workspace sections" })
-        .getByRole("button", { name, exact: true })
-        .click();
+      await page.getByTitle(name, { exact: true }).click();
       assert.ok(await strip.isVisible());
       assert.ok(
         await page.evaluate(
@@ -415,7 +449,7 @@ async function main() {
     });
     assert.deepEqual(errors, []);
     console.log(
-      "Left open/closed toggle, chat-only persistent right bar, central manual controls and direct strip-level switching passed desktop/mobile checks.",
+      "Compact scoped strip, separate project actions, persistent chat, inline version controls and desktop/mobile navigation passed.",
     );
   } finally {
     await browser.close();

@@ -91,42 +91,87 @@
 .project-strip {
   flex-shrink: 0;
   min-width: 0;
-  padding: 10px 24px 12px;
+  padding: 14px 24px 12px;
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
 .project-strip-heading {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .strip-navigation {
-  display: flex;
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
   align-items: center;
-  flex-wrap: wrap;
   min-width: 0;
   gap: 12px;
 }
 .strip-actions {
   flex-shrink: 0;
+  flex-wrap: nowrap;
 }
-.production-header {
-  padding: 18px 24px 0;
-  border-bottom: 1px solid var(--line);
-  flex-shrink: 0;
+.strip-level {
+  width: 100%;
+  min-width: 0;
+  font-size: 11px;
+  padding: 8px;
 }
-.production-header .production-heading {
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.production-heading > div {
+.strip-context {
   min-width: 0;
 }
-.production-header .workspace-tabs {
-  margin-bottom: 0;
-  border-bottom: 0;
+.strip-context select.strip-scope {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 24px 3px 0;
+  border-color: transparent;
+  background-color: transparent;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+.strip-context select.strip-scope:hover {
+  background-color: #23272d;
+}
+.strip-metadata {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.strip-actions .project-status {
+  margin-right: 10px;
+  text-align: left;
+}
+.project-status small {
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+}
+.view-title {
+  font-size: 21px;
+  margin: 0 0 20px;
+}
+.workspace-view-switch {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin: -12px 0 4px;
+}
+.workspace-view-switch [aria-pressed="true"] {
+  background: #332b20;
+  color: var(--accent);
+  border-radius: 4px;
+}
+.nav-bottom {
+  gap: 8px;
+}
+.nav-bottom > button + button {
+  margin-top: 8px;
 }
 .generation-inline {
   margin: 20px 0;
@@ -186,7 +231,7 @@
   font-size: 12px;
 }
 .hierarchy-card > div {
-  height: 72px;
+  height: 64px;
   background: #232a34;
   display: grid;
   place-items: center;
@@ -256,7 +301,17 @@ select[multiple] {
   }
   .project-strip-heading {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+  }
+  .strip-navigation {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .strip-level {
+    width: 90px;
+  }
+  .strip-actions {
+    justify-content: space-between;
   }
   .hierarchy-card {
     flex-basis: 140px;
@@ -782,7 +837,11 @@ button:hover:not(:disabled) {
 }
 .nav-bottom {
   margin-top: auto;
-  padding: 35px 4px 0;
+  padding: 12px 4px 0;
+  position: sticky;
+  bottom: 0;
+  background: var(--panel);
+  flex-shrink: 0;
 }
 .crew-emblem {
   display: flex;
@@ -2132,7 +2191,7 @@ pre {
     font-size: 11px;
   }
   .nav-bottom {
-    display: none;
+    display: block;
   }
   .welcome {
     padding: 8vh 0;

@@ -55,6 +55,22 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD35 — One scope module and separate project actions
+
+Following D44, combine scope selection, metadata, progress and thumbnail navigation
+in one module. Use a level dropdown plus a selector showing the current object's
+stable code/title once; show runtime, shot count, location/time where relevant.
+Scope progress follows the selected container: scene scope counts selected shot
+approvals and separately states scene approval; broader scopes count approved
+scenes. Project-wide jobs are explicitly labeled in the detail view. Browsing an
+older version does not change these production-selection counts.
+
+Move Export project and Production overview to the left bar. Replace the old
+Scene workspace/Review all shots tab row with a compact center view toggle; its
+shot grid follows the strip scope. Keep the strip persistent on file/library views
+and preserve chat and selection. These presentation choices remain open to owner
+review. The repeated standalone header is superseded, not accepted as finished.
+
 ### WD34 — Chat receives the inspected version separately from production selection
 
 Under D29, extend D42's version-bound mechanics to chat. Send the currently

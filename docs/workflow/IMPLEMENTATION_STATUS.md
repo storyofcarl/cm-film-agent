@@ -11,9 +11,12 @@ A director-reviewed real creative pilot remains outstanding.
 Latest owner correction D38: the left bar opens or closes to icons. The right bar
 starts expanded and is chat-only, with collapse/expand controls that retain a
 permanent right rail (D40). Object Properties and
-Details have moved to the center. D41–D43 place the production header and project
-actions above the strip, keep shot/version mechanics inline with no Details toggle,
-and add contextual Footage, Scripts, Production docs and Audio file areas. Chat remains the primary direction interface;
+Details have moved to the center. D42–D43 keep shot/version mechanics inline with
+no Details toggle and add contextual Footage, Scripts, Production docs and Audio.
+D44/WD35 supersede D41's stacked header: scope identity, metadata and status now
+live inside the strip module. Project overview/export live in the left bar;
+the center's compact shot/grid toggle replaces the extra workspace tab row.
+Chat remains the primary direction interface;
 the center provides manual inspection and adjustment. Browser checks cover both
 sidebar states, draft retention, central controls and direct strip-level selection.
 Chat copy follows D39: Chat, Message and Send, with no directing banner implying

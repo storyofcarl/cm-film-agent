@@ -160,8 +160,10 @@ direct level controls using the owner's earlier description (D36). Owner review
 of the replacement is still required. D38 places manual controls in the center
 and persistent chat in a dedicated right sidebar. D40 clarifies that chat can
 collapse to a permanent rail, never disappear. The overall UX remains a working draft.
-The current iteration implements D41–D43: a header above the strip for production
-actions/status; inline, version-bound shot mechanics; and contextual file areas.
+The current iteration implements D42–D44: one self-contained strip module for scope,
+metadata and status; inline version-bound shot mechanics; and contextual file areas.
+The owner rejected D41's stacked header. WD35 moves overview/export to the left bar
+and uses a compact center view toggle; it remains a reviewable working choice.
 The strip's navigation/selector grouping is a reviewable working design, not an
 accepted final interaction. Continue incorporating owner corrections.
 The chat-first workflow, shared properties, source inspection, stable codes and

@@ -4,7 +4,6 @@ import BatchPanel from "./BatchPanel";
 import ObjectProperties from "./ObjectProperties";
 import PromptField from "./PromptField";
 import GenerationDetails from "./GenerationDetails";
-import ProjectStatus from "./ProjectStatus";
 import ProjectFiles from "./ProjectFiles";
 import { FILE_AREAS } from "../lib/fileAreas";
 import CrewConversation from "./CrewConversation";
@@ -25,6 +24,7 @@ import {
   createProject,
   selectedVersion,
   sceneShots,
+  contextShots,
   revisionItems,
   REVIEW_LABELS,
   lookdevRequirement,
@@ -76,8 +76,6 @@ function Badge({ status = "pending" }) {
     </span>
   );
 }
-const duration = (seconds) =>
-  `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, "0")}`;
 const jsonFetch = async (url, options) => {
   const response = await fetch(url, options);
   const data = await response.json();
@@ -575,12 +573,6 @@ export default function Studio({
   const revisions = project ? revisionItems(project) : [];
   const displayNote =
     noteVersionId === version?.id ? note : version?.note || "";
-  const allVersions = project
-    ? [...project.assets, ...project.shots].flatMap((entry) => entry.versions)
-    : [];
-  const approved = allVersions.filter(
-    (entry) => entry.review === "approved",
-  ).length;
   const requirement =
     project && sceneId ? lookdevRequirement(project, sceneId) : null;
 
@@ -745,6 +737,7 @@ export default function Studio({
           )}
           <div className="nav-divider" />
           {[
+            "Overview",
             "Assets",
             "Footage",
             "Scripts",
@@ -756,12 +749,13 @@ export default function Studio({
             <button
               key={entry}
               className={`nav-item ${tab === entry ? "active" : ""}`}
-              title={entry}
+              title={entry === "Overview" ? "Production overview" : entry}
               onClick={() => switchTab(entry)}
             >
               <Icon
                 name={
                   {
+                    Overview: "layers",
                     Assets: "grid",
                     Footage: "film",
                     Scripts: "document",
@@ -772,7 +766,9 @@ export default function Studio({
                   }[entry]
                 }
               />
-              <span className="nav-label">{entry}</span>
+              <span className="nav-label">
+                {entry === "Overview" ? "Production overview" : entry}
+              </span>
               <span className="nav-count">
                 {entry === "Assets"
                   ? project?.assets.length || 0
@@ -783,6 +779,22 @@ export default function Studio({
             </button>
           ))}
           <div className="nav-bottom">
+            <button
+              type="button"
+              className="secondary full"
+              title="Export project"
+              aria-label="Export project"
+              disabled={!project}
+              onClick={() =>
+                download(
+                  project,
+                  `${project.title.replace(/\W+/g, "-")}.studio.json`,
+                )
+              }
+            >
+              <Icon name="download" />
+              <span className="nav-label">Export project</span>
+            </button>
             <button
               className="secondary full"
               title="Production settings"
@@ -796,75 +808,6 @@ export default function Studio({
           </div>
         </aside>
         <div className="project-workspace">
-          {project && (
-            <header
-              className="production-header"
-              aria-label="Production header"
-            >
-              <div className="workspace-heading production-heading">
-                <div>
-                  <div className="eyebrow">
-                    {tab === "Cut"
-                      ? `${project.scope.toUpperCase()} / ${scene?.location || "SCENE WORKSPACE"}`
-                      : "YOUR PRODUCTION"}
-                  </div>
-                  <h1>
-                    {tab === "Cut"
-                      ? scene?.title || navigationNode?.title || project.title
-                      : tab === "Overview"
-                        ? project.title
-                        : tab}
-                  </h1>
-                  <p>
-                    {tab === "Cut" && scene
-                      ? `${shots.length} shots · ${duration(shots.reduce((sum, shot) => sum + Number(shot.duration || 0), 0))} planned · ${scene?.time || "Time not set"}`
-                      : tab === "Assets"
-                        ? "Reusable identities, worlds, and the details that make them yours."
-                        : tab === "Batches"
-                          ? "Plan together. Approve once. Let the crew do the work."
-                          : tab === "History"
-                            ? "Every version. Every prompt. Every decision."
-                            : project.brief}
-                  </p>
-                </div>
-                <div className="button-row">
-                  <ProjectStatus project={project} onNavigate={navigate} />
-                  <button
-                    className="secondary"
-                    onClick={() =>
-                      download(
-                        project,
-                        `${project.title.replace(/\W+/g, "-")}.studio.json`,
-                      )
-                    }
-                  >
-                    <Icon name="download" /> Export project
-                  </button>
-                </div>
-              </div>
-              <div className="workspace-tabs">
-                <div>
-                  {["Cut", "Review", "Overview"].map((entry) => (
-                    <button
-                      className={tab === entry ? "selected" : ""}
-                      key={entry}
-                      onClick={() => switchTab(entry)}
-                    >
-                      {entry === "Cut"
-                        ? "Scene workspace"
-                        : entry === "Review"
-                          ? "Review all shots"
-                          : "Production overview"}
-                    </button>
-                  ))}
-                </div>
-                <span className="quiet-stat">
-                  {approved} approved versions <span>·</span> {revisions.length}{" "}
-                  need revision
-                </span>
-              </div>
-            </header>
-          )}
           {project && (
             <HierarchyStrip
               key={project.id}
@@ -931,47 +874,40 @@ export default function Studio({
                 </div>
               ) : (
                 <>
-                  <nav
-                    className="mobile-navigation"
-                    aria-label="Workspace sections"
-                  >
-                    {[
-                      "Cut",
-                      "Review",
-                      "Assets",
-                      "Batches",
-                      "History",
-                      "Overview",
-                    ].map((entry) => (
-                      <button
-                        key={entry}
-                        className={tab === entry ? "active" : ""}
-                        onClick={() => switchTab(entry)}
-                      >
-                        {entry}
-                      </button>
-                    ))}
-                    <button onClick={() => setModal("settings")}>
-                      Settings
-                    </button>
-                    <select
-                      aria-label="Scene navigation"
-                      value={sceneId || ""}
-                      onChange={(event) => {
-                        navigate(event.target.value);
-                        setTab("Cut");
-                      }}
+                  {!["Cut", "Review"].includes(tab) && (
+                    <h1 className="view-title">
+                      {tab === "Overview" ? "Production overview" : tab}
+                    </h1>
+                  )}
+                  {["Cut", "Review"].includes(tab) && (
+                    <div
+                      className="workspace-view-switch"
+                      role="group"
+                      aria-label="Footage view"
                     >
-                      {!sceneId && <option value="">Choose a scene</option>}
-                      {project.nodes
-                        .filter((node) => node.type === "scene")
-                        .map((node) => (
-                          <option key={node.id} value={node.id}>
-                            {node.title}
-                          </option>
-                        ))}
-                    </select>
-                  </nav>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        title="Shot view"
+                        aria-label="Shot view"
+                        aria-pressed={tab === "Cut"}
+                        onClick={() => switchTab("Cut")}
+                      >
+                        <Icon name="film" />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        title="Shot grid"
+                        aria-label="Shot grid"
+                        aria-pressed={tab === "Review"}
+                        onClick={() => switchTab("Review")}
+                      >
+                        <Icon name="grid" />
+                      </button>
+                    </div>
+                  )}
+
                   {tab === "Cut" && !scene && (
                     <section className="overview-card">
                       <h2>{navigationNode?.type || project.scope} workspace</h2>
@@ -1088,7 +1024,7 @@ export default function Studio({
                   )}
                   {tab === "Review" && (
                     <ReviewGrid
-                      items={project.shots}
+                      items={contextShots(project, containerId || project.id)}
                       {...{ busy, command, selectItem }}
                     />
                   )}

@@ -545,9 +545,14 @@ async function main() {
     findings.push(
       "Chat upload control, visible intake results, original-file links and inbox persistence across reload passed.",
     );
-    await page
-      .getByRole("heading", { name: "Scene 01", exact: true })
-      .waitFor();
+    assert.ok(
+      (
+        await page
+          .getByRole("combobox", { name: "Strip scope" })
+          .locator("option:checked")
+          .textContent()
+      ).includes("Scene 01"),
+    );
     await page.getByRole("button", { name: /A complete action/ }).click();
     await page
       .getByRole("combobox", { name: "Reviewing version", exact: true })
@@ -593,9 +598,7 @@ async function main() {
     assert.equal(inspectedRequest.inspectingVersionId, null);
     await page.unroute("**/api/studio/crew");
     await chat.getByRole("textbox", { name: "Message", exact: true }).fill("");
-    await page
-      .getByRole("button", { name: "Scene workspace", exact: true })
-      .click();
+    await page.locator(".hierarchy-card[aria-pressed=true]").click();
     findings.push(
       "Intercepted chat requests carry the inspected version and file area without changing production selection or calling a model.",
     );
@@ -632,9 +635,7 @@ async function main() {
       fullPage: true,
     });
     await page.goto(base + "/demo");
-    await page
-      .getByRole("heading", { name: "The observatory", exact: true })
-      .waitFor();
+    await page.getByRole("combobox", { name: "Strip scope" }).waitFor();
     await page.screenshot({
       path: "artifacts/studio-desktop.png",
       fullPage: true,
@@ -685,10 +686,7 @@ async function main() {
       "Asset intent editing preserves the recorded version prompt.",
     );
     await page.setViewportSize({ width: 390, height: 844 });
-    await page
-      .getByRole("navigation", { name: "Workspace sections" })
-      .getByRole("button", { name: "Assets", exact: true })
-      .click();
+    await page.getByTitle("Assets", { exact: true }).click();
     await page.screenshot({
       path: "artifacts/studio-mobile-assets.png",
       fullPage: true,

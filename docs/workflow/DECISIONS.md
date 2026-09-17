@@ -429,7 +429,7 @@ The owner explicitly states that this UX is nowhere near final. These changes ar
 iterations on a working draft; neither the overall design nor the replacement
 strip interaction has been accepted as finished.
 
-### D41 — Header and project actions sit above the strip
+### D41 — Header and project actions sit above the strip (presentation superseded by D44)
 
 The owner identified the scene/context heading as a header, not a shot artifact.
 It belongs above the persistent project strip. Export project, production overview,
@@ -456,6 +456,15 @@ area; chat uploads use media type or an obvious screenplay filename as a default
 Filename-based document routing is a working choice, not creative validation or
 approval. Footage also exposes the project's shot versions. Existing file ownership,
 retention, extraction and approval requirements remain in force.
+
+### D44 — Consolidate the scope information into the strip module
+
+The owner rejected the stacked header, tabs and strip and asked how all relevant
+information could live in the module itself. The module must carry its own scope
+identity, metadata, status and thumbnails. Shot mechanics remain in the center.
+WD35 records the implementation choices made under delegated authority. They are
+a working iteration, not an owner-approved final interaction. D44 replaces D41's
+presentation; the distinction between project actions and shot artifacts remains.
 
 ## Superseded proposals and interpretations
 
