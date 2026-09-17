@@ -1,5 +1,4 @@
 /* eslint-disable @next/next/no-img-element */
-import ProjectStatus from "./ProjectStatus";
 import { useEffect, useRef, useState } from "react";
 import { selectedVersion, sceneShots } from "../lib/domain";
 
@@ -54,12 +53,20 @@ export default function ProjectStrip({
   onNavigate,
   onShot,
   onAdd,
-  onEdit,
 }) {
   const track = useRef(null);
+  const placeholders = useRef(null);
+  const [emptySlots, setEmptySlots] = useState(1);
   const [edges, setEdges] = useState({ left: false, right: false });
-  const container = project.nodes.find((node) => node.id === containerId);
   const groups = shotRanges(project);
+  useEffect(() => {
+    const node = placeholders.current;
+    const update = () => setEmptySlots(Math.ceil(node.clientWidth / 102));
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    update();
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     const node = track.current;
     const update = () =>
@@ -129,9 +136,6 @@ export default function ProjectStrip({
         ? "instant"
         : "smooth",
     });
-  const addType =
-    { scene: "shot", sequence: "scene", act: "sequence" }[container?.type] ||
-    "act";
   const label = (node, level) => (
     <div className={`strip-range-label ${level}`}>
       {node && (
@@ -142,7 +146,9 @@ export default function ProjectStrip({
           aria-pressed={containerId === node.id}
           onClick={() => onNavigate(node.id)}
         >
-          {node.code || node.id} · {node.title}
+          {level === "scene"
+            ? `${node.code || node.id} · ${node.title}`
+            : node.title.split(" · ")[0]}
         </button>
       )}
     </div>
@@ -155,47 +161,6 @@ export default function ProjectStrip({
     >
       <div className="project-strip-heading">
         <h1 className="strip-project-title">{project.title}</h1>
-        <div className="button-row strip-actions">
-          <ProjectStatus project={project} onNavigate={onNavigate} />
-          <button
-            className="icon-button"
-            aria-label={`Add ${addType}`}
-            title={`Add ${addType}`}
-            onClick={() => onAdd(addType)}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.55"
-              aria-hidden="true"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
-          {container && (
-            <button
-              className="icon-button"
-              aria-label={`Edit ${container.type}`}
-              title={`Edit ${container.type}`}
-              onClick={() => onEdit(container)}
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.55"
-                aria-hidden="true"
-              >
-                <path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z" />
-              </svg>
-            </button>
-          )}
-        </div>
       </div>
       <div className="shot-strip-navigation">
         <button
@@ -295,7 +260,25 @@ export default function ProjectStrip({
               </div>
             </div>
           ))}
-          {!groups.length && <p className="strip-empty">No shots yet.</p>}
+          <div className="strip-placeholders" ref={placeholders}>
+            {Array.from({ length: emptySlots }, (_, index) => (
+              <button
+                key={index}
+                type="button"
+                className="strip-empty-shot"
+                aria-label="Add a shot in an empty slot"
+                onClick={() => onAdd("shot")}
+              >
+                <span className="empty-shot-image" aria-hidden="true">
+                  +
+                </span>
+                <span className="empty-shot-caption" aria-hidden="true">
+                  <i />
+                  <i />
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
         <button
           type="button"

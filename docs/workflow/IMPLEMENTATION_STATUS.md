@@ -24,6 +24,10 @@ the center provides manual inspection and adjustment. Browser checks cover both
 sidebar states, draft retention, below-image controls and continuous strip panning.
 D47 adds Scripting/Assets/Previs/Animation/Delivery approval markers below the chat
 composer. Rollups default to grids of immediate contents for bulk edits.
+D48 compacts act/sequence labels, removes the strip header's status/add/edit
+cluster and fills unused trailing width with non-record shot placeholders.
+The demo now contains 34 illustrated shots across three acts for panning review.
+Manual container add/edit controls are beside the center grid, outside the strip.
 Chat copy follows D39: Chat, Message and Send, with no directing banner implying
 that the conversation is restricted to one object or task.
 

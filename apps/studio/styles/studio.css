@@ -378,11 +378,59 @@
 }
 .strip-range-label.act,
 .strip-range-label.sequence {
+  height: 14px;
   border-top: 1px solid #56606b;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 .strip-range-label.sequence {
   border-color: #363e48;
+}
+.strip-range-label.act button,
+.strip-range-label.sequence button {
+  line-height: 12px;
+  font-size: 10px;
+}
+.strip-placeholders {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 141px;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  overflow: hidden;
+  padding-bottom: 4px;
+}
+.strip-empty-shot {
+  flex: 0 0 96px;
+  width: 96px;
+  padding: 0;
+  border: 1px dashed #39414a;
+  border-radius: 4px;
+  background: #161b20;
+  color: var(--muted);
+}
+.empty-shot-image {
+  display: grid;
+  place-items: center;
+  height: 54px;
+  font-size: 18px;
+  opacity: 0.35;
+}
+.strip-empty-shot:hover .empty-shot-image,
+.strip-empty-shot:focus-visible .empty-shot-image {
+  opacity: 1;
+}
+.empty-shot-caption {
+  display: flex;
+  justify-content: space-between;
+  height: 25px;
+  padding: 10px 6px;
+  border-top: 1px solid var(--line);
+}
+.empty-shot-caption i {
+  width: 18px;
+  height: 2px;
+  background: #343b43;
 }
 .strip-range-label button {
   position: sticky;

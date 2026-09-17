@@ -500,6 +500,15 @@ marker and colored outline indicating approval. The interpretation that these
 reflect recorded approvals rather than providing a new approval bypass is a
 working choice documented in WD44, open to owner correction.
 
+### D48 — Compact act/sequence labels, populated panning demo and clean header
+
+The owner clarifies that act/sequence labels occupy too much space, rather than
+being too small. Compact their footprint and provide a larger demo to evaluate
+them while panning. Fill unused trailing strip space with empty shot placeholders.
+The owner explicitly removes the header's approval ring/count, plus and pencil.
+The project title remains above the strip. This supersedes the ring/action portion
+of D35/D44 in this location; version and phase approval indicators remain.
+
 ## Superseded proposals and interpretations
 
 ### D26 — Earlier duration-threshold interpretation, replaced by D27

@@ -55,6 +55,18 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD45 — Compact range labels and empty trailing slots
+
+Implement D48 with two 14px range rows, short act/sequence names and full names on
+hover. The demo has 34 illustrated shots across 10 scenes, six sequences and three
+acts, preserving the original first six shots for version review. No real project
+or provider generation is changed. Empty trailing slots fill available width and
+open the normal shot creation form; they have no IDs, duration or approval and do
+not become records until saved. Use the current scene when adding; where no scene
+exists, open scene creation first. Header ring/add/edit controls are removed.
+Manual container creation/editing lives with the center grid. These exact compact
+labels, dimensions and placeholder interactions remain owner-reviewable choices.
+
 ### WD44 — Continuous strip, default grids and phase summary
 
 Implement D46 with 96px shot thumbnails and 54px images, colored scene groups,

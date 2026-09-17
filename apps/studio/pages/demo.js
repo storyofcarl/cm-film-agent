@@ -4,5 +4,5 @@ export default function Demo({ project }) {
   return <Studio initialProject={project} demo />;
 }
 export function getServerSideProps() {
-  return { props: { project: sampleProject() } };
+  return { props: { project: sampleProject({ extended: true }) } };
 }

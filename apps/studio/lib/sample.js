@@ -1,5 +1,5 @@
 import { createProject, compileSegments, ensureProductionIds } from "./domain";
-export function sampleProject() {
+export function sampleProject({ extended = false } = {}) {
   const project = createProject({
     id: "sample_last_light",
     title: "The Last Light",
@@ -148,6 +148,72 @@ export function sampleProject() {
       return item;
     },
   );
+  if (extended) {
+    const scenes = [
+      ["sc4", "seq2", "The service road", "ridge"],
+      ["sc5", "seq3", "A second signal", "room"],
+      ["sc6", "seq3", "The relay", "door"],
+      ["sc7", "seq4", "Across the valley", "keeper"],
+      ["sc8", "seq4", "The waiting light", "ridge"],
+      ["sc9", "seq5", "An open channel", "room"],
+      ["sc10", "seq6", "Home before dawn", "keeper"],
+    ];
+    project.nodes.push(
+      {
+        id: "act2",
+        type: "act",
+        parentId: null,
+        title: "Act II · The crossing",
+        order: 1,
+      },
+      {
+        id: "act3",
+        type: "act",
+        parentId: null,
+        title: "Act III · The reply",
+        order: 2,
+      },
+      ...[
+        ["seq3", "act2", "Sequence 03 · The relay", 0],
+        ["seq4", "act2", "Sequence 04 · Across the valley", 1],
+        ["seq5", "act3", "Sequence 05 · An open channel", 0],
+        ["seq6", "act3", "Sequence 06 · Home before dawn", 1],
+      ].map(([id, parentId, title, order]) => ({
+        id,
+        type: "sequence",
+        parentId,
+        title,
+        order,
+      })),
+    );
+    for (const [index, [sceneId, parentId, title, image]] of scenes.entries()) {
+      project.nodes.push({
+        id: sceneId,
+        type: "scene",
+        parentId,
+        title,
+        location: title.toUpperCase(),
+        time: "DAWN",
+        order: index + 3,
+      });
+      for (let shot = 0; shot < 4; shot++) {
+        const id = `sh${project.shots.length + 1}`;
+        const prompt = `Illustrated navigation sample: ${title}, composition ${shot + 1}.`;
+        project.shots.push({
+          id,
+          kind: "shot",
+          title: `${title} · ${shot + 1}`,
+          sceneId,
+          order: shot,
+          duration: 8,
+          prompt,
+          description: prompt,
+          versions: [version(`${id}v1`, image, "pending", prompt)],
+          selectedVersionId: `${id}v1`,
+        });
+      }
+    }
+  }
   project.assets = [
     {
       id: "keeper",

@@ -1113,6 +1113,7 @@ async function main() {
       .getByRole("button", { name: "Save object properties" })
       .click();
     await objectProperties.getByRole("status").waitFor();
+    await page.locator(".project-nav").getByRole("button", { name: "Act I · Reviewed hierarchy", exact: true }).click();
     await page
       .getByRole("button", { name: "Add sequence", exact: true })
       .click();
@@ -1121,6 +1122,7 @@ async function main() {
       .fill("Sequence · Test addition");
     await dialog.getByRole("button", { name: "Save changes" }).click();
     await page
+      .locator(".project-nav")
       .getByRole("button", { name: /Sequence · Test addition/ })
       .waitFor();
     await page

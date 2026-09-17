@@ -909,16 +909,27 @@ export default function Studio({
               onNavigate={navigate}
               onAdd={(type) => {
                 if (type === "shot") {
-                  setSceneId(containerId);
+                  const target =
+                    project.nodes.find(
+                      (node) =>
+                        node.id === containerId && node.type === "scene",
+                    ) ||
+                    project.nodes.find(
+                      (node) => node.id === sceneId && node.type === "scene",
+                    ) ||
+                    project.nodes
+                      .filter((node) => node.type === "scene")
+                      .at(-1);
+                  if (!target) {
+                    setModal("scene");
+                    return;
+                  }
+                  setSceneId(target.id);
                   setModal("shot");
                 } else {
                   setNewContainerType(type);
                   setModal("container");
                 }
-              }}
-              onEdit={() => {
-                inspectContainer(containerId);
-                setTab("Properties");
               }}
               onShot={(shot) => {
                 selectItem(shot);
@@ -1122,6 +1133,46 @@ export default function Studio({
                     <ReviewGrid
                       key={`rollup:${rollupId}`}
                       editable
+                      actions={
+                        <>
+                          <button
+                            className="text-button"
+                            onClick={() => {
+                              const type =
+                                {
+                                  scene: "shot",
+                                  sequence: "scene",
+                                  act: "sequence",
+                                }[inspectedNode?.type] || "act";
+                              if (type === "shot") {
+                                setSceneId(rollupId);
+                                setModal("shot");
+                              } else {
+                                setNewContainerType(type);
+                                setModal("container");
+                              }
+                            }}
+                          >
+                            Add{" "}
+                            {{
+                              scene: "shot",
+                              sequence: "scene",
+                              act: "sequence",
+                            }[inspectedNode?.type] || "act"}
+                          </button>
+                          {inspectedNode && (
+                            <button
+                              className="text-button"
+                              onClick={() => {
+                                inspectContainer(rollupId);
+                                setTab("Properties");
+                              }}
+                            >
+                              Edit {inspectedNode.type}
+                            </button>
+                          )}
+                        </>
+                      }
                       items={rollupContents}
                       {...{ project, busy, command }}
                       selectItem={(entry) => {

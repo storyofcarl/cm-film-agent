@@ -27,6 +27,7 @@ export function ReviewGrid({
   selectItem,
   project,
   editable = false,
+  actions,
 }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
@@ -94,6 +95,7 @@ export function ReviewGrid({
         >
           Next page
         </button>
+        {actions}
       </div>
       {editable && Object.keys(drafts).length > 0 && (
         <div className="button-row grid-save">
