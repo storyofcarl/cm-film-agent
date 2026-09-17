@@ -309,6 +309,7 @@ async function main() {
       fullPage: true,
     });
     await page
+      .locator(".project-nav")
       .getByRole("button", { name: "Act I · The signal", exact: true })
       .click();
     await page.getByRole("button", { name: "Edit act", exact: true }).click();

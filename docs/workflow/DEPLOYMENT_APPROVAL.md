@@ -1,8 +1,8 @@
 # Separate Studio deployment request
 
-Status: awaiting explicit approval after automatic approval review rejected the
-new destination. Earlier explicit uploads named the legacy `cm-film-agent` project.
-No separate project or credential upload has been performed.
+Status: owner approved Vercel on 2026-09-17 after the destination-specific request.
+Separate project `cm-film-agent-studio` (`prj_nfTEl8jOgjAXT5sSv4tRvPJjoDIM`)
+has been created and its runtime allowlist uploaded. Hosted verification is in progress.
 
 ## Reviewable application
 

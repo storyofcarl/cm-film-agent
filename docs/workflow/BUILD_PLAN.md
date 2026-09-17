@@ -154,6 +154,10 @@ Deliverable: verified production workflow, delivery package, and migration plan.
 
 ## Current review artifact
 
+2026-09-17: implement the owner's persistent top-strip correction across every
+project view, validate desktop/mobile navigation and retained selection, then
+complete the now-approved separate Vercel preview and hosted checks.
+
 Implementation has progressed into the separate Studio application. See
 [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for evidence, known limits
 and remaining deployment work. Phases 1–5 have a working local implementation;

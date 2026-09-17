@@ -279,7 +279,9 @@ without requiring that every scene in the film be finished first.
 ## Navigate the production through a nested strip
 
 Thumbnail navigation runs from the full deliverable through acts, sequences,
-scenes, and shots. Higher levels inform executable work. Segment relationships
+scenes, and shots. The strip is shared at the top of every project view, above
+the workspace and inspector. Changing views preserves its hierarchy context
+and shot selection. Higher levels inform executable work. Segment relationships
 and job state must remain accessible from the relevant creative context.
 
 ## OCC principles to retain in the pipeline draft

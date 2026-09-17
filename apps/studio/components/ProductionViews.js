@@ -172,6 +172,7 @@ export function ReviewGrid({ items, busy, command, selectItem }) {
 export function HierarchyStrip({
   project,
   containerId,
+  selectedShotId,
   onNavigate,
   onShot,
   onAdd,
@@ -202,65 +203,73 @@ export function HierarchyStrip({
     return project.shots.filter((shot) => ids.has(shot.sceneId));
   };
   return (
-    <section className="hierarchy-view">
-      <nav className="hierarchy-crumbs" aria-label="Production hierarchy">
-        <button onClick={() => onNavigate(null)}>{project.title}</button>
-        {chain.map((node) => (
-          <button key={node.id} onClick={() => onNavigate(node.id)}>
-            › {node.title}
+    <section className="project-strip" aria-label="Project strip">
+      <div className="project-strip-heading">
+        <nav className="hierarchy-crumbs" aria-label="Production hierarchy">
+          <button
+            aria-current={!container ? "location" : undefined}
+            onClick={() => onNavigate(null)}
+          >
+            {project.title}
           </button>
-        ))}
-      </nav>
-      <div className="button-row">
-        <button
-          className="secondary"
-          onClick={() =>
-            onAdd(
-              container?.type === "scene"
-                ? "shot"
-                : container?.type === "sequence"
-                  ? "scene"
-                  : container?.type === "act"
-                    ? "sequence"
-                    : "act",
-            )
-          }
-        >
-          Add{" "}
-          {container?.type === "scene"
-            ? "shot"
-            : container?.type === "sequence"
-              ? "scene"
-              : container?.type === "act"
-                ? "sequence"
-                : "act"}
-        </button>
-        {container && (
-          <button className="text-button" onClick={() => onEdit(container)}>
-            Edit {container.type}
+          {chain.map((node) => (
+            <button
+              key={node.id}
+              aria-current={node.id === containerId ? "location" : undefined}
+              onClick={() => onNavigate(node.id)}
+            >
+              › {node.title}
+            </button>
+          ))}
+        </nav>
+        <div className="button-row">
+          <button
+            className="secondary compact"
+            onClick={() =>
+              onAdd(
+                container?.type === "scene"
+                  ? "shot"
+                  : container?.type === "sequence"
+                    ? "scene"
+                    : container?.type === "act"
+                      ? "sequence"
+                      : "act",
+              )
+            }
+          >
+            Add{" "}
+            {container?.type === "scene"
+              ? "shot"
+              : container?.type === "sequence"
+                ? "scene"
+                : container?.type === "act"
+                  ? "sequence"
+                  : "act"}
           </button>
-        )}
+          {container && (
+            <button className="text-button" onClick={() => onEdit(container)}>
+              Edit {container.type}
+            </button>
+          )}
+        </div>
       </div>
-      <div className="strip-header">
-        <span>
-          {container
-            ? container.type.toUpperCase()
-            : project.scope.toUpperCase()}{" "}
-          VIEW
-        </span>
-        <span>Open a thumbnail to move closer to the shot.</span>
-      </div>
-      <div className="hierarchy-cards">
+      <div className="hierarchy-cards" key={containerId || project.id}>
         {children.map((node) => {
           const shots =
             node.kind === "shot" ? [node] : descendantShots(node.id);
-          const take = shots
-            .map(selectedVersion)
-            .find((version) => version?.media?.url);
+          const take =
+            node.kind === "shot"
+              ? selectedVersion(node)
+              : shots
+                  .map(selectedVersion)
+                  .find((version) => version?.media?.url);
           return (
             <button
               key={node.id}
-              className="hierarchy-card"
+              className={`hierarchy-card ${node.id === selectedShotId ? "selected" : ""}`}
+              aria-pressed={
+                node.kind === "shot" ? node.id === selectedShotId : undefined
+              }
               onClick={() =>
                 node.kind === "shot" ? onShot(node) : onNavigate(node.id)
               }
@@ -281,15 +290,19 @@ export function HierarchyStrip({
               <small>{node.type || "Shot"}</small>
               <h3>{node.title}</h3>
               <p>
-                {shots.length} shots ·{" "}
-                {shots
-                  .reduce((total, shot) => total + Number(shot.duration), 0)
-                  .toFixed(1)}
-                s
+                {node.kind === "shot"
+                  ? `${Number(node.duration).toFixed(1)}s · ${take ? `V${take.number} · ${REVIEW_LABELS[take.review]}` : "No takes yet"}`
+                  : `${shots.length} shots · ${shots.reduce((sum, shot) => sum + Number(shot.duration), 0).toFixed(1)}s`}
               </p>
             </button>
           );
         })}
+        {!children.length && (
+          <p className="strip-empty">
+            No {container?.type === "scene" ? "shots" : "items"} here yet. Add
+            one to begin.
+          </p>
+        )}
       </div>
     </section>
   );

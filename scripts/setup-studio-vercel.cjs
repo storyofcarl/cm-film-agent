@@ -20,7 +20,11 @@ async function request(endpoint, method = "GET", body) {
   if (!response.ok)
     throw Object.assign(
       new Error(
-        "Vercel request failed: " + (data.error?.code || response.status),
+        "Vercel request failed: " +
+          (data.error?.code || response.status) +
+          (method === "POST" && endpoint === "/v11/projects"
+            ? ": " + data.error?.message
+            : ""),
       ),
       { status: response.status },
     );
@@ -36,14 +40,16 @@ async function main() {
       name,
       framework: "nextjs",
       rootDirectory: "apps/studio",
-      sourceFilesOutsideRootDirectory: true,
       buildCommand: "npm run build",
       installCommand: "cd ../.. && ELECTRON_SKIP_BINARY_DOWNLOAD=1 npm ci",
       publicSource: false,
-      nodeVersion: "24.x",
     });
   }
   fs.mkdirSync(".local", { recursive: true });
+  await request("/v9/projects/" + project.id, "PATCH", {
+    sourceFilesOutsideRootDirectory: true,
+    nodeVersion: "24.x",
+  });
   fs.writeFileSync(
     ".local/studio-vercel.json",
     JSON.stringify(

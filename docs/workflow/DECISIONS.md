@@ -57,7 +57,10 @@ may later be promoted for reuse.
 
 Provide thumbnail navigation through film/episode, act, sequence, scene, and
 ultimately shot views. Keep shot/take and segment relationships understandable.
-Detailed strip interaction design awaits wireframes.
+The owner's 2026-09-17 correction is explicit: the strip belongs at the top of
+every project view and must not depend on the current page. Keep its hierarchy
+context and shot selection when switching views. The separate Hierarchy page
+and Cut-only bottom strip are superseded by one shared project strip.
 
 ### D09 — Deliverable-wide batches are the default
 

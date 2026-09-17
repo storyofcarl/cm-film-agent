@@ -76,10 +76,15 @@ active goal is not complete: separate hosted deployment and its verification rem
 - Current persistence is a private-preview JSON project store with a 12 MB save
   limit. Multi-user production roles and large-team concurrent editing are not claimed.
 
-## Deployment blocker
+## Deployment progress — 2026-09-17
 
-Automatic approval review rejected creating **cm-film-agent-studio** and uploading
-runtime credentials because the earlier explicit approvals named **cm-film-agent**.
-No new Vercel project, environment upload, Studio automation bypass, scheduler or
-hosted deployment has occurred. The concrete request is in
-[DEPLOYMENT_APPROVAL.md](DEPLOYMENT_APPROVAL.md). Do not retry via a different route.
+The owner approved the separate Vercel destination after the explicit request.
+**cm-film-agent-studio** is created and the approved runtime environment is uploaded.
+Hosted deployment, authentication and scheduler checks are underway. The previous
+approval blocker is resolved; see [DEPLOYMENT_APPROVAL.md](DEPLOYMENT_APPROVAL.md).
+
+The project strip now lives above the workspace and inspector on every project
+view. Desktop/mobile checks verified all six views, hierarchy navigation without
+changing the active view, retained shot selection, and return from Assets to the
+selected shot. The updated authenticated smoke also passed; temporary fixtures
+were cleaned up and no provider generation was submitted.

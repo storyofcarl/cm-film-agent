@@ -95,7 +95,8 @@ export default function Studio({
   const [itemId, setItemId] = useState(initialProject?.shots[0]?.id || null);
   const [reviewVersionId, setReviewVersionId] = useState(null);
   const [tab, setTab] = useState("Cut");
-  const [containerId, setContainerId] = useState(null);
+  const [containerId, setContainerId] = useState(sceneId);
+  const [selectedShotId, setSelectedShotId] = useState(itemId);
   const [newContainerType, setNewContainerType] = useState("act");
   const [panel, setPanel] = useState("Details");
   const [busy, setBusy] = useState(false);
@@ -149,6 +150,11 @@ export default function Studio({
                 loaded.project.nodes.find((node) => node.type === "scene")?.id,
               );
               setItemId(loaded.project.shots[0]?.id || null);
+              setContainerId(
+                loaded.project.nodes.find((node) => node.type === "scene")
+                  ?.id || null,
+              );
+              setSelectedShotId(loaded.project.shots[0]?.id || null);
             }
           });
         return undefined;
@@ -263,6 +269,10 @@ export default function Studio({
       );
       setItemId(null);
       setReviewVersionId(null);
+      setContainerId(
+        result.project.nodes.find((node) => node.type === "scene")?.id || null,
+      );
+      setSelectedShotId(null);
     });
   const newProject = (form) =>
     run(async () => {
@@ -284,6 +294,8 @@ export default function Studio({
       }
       setProject(created);
       setSceneId(created.nodes.find((node) => node.type === "scene").id);
+      setContainerId(created.nodes.find((node) => node.type === "scene").id);
+      setSelectedShotId(null);
       setItemId(null);
       setModal(null);
     });
@@ -292,7 +304,11 @@ export default function Studio({
     setReviewVersionId(null);
     setNoteVersionId(null);
     setNote("");
-    if (item.sceneId) setSceneId(item.sceneId);
+    if (item.sceneId) {
+      setSceneId(item.sceneId);
+      setContainerId(item.sceneId);
+      setSelectedShotId(item.id);
+    }
   };
   const download = (value, filename) => {
     const url = URL.createObjectURL(
@@ -343,6 +359,11 @@ export default function Studio({
           current.project.nodes.find((node) => node.type === "scene")?.id,
         );
         setTab("Overview");
+        setContainerId(
+          current.project.nodes.find((node) => node.type === "scene")?.id ||
+            null,
+        );
+        setSelectedShotId(null);
         setMessage(
           "Supplied document preserved in full. Use Validate supplied work for a completeness check, or direct the crew to work from it.",
         );
@@ -359,6 +380,10 @@ export default function Studio({
         result.project.nodes.find((node) => node.type === "scene")?.id,
       );
       setItemId(null);
+      setContainerId(
+        result.project.nodes.find((node) => node.type === "scene")?.id || null,
+      );
+      setSelectedShotId(null);
       setMessage(
         `Imported ${result.report?.approved || 0} complete versions. ${result.report?.gaps?.length || 0} gaps flagged for the crew.`,
       );
@@ -429,12 +454,24 @@ export default function Studio({
     });
   const navigate = (id) => {
     setContainerId(id);
-    setTab("Hierarchy");
+    if (project.nodes.find((node) => node.id === id)?.type === "scene") {
+      setSceneId(id);
+      const first = sceneShots(project, id)[0];
+      setSelectedShotId(first?.id || null);
+      if (tab !== "Assets") {
+        setItemId(first?.id || null);
+        setReviewVersionId(null);
+      }
+    }
   };
   const switchTab = (next) => {
     setTab(next);
     if (next === "Assets") {
       setItemId(project?.assets[0]?.id || null);
+      setReviewVersionId(null);
+    }
+    if (next === "Cut") {
+      setItemId(selectedShotId || sceneShots(project, sceneId)[0]?.id || null);
       setReviewVersionId(null);
     }
   };
@@ -533,6 +570,29 @@ export default function Studio({
           </Link>
         </div>
       )}
+      {project && (
+        <HierarchyStrip
+          key={project.id}
+          project={project}
+          containerId={containerId}
+          selectedShotId={selectedShotId}
+          onNavigate={navigate}
+          onAdd={(type) => {
+            if (type === "shot") {
+              setSceneId(containerId);
+              setModal("shot");
+            } else {
+              setNewContainerType(type);
+              setModal("container");
+            }
+          }}
+          onEdit={() => setModal("container-edit")}
+          onShot={(shot) => {
+            selectItem(shot);
+            setTab("Cut");
+          }}
+        />
+      )}
       <div className="studio-body">
         <aside className="project-nav">
           <div className="nav-heading">
@@ -584,7 +644,7 @@ export default function Studio({
                               key={entry.id}
                               className={`tree-scene ${entry.id === sceneId ? "active" : ""}`}
                               onClick={() => {
-                                setSceneId(entry.id);
+                                navigate(entry.id);
                                 setTab("Cut");
                                 const first = sceneShots(project, entry.id)[0];
                                 setItemId(first?.id || null);
@@ -618,13 +678,7 @@ export default function Studio({
             <button
               key={entry}
               className={`nav-item ${tab === entry ? "active" : ""}`}
-              onClick={() => {
-                setTab(entry);
-                if (entry === "Assets") {
-                  setItemId(project?.assets[0]?.id);
-                  setReviewVersionId(null);
-                }
-              }}
+              onClick={() => switchTab(entry)}
             >
               <Icon
                 name={
@@ -752,7 +806,7 @@ export default function Studio({
               >
                 {[
                   "Cut",
-                  "Hierarchy",
+                  "Review",
                   "Assets",
                   "Batches",
                   "History",
@@ -771,7 +825,7 @@ export default function Studio({
                   aria-label="Scene navigation"
                   value={sceneId || ""}
                   onChange={(event) => {
-                    setSceneId(event.target.value);
+                    navigate(event.target.value);
                     setItemId(
                       project.shots.find(
                         (shot) => shot.sceneId === event.target.value,
@@ -795,7 +849,7 @@ export default function Studio({
                     <button
                       className={tab === entry ? "selected" : ""}
                       key={entry}
-                      onClick={() => setTab(entry)}
+                      onClick={() => switchTab(entry)}
                     >
                       {entry === "Cut"
                         ? "Scene workspace"
@@ -820,7 +874,7 @@ export default function Studio({
                           : "SCENE REVIEW"}
                       </b>
                       <span className="muted"> / </span>
-                      {item?.title || "Select a shot below"}
+                      {item?.title || "Select a shot in the project strip"}
                     </span>
                     {version && <Badge status={version.review} />}
                   </div>
@@ -907,79 +961,7 @@ export default function Studio({
                       <Icon name="plus" size={15} /> Add shot
                     </button>
                   </div>
-                  <div className="strip-header">
-                    <span>SHOT STRIP</span>
-                    <span>Scene → shots · select a frame to direct</span>
-                  </div>
-                  <div className="shot-strip">
-                    {shots.map((shot, index) => {
-                      const take = selectedVersion(shot);
-                      return (
-                        <button
-                          key={shot.id}
-                          className={`shot-card ${itemId === shot.id ? "selected" : ""}`}
-                          onClick={() => selectItem(shot)}
-                        >
-                          <div className="shot-thumb">
-                            {take?.media?.type === "video" && take.media.url ? (
-                              <video
-                                muted
-                                preload="metadata"
-                                src={take.media.url + "#t=0.1"}
-                              />
-                            ) : take?.media?.type !== "video" &&
-                              take?.media?.url ? (
-                              <img src={take.media.url} alt="" />
-                            ) : (
-                              <Icon name="film" size={28} />
-                            )}
-                            <span>{duration(shot.duration)}</span>
-                            <i
-                              className={`review-dot ${take?.review || "pending"}`}
-                            />
-                          </div>
-                          <div className="shot-label">
-                            <b>{String(index + 1).padStart(3, "0")}</b>
-                            <span>{shot.title}</span>
-                          </div>
-                          <div className="shot-meta">
-                            {shot.versions.length
-                              ? `V${take?.number || 1} · ${REVIEW_LABELS[take?.review]}`
-                              : "No takes yet"}
-                          </div>
-                        </button>
-                      );
-                    })}
-                    <button
-                      className="add-shot-card"
-                      onClick={() => setModal("shot")}
-                    >
-                      <Icon name="plus" size={24} />
-                      <span>New shot</span>
-                    </button>
-                  </div>
                 </>
-              )}
-              {tab === "Hierarchy" && (
-                <HierarchyStrip
-                  project={project}
-                  containerId={containerId}
-                  onNavigate={navigate}
-                  onAdd={(type) => {
-                    if (type === "shot") {
-                      setSceneId(containerId);
-                      setModal("shot");
-                    } else {
-                      setNewContainerType(type);
-                      setModal("container");
-                    }
-                  }}
-                  onEdit={() => setModal("container-edit")}
-                  onShot={(shot) => {
-                    selectItem(shot);
-                    setTab("Cut");
-                  }}
-                />
               )}
               {tab === "Review" && (
                 <ReviewGrid
