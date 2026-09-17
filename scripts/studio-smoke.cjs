@@ -74,6 +74,41 @@ async function main() {
     const other = await account(true);
     const unapproved = await account(false);
     await call(unapproved, "/api/studio/projects", null, 403);
+    const pilot = JSON.parse(
+      fs.readFileSync(
+        "docs/workflow/pilot/last-light-pilot.studio.json",
+        "utf8",
+      ),
+    );
+    const importedPilot = await call(
+      owner,
+      "/api/studio/projects",
+      { action: "import", project: pilot },
+      201,
+    );
+    assert.equal(importedPilot.project.shots.length, 5);
+    assert.equal(importedPilot.project.assets.length, 3);
+    assert.equal(
+      importedPilot.project.shots.reduce((sum, shot) => sum + shot.duration, 0),
+      68,
+    );
+    assert.deepEqual(
+      importedPilot.project.shots.map((shot) => shot.id),
+      pilot.shots.map((shot) => shot.id),
+    );
+    assert.equal(importedPilot.project.batches.length, 0);
+    assert.equal(importedPilot.project.sceneApprovals.length, 0);
+    assert.equal(importedPilot.project.lookdev.length, 0);
+    assert.equal(importedPilot.project.artifacts[0].review, "pending");
+    await call(
+      other,
+      `/api/studio/projects?id=${importedPilot.project.id}`,
+      null,
+      404,
+    );
+    findings.push(
+      "Proposed pilot imported with 68-second timing and stable shot IDs; no jobs, spend authorization or approvals were created.",
+    );
     const id = "smoke_" + crypto.randomUUID();
     let current = await call(
       owner,

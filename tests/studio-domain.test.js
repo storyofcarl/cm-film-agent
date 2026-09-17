@@ -576,6 +576,97 @@ test("crew proposals update future intent without rewriting approved version rec
   });
 });
 
+test("one crew proposal can assign supplied artwork and reference its new asset from existing shots", () => {
+  let { project } = fixture();
+  project = version(project, project.shots[0].id);
+  project = review(project, project.shots[0], "approved");
+  const shot = project.shots[0];
+  const recorded = structuredClone(shot.versions);
+  project.inbox = [
+    {
+      id: "supplied-keeper",
+      title: "Keeper.png",
+      status: "ready",
+      media: { url: "/api/film/media?key=aaaaaaaaaaaaaaaa.png", type: "image" },
+      assignments: [],
+    },
+  ];
+  project.artifacts.push({
+    id: "combined-proposal",
+    proposal: {
+      assets: [
+        {
+          id: "new-keeper",
+          type: "character",
+          title: "Keeper",
+          prompt: "Supplied keeper design",
+        },
+      ],
+      updates: [
+        {
+          id: shot.id,
+          baseSignature: inputSignature(project, [shot.id]),
+          assetIds: ["new-keeper"],
+        },
+      ],
+      inboxAssignments: [
+        {
+          inboxId: "supplied-keeper",
+          targetId: "new-keeper",
+          purpose: "version",
+        },
+      ],
+    },
+  });
+  const next = applyCommand(project, {
+    type: "artifact.apply",
+    payload: { id: "combined-proposal" },
+  });
+  const keeper = next.assets.find((asset) => asset.title === "Keeper");
+  expect(next.shots[0].assetIds).toEqual([keeper.id]);
+  expect(next.shots[0].versions).toEqual(recorded);
+  expect(keeper.versions[0]).toMatchObject({
+    origin: "imported",
+    review: "pending",
+    prompt: null,
+  });
+  expect(next.inbox[0].assignments[0].targetId).toBe(keeper.id);
+  expect(project.assets).toHaveLength(0);
+  expect(project.artifacts.at(-1).appliedAt).toBeUndefined();
+});
+
+test("crew proposal temporary IDs cannot ambiguously name different production objects", () => {
+  const { project, sceneId } = fixture();
+  for (const proposal of [
+    { assets: [{ id: sceneId, title: "Ambiguous asset" }] },
+    {
+      shots: [
+        {
+          id: project.shots[0].id,
+          sceneId,
+          duration: 5,
+          title: "Duplicate shot",
+        },
+      ],
+    },
+    {
+      assets: [{ id: "new-object", title: "Asset" }],
+      shots: [{ id: "new-object", sceneId, duration: 5, title: "Shot" }],
+    },
+  ]) {
+    const input = structuredClone(project);
+    input.artifacts.push({ id: "ambiguous", proposal });
+    expect(() =>
+      applyCommand(input, {
+        type: "artifact.apply",
+        payload: { id: "ambiguous" },
+      }),
+    ).toThrow(/identifier/);
+    expect(input.assets).toHaveLength(0);
+    expect(input.shots).toHaveLength(project.shots.length);
+  }
+});
+
 test("pausing preserves approval but prevents remaining jobs until explicitly resumed", () => {
   let { project } = fixture();
   project = prepareBatch(

@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 2,
+  "id": "pilot_last_light",
+  "title": "The Last Light · proposed production pilot",
+  "scope": "film",
+  "brief": "A keeper rescues the final light of a closing observatory. A 68-second, two-scene silent short for director review. Provisional material adapted from the Studio demo, not an approved production assignment.",
+  "globalStyle": "Restrained, tactile science fiction. An aging remote observatory with practical controls, brushed metal, worn painted surfaces and believable scale. Warm amber practicals against cool window light. Naturalistic contrast and patient camera movement. Preserve screen direction, character identity, prop geometry and room geography across cuts. No captions, logos or readable invented interface text. No spoken dialogue; quiet room tone and subtle mechanical sound only.",
+  "createdAt": "2026-09-17T11:51:10.886Z",
+  "updatedAt": "2026-09-17T11:51:10.887Z",
+  "settings": {
+    "lookdevMode": "scene",
+    "lookdevThreshold": 3,
+    "timingMode": "picture",
+    "aspectRatio": "16:9",
+    "draftResolution": "480p",
+    "deliveryResolution": "1080p",
+    "llmModel": "claude-opus-5",
+    "audio": true,
+    "seed": 41723
+  },
+  "nodes": [
+    {
+      "id": "pilot_act",
+      "type": "act",
+      "parentId": null,
+      "title": "The last shift",
+      "order": 0,
+      "code": "ACT-001"
+    },
+    {
+      "id": "pilot_sequence",
+      "type": "sequence",
+      "parentId": "pilot_act",
+      "title": "Carry the light",
+      "order": 0,
+      "code": "SEQ-001"
+    },
+    {
+      "id": "pilot_night",
+      "type": "scene",
+      "parentId": "pilot_sequence",
+      "title": "The final signal",
+      "location": "INT. OBSERVATORY CONTROL ROOM",
+      "time": "NIGHT",
+      "order": 0,
+      "prompt": "Keep the window on screen left and the console on screen right. One amber status light is the visual focus.",
+      "code": "SC-001"
+    },
+    {
+      "id": "pilot_dawn",
+      "type": "scene",
+      "parentId": "pilot_sequence",
+      "title": "A light to carry",
+      "location": "INT. OBSERVATORY CONTROL ROOM",
+      "time": "DAWN, LATER",
+      "order": 1,
+      "prompt": "The same room and geography, now in cold dawn light. Keep the exit beyond the console on screen right.",
+      "code": "SC-002"
+    }
+  ],
+  "assets": [
+    {
+      "id": "pilot_keeper",
+      "title": "The keeper",
+      "type": "character",
+      "description": "Recurring lead in both scenes; identity and silhouette must remain consistent.",
+      "prompt": "Design one observatory keeper, a woman in her fifties with a compact practical silhouette, short silver-streaked dark hair and an unbranded charcoal work jacket. Quiet, observant expression. Full-body three-quarter view and clear face in one coherent character reference; neutral unobtrusive background. No text or duplicate figures.",
+      "kind": "asset",
+      "order": 0,
+      "versions": [],
+      "selectedVersionId": null,
+      "code": "AST-001"
+    },
+    {
+      "id": "pilot_room",
+      "title": "Observatory control room",
+      "type": "location",
+      "description": "The same location at night and dawn; a reusable geography reference, not a mandatory fixed camera angle.",
+      "prompt": "Design a small aging observatory control room. A broad window occupies the left wall; a waist-high instrument console runs along the right; the exit is beyond the console. Brushed metal, worn pale paint, simple controls. Eye-level wide view making the geography legible. No people, captions or readable interface text.",
+      "kind": "asset",
+      "order": 1,
+      "versions": [],
+      "selectedVersionId": null,
+      "code": "AST-002"
+    },
+    {
+      "id": "pilot_recorder",
+      "title": "Signal recorder",
+      "type": "prop",
+      "description": "Recurring story prop; its shape and single amber indicator must match across close-ups and handling.",
+      "prompt": "Design a palm-sized dark brushed-metal signal recorder with one circular amber indicator, one recessed physical button and a short wrist strap. Simple practical object, no display or branding. Three-quarter product view that clearly establishes proportions and the button location.",
+      "kind": "asset",
+      "order": 2,
+      "versions": [],
+      "selectedVersionId": null,
+      "code": "AST-003"
+    }
+  ],
+  "shots": [
+    {
+      "id": "pilot_shot1",
+      "sceneId": "pilot_night",
+      "title": "The last shift",
+      "duration": 30,
+      "prompt": "One continuous, deliberate tracking shot from the window toward the console. Follow the keeper into the room as she notices the amber signal. Preserve the camera direction and physical action through the continuation; do not introduce a cut at the segment boundary.",
+      "beats": [
+        {
+          "duration": 15,
+          "text": "Track slowly right from the dark window. The keeper enters and walks to the console, coming to a complete stop with her right hand resting beside the recorder."
+        },
+        {
+          "duration": 15,
+          "text": "Continue the same shot and camera motion from that resting pose. The keeper turns toward the amber indicator, leans close and settles, studying its steady light."
+        }
+      ],
+      "kind": "shot",
+      "order": 0,
+      "assetIds": [
+        "pilot_keeper",
+        "pilot_room",
+        "pilot_recorder"
+      ],
+      "versions": [],
+      "selectedVersionId": null,
+      "code": "SH-001"
+    },
+    {
+      "id": "pilot_shot2",
+      "sceneId": "pilot_night",
+      "title": "Receive",
+      "duration": 15,
+      "prompt": "Cut to a clear close-up of the keeper's right hand and the recorder. Keep object geometry and hand contact physically coherent.",
+      "beats": [
+        {
+          "duration": 15,
+          "text": "The keeper places her fingertip on the recorder's recessed button, presses it once and releases. The amber indicator gives one slow pulse and settles to a steady glow."
+        }
+      ],
+      "kind": "shot",
+      "order": 1,
+      "assetIds": [
+        "pilot_keeper",
+        "pilot_room",
+        "pilot_recorder"
+      ],
+      "versions": [],
+      "selectedVersionId": null,
+      "code": "SH-002"
+    },
+    {
+      "id": "pilot_shot3",
+      "sceneId": "pilot_night",
+      "title": "Keep it",
+      "duration": 15,
+      "prompt": "Cut to a medium side view on the established screen axis. A quiet decision, expressed through handling and posture.",
+      "beats": [
+        {
+          "duration": 15,
+          "text": "The keeper takes the recorder in her right hand, disconnects its loose lead with her left, then brings it carefully to her chest and becomes still. Its amber light stays on."
+        }
+      ],
+      "kind": "shot",
+      "order": 2,
+      "assetIds": [
+        "pilot_keeper",
+        "pilot_room",
+        "pilot_recorder"
+      ],
+      "versions": [],
+      "selectedVersionId": null,
+      "code": "SH-003"
+    },
+    {
+      "id": "pilot_shot4",
+      "sceneId": "pilot_dawn",
+      "title": "One light remains",
+      "duration": 3,
+      "prompt": "Cut to an insert at dawn. The recorder is held in the keeper's right hand; preserve its approved shape and amber indicator.",
+      "beats": [
+        {
+          "duration": 3,
+          "text": "In cold dawn light, the keeper's fingers close securely around the recorder while its amber indicator remains visible."
+        }
+      ],
+      "kind": "shot",
+      "order": 3,
+      "assetIds": [
+        "pilot_keeper",
+        "pilot_room",
+        "pilot_recorder"
+      ],
+      "versions": [],
+      "selectedVersionId": null,
+      "code": "SH-004"
+    },
+    {
+      "id": "pilot_shot5",
+      "sceneId": "pilot_dawn",
+      "title": "Leave",
+      "duration": 5,
+      "prompt": "Cut to the established wide room view. Keep the recorder in the same hand and maintain the exit's screen-right position.",
+      "beats": [
+        {
+          "duration": 5,
+          "text": "The keeper walks through the exit on screen right, carrying the small amber light out of the cold room. The camera holds on the now-empty console."
+        }
+      ],
+      "kind": "shot",
+      "order": 4,
+      "assetIds": [
+        "pilot_keeper",
+        "pilot_room",
+        "pilot_recorder"
+      ],
+      "versions": [],
+      "selectedVersionId": null,
+      "code": "SH-005"
+    }
+  ],
+  "segments": [],
+  "batches": [],
+  "artifacts": [
+    {
+      "id": "pilot_preparation",
+      "title": "Provisional pilot direction and acceptance brief",
+      "method": "manual",
+      "review": "pending",
+      "origin": "prepared",
+      "content": "This is a proposed 68-second silent short, awaiting director acceptance. Validate the complete source, character/location/prop roster and five-shot coverage. Use a verified 15-second maximum draft model for the planned four-plus-one segment exercise; changing that profile requires recompilation and a new cost estimate. No supplied media is claimed. Upload any real completed work and preserve it after completeness validation. Technical lookdev is reviewed by the director. Do not submit paid requests without an approved, priced batch. See PILOT_REVIEW.md for the full acceptance run.",
+      "createdAt": "2026-09-17T11:51:10.886Z"
+    }
+  ],
+  "events": [],
+  "lookdev": [],
+  "sceneApprovals": [],
+  "decisions": [
+    {
+      "id": "pilot_material",
+      "status": "pending-owner-review",
+      "detail": "Use the demo's original Last Light premise provisionally; replace it if the director supplies a project."
+    },
+    {
+      "id": "pilot_profile",
+      "status": "pending-owner-review",
+      "detail": "Use an enabled video model with a verified 15-second maximum and 480p draft support. Select the actual endpoint and obtain current prices before spending."
+    }
+  ],
+  "guides": [],
+  "deliveries": [],
+  "idCounters": {
+    "PRJ": 1,
+    "ACT": 1,
+    "SEQ": 1,
+    "SC": 2,
+    "SH": 5,
+    "AST": 3
+  },
+  "code": "PRJ-001"
+}

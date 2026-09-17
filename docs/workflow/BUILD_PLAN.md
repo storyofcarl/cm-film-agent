@@ -165,6 +165,10 @@ Implementation has progressed into the separate Studio application. See
 and remaining acceptance work. Phases 1–5 have a working implementation;
 phase 6 has verified synthetic finishing/export locally and on the separate hosted
 preview. The next production-readiness milestone is a director-approved real pilot.
+Its provisional source package and acceptance run are available in
+[pilot/PILOT_REVIEW.md](pilot/PILOT_REVIEW.md). The complete package imports into the
+hosted app without creating jobs or approvals; actual provider pricing and human
+review remain required before execution.
 This does not mean all future
 professional post-production features are finished.
 

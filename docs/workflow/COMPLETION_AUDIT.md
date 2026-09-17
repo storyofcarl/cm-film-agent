@@ -32,6 +32,10 @@ Real conversational production acceptance remains open. Do not equate method rou
 with integration of every external OCC CLI tool.
 
 Run one director-approved multi-scene pilot, using supplied work where available.
+The reviewable provisional package is [pilot/PILOT_REVIEW.md](pilot/PILOT_REVIEW.md),
+with an importable `last-light-pilot.studio.json`. Hosted import and synthetic
+segment planning passed; actual model selection, current pricing, paid execution
+and director review remain unverified. WD33 records the provisional material choice.
 Prepare the complete deliverable and estimated batch costs first. Human asset and
 technical lookdev gates still apply; software development authorization does not
 approve a paid production batch or its resulting media. Include one scene of four

@@ -997,15 +997,25 @@ export function applyCommand(
         "Choose an unapplied crew proposal.",
       );
       const proposal = artifact.proposal;
+      const proposalIds = new Set([
+        project.id,
+        ...project.nodes.map((node) => node.id),
+        ...project.assets.map((asset) => asset.id),
+        ...project.shots.map((shot) => shot.id),
+      ]);
+      const reserveId = (id) => {
+        assert(
+          typeof id === "string" && id && !proposalIds.has(id),
+          "Every proposed new object needs a unique identifier distinct from existing objects.",
+        );
+        proposalIds.add(id);
+      };
       const assetIds = new Map(
         project.assets.map((asset) => [asset.id, asset.id]),
       );
       for (const asset of proposal.assets || []) {
         const key = asset.id || uid("proposed_asset");
-        assert(
-          !assetIds.has(key),
-          "A proposed asset duplicates an existing identifier.",
-        );
+        reserveId(key);
         assetIds.set(key, uid("asset"));
         asset.id = key;
       }
@@ -1021,10 +1031,7 @@ export function applyCommand(
             });
       const ids = new Map(project.nodes.map((node) => [node.id, node.id]));
       for (const node of proposal.nodes || []) {
-        assert(
-          node.id && !ids.has(node.id),
-          "A proposed container duplicates an existing identifier.",
-        );
+        reserveId(node.id);
         ids.set(node.id, uid(node.type));
       }
       for (const node of proposal.nodes || [])
@@ -1058,10 +1065,7 @@ export function applyCommand(
         );
         const shotId = uid("shot");
         if (shot.id) {
-          assert(
-            !ids.has(shot.id),
-            "A proposed shot duplicates an identifier.",
-          );
+          reserveId(shot.id);
           ids.set(shot.id, shotId);
         }
         project.shots.push({
@@ -1098,10 +1102,11 @@ export function applyCommand(
           "description",
           "duration",
           "beats",
-          "assetIds",
           "type",
         ])
           if (update[key] !== undefined) item[key] = update[key];
+        if (update.assetIds !== undefined)
+          item.assetIds = resolveAssets(update.assetIds);
         event("item.updated", { itemId: item.id, artifactId: artifact.id });
       }
       for (const update of proposal.nodeUpdates || []) {

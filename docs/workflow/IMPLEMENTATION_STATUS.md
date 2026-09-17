@@ -53,7 +53,11 @@ A director-reviewed real creative pilot remains outstanding.
 
 ## Evidence
 
-- Complete automated regression: **93 passing tests across 18 suites**.
+- Complete automated regression: **95 passing tests across 18 suites**.
+- Combined crew proposals resolve newly created assets in updates to existing shots
+  and assign supplied artwork in the same operation. Cross-type temporary ID
+  collisions are rejected; regression tests preserve historical versions and
+  demonstrate that the source project is unchanged if application fails.
 - Real PDF and DOCX extraction, unreadable/oversized document handling, inbox media
   assignment and idempotency are covered. Authenticated integration checks verify
   ownership, retained originals, document text, browser upload controls, visible
@@ -161,3 +165,11 @@ failure recovery and persistence across reload all passed. A hosted-only missing
 PDF canvas dependency was fixed with explicit runtime tracing and lazy PDF loading.
 Desktop/mobile navigation and synthetic scene export passed again. Temporary
 test accounts and media were removed; no paid AI requests were made.
+
+The combined-proposal correction is deployed. A provisional 68-second pilot package
+is ready in `pilot/`: two scenes, five shots, three assets, complete direction and
+timed beats. Its four-plus-one segment map and independent short-shot repair padding
+were verified against a declared 5–15 second planning profile. Hosted import retained
+the timing/IDs and created no jobs, spend authorizations or approvals. Its material,
+actual model selection and prices still need review; this is preparation, not real
+production acceptance. The broader hosted ownership/upload/UI checks passed again.
