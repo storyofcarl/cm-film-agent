@@ -171,9 +171,11 @@ export function outputAssembly(plan, context) {
     );
     return {
       title: plan.title,
-      content: [plan.summary, ...completed.map((part) => part.content)]
-        .filter(text)
-        .join("\n\n"),
+      content:
+        [plan.summary, ...completed.map((part) => part.content)]
+          .filter(text)
+          .join("\n\n") ||
+        `Prepared all ${plan.parts.length} parts together for review.`,
       decisions: completed.flatMap((part) =>
         Array.isArray(part.decisions) ? part.decisions.map(String) : [],
       ),

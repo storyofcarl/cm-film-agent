@@ -283,6 +283,9 @@ test("large multi-scene writing and prompt updates assemble after the last saved
   expect(state.crewRuns[0].state).toBe("completed");
   const reply = state.artifacts.find((entry) => entry.crewRunId === id);
   expect(reply.contextStudy.mode).toBe("partitioned");
+  expect(reply.content).toBe(
+    `Prepared all ${scenes.length} parts together for review.`,
+  );
   expect(reply.contextStudy.transcript).toHaveLength(scenes.length + 1);
   const scripts = state.artifacts.filter(
     (entry) => entry.documentArea === "scripts",
