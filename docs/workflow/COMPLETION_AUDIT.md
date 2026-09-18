@@ -26,7 +26,10 @@ WD52 adds bounded cleanup for new expired transfer copies and abandoned imports.
 Unit and real-storage checks preserve active transfers, retained text/chunks,
 legacy copies and foreign-owner data. Browser checks verify the new transfer
 folders through local large imports and exact export. The newest hosted 15.5 MB
-run failed during client navigation after import; see U04 in the workflow audit.
+run on 39bd577 failed during client navigation after import. WD55 reproduced and
+fixed that race; a new hosted 15.5 MB browser import on 79550be preserved Scripts
+navigation, all forty drafts and exact first/latest text. See U04 in the workflow
+audit for the diagnostic and verification scope.
 Comprehensive lifecycle work
 remains open for legacy temporary copies and orphaned immutable records.
 

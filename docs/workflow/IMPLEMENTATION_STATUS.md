@@ -4,8 +4,12 @@ Updated 2026-09-17. The separate private preview is deployed.
 On source 39bd577, the hosted 15.5 MB import check timed out waiting for the
 Scripts document after the import API succeeded. WD55 reproduced the client
 navigation race and fixes completion overriding the section selected while
-loading. Delayed-component checks and a real 15.5 MB local browser import pass;
-hosted verification of the fix is the next release check.
+loading. Delayed-component checks and real 15.5 MB local and hosted browser
+imports pass. Hosted source 79550be retained the chosen Scripts view, all forty
+drafts, exact first/latest draft text and the correct document-family summary.
+The isolated test account and its owned records were removed afterward; no paid
+provider calls ran. The build and lint pass; 131 tests across 23 suites pass
+(the new suite was rerun after correcting its compact fixture's shot count).
 The director workflow audit and proposed UX work order are recorded in
 [UX_WORKFLOW_AUDIT.md](UX_WORKFLOW_AUDIT.md) (WD53).
 WD54 implements the first audit increment: focused asset preview/details,

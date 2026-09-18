@@ -77,8 +77,11 @@ section was chosen, complete script text, and forty-version family counts.
 A real authenticated local browser import retained all forty versions of a
 15,525,879-byte synthetic project and opened its complete 370,521-character
 latest script without leaving Scripts. No paid model calls ran. Hosted validation
-of this revision is the next release check; the earlier hosted failure remains
-historical evidence, not a passing result.
+of source 79550be also passed on 2026-09-18: the distinct imported project opened
+in Scripts, all forty options were present, and the first/latest text matched
+exactly. The notice and chat summary correctly reported one document with forty
+versions. The disposable account and owned storage/projects were removed. The
+earlier hosted failure remains historical evidence of the fixed race.
 
 ### WD54 — Focused asset inspection and explicit version use
 

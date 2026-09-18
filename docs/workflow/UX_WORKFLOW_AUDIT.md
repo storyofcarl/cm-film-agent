@@ -127,8 +127,10 @@ U04 remains open; it was not rerun or represented as passing in this increment.
 and a delayed private download: completion overwrote a newly chosen Scripts view.
 The fix respects new section navigation while resetting old object/version
 context. The real 15.5 MB local browser import then stayed in Scripts with all
-40 drafts and the full 370,521-character latest text. Hosted verification remains
-a release check for this revision.
+40 drafts and the full 370,521-character latest text. Hosted source 79550be passed
+the same navigation scenario, with all forty drafts and exact earliest/latest
+text verified. U04's diagnosed navigation failure is resolved; this check does
+not replace the broader scale/export/ownership regression evidence.
 
 The same walkthrough exposed misleading intake counts. The completion notice now
 reports document families/versions and assets/shots, with completeness review
