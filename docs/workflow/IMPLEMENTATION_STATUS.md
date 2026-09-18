@@ -1,10 +1,11 @@
 # Studio implementation status
 
 Updated 2026-09-17. The separate private preview is deployed.
-Latest verification exception: on source 39bd577, the hosted 15.5 MB import check
-timed out waiting for the Scripts document after the import API succeeded.
-Its local run passed; hosted client activation/navigation requires diagnosis.
-Do not report the latest hosted end-to-end import check as passed.
+On source 39bd577, the hosted 15.5 MB import check timed out waiting for the
+Scripts document after the import API succeeded. WD55 reproduced the client
+navigation race and fixes completion overriding the section selected while
+loading. Delayed-component checks and a real 15.5 MB local browser import pass;
+hosted verification of the fix is the next release check.
 The director workflow audit and proposed UX work order are recorded in
 [UX_WORKFLOW_AUDIT.md](UX_WORKFLOW_AUDIT.md) (WD53).
 WD54 implements the first audit increment: focused asset preview/details,

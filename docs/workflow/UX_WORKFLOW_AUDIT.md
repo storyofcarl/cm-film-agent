@@ -120,3 +120,17 @@ collection does not change production selection, and opening details preserves
 that candidate. Local browser walkthrough and 127 regression tests pass. These
 changes do not complete the full asset-batch review or the broader audit backlog.
 U04 remains open; it was not rerun or represented as passing in this increment.
+
+## Implementation follow-up — WD55
+
+2026-09-18: U04's navigation race was reproduced with the actual Studio component
+and a delayed private download: completion overwrote a newly chosen Scripts view.
+The fix respects new section navigation while resetting old object/version
+context. The real 15.5 MB local browser import then stayed in Scripts with all
+40 drafts and the full 370,521-character latest text. Hosted verification remains
+a release check for this revision.
+
+The same walkthrough exposed misleading intake counts. The completion notice now
+reports document families/versions and assets/shots, with completeness review
+explicitly pending. Chat groups supplied drafts under one linked document. This
+is an intake handoff improvement, not completion of the writing/editorial redesign.

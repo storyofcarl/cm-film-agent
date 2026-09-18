@@ -8,6 +8,7 @@ import ProjectFiles from "./ProjectFiles";
 import UploadInbox from "./UploadInbox";
 import { FILE_AREAS } from "../lib/fileAreas";
 import { documentArea } from "../lib/documents";
+import { importSummary } from "../lib/intakeSummary";
 import CrewConversation from "./CrewConversation";
 import PhaseChecklist from "./PhaseChecklist";
 import { UPLOAD_ACCEPT } from "../lib/uploads";
@@ -111,7 +112,15 @@ export default function Studio({
   );
   const [itemId, setItemId] = useState(null);
   const [reviewVersionId, setReviewVersionId] = useState(null);
-  const [tab, setTab] = useState("Review");
+  const [tab, setTabState] = useState("Review");
+  const navigationRequest = useRef({ serial: 0, tab: "Review" });
+  const setTab = useCallback((next) => {
+    navigationRequest.current = {
+      serial: navigationRequest.current.serial + 1,
+      tab: next,
+    };
+    setTabState(next);
+  }, []);
   const [containerId, setContainerId] = useState(sceneId);
   const [selectedShotId, setSelectedShotId] = useState(itemId);
   const [propertyTargetId, setPropertyTargetId] = useState(
@@ -161,7 +170,11 @@ export default function Studio({
   }, [tab, itemId]);
   const pollCursor = useRef(0);
   const activateProject = useCallback(
-    (result, firstScene = false) => {
+    (
+      result,
+      firstScene = false,
+      { navigationAtStart = null, defaultTab = "Review" } = {},
+    ) => {
       const next = result.project;
       const scene = firstScene
         ? next.nodes.find((node) => node.type === "scene")
@@ -181,7 +194,21 @@ export default function Studio({
       setUploadPurpose("take");
       // Initial loading must not override navigation already chosen in the shell.
       if (!firstScene) {
-        setTab("Review");
+        const navigation = navigationRequest.current;
+        const choseSectionWhileLoading =
+          navigationAtStart !== null &&
+          navigation.serial !== navigationAtStart &&
+          [
+            "Overview",
+            "Assets",
+            "Footage",
+            "Scripts",
+            "Production docs",
+            "Audio",
+            "Batches",
+            "History",
+          ].includes(navigation.tab);
+        if (!choseSectionWhileLoading) setTab(defaultTab);
         setModal(null);
       }
       if (!demo)
@@ -190,7 +217,7 @@ export default function Studio({
           ...items.filter((entry) => entry.id !== next.id),
         ]);
     },
-    [demo],
+    [demo, setTab],
   );
 
   useEffect(() => {
@@ -462,10 +489,12 @@ export default function Studio({
   const importProject = (file) =>
     run(async () => {
       if (!file) return;
+      const navigationAtStart = navigationRequest.current.serial;
       if (demo)
         throw new Error(
           "Open the authenticated studio to validate and import your project.",
         );
+      setMessage(`Importing ${file.name}…`);
       if (!/\.json$/i.test(file.name)) {
         const content = await file.text();
         if (content.length > 500000)
@@ -496,8 +525,10 @@ export default function Studio({
             },
           }),
         );
-        activateProject(current);
-        setTab("Overview");
+        activateProject(current, false, {
+          navigationAtStart,
+          defaultTab: "Overview",
+        });
         setMessage(
           "Supplied document preserved in full. Use Validate supplied work for a completeness check, or direct the crew to work from it.",
         );
@@ -511,10 +542,8 @@ export default function Studio({
         "/api/studio/projects",
         post({ action: "import", ...input }),
       );
-      activateProject(result);
-      setMessage(
-        `Imported ${result.report?.approved || 0} complete versions. ${result.report?.gaps?.length || 0} gaps flagged for the crew.`,
-      );
+      activateProject(result, false, { navigationAtStart });
+      setMessage(importSummary(result.project, result.report));
     });
   const crew = () =>
     run(async () => {

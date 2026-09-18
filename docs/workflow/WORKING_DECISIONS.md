@@ -55,6 +55,31 @@ credentials server-side and out of logs, docs, fixtures, browser bundles and Git
 
 ## Owner corrections to working choices
 
+### WD55 — Preserve navigation during import and report supplied document families
+
+2026-09-18: reproduced U04 in the actual Studio component with a delayed private
+download. Clicking Scripts while import is pending was overwritten by
+activateProject's unconditional Review navigation. Track explicit navigation
+and retain a chosen project section when the import completes; still reset
+foreign shot/asset/version context. Without a new navigation choice, use the
+normal import landing view. Show an importing notice until completion/error.
+
+Import completion now names document families and retained version counts, plus
+assets/shots and intake findings. It explicitly says completeness review is
+pending rather than treating preserved files as approved. The supplied-work
+summary in chat groups screenplay drafts into one document and links its latest
+supplied version to the center. It no longer lists forty versions as forty
+independent documents. Agent validation and human lookdev gates remain unchanged.
+
+The delayed-download check failed before the fix and passes afterward. Additional
+cases cover retaining Audio navigation, clearing prior shot context when no
+section was chosen, complete script text, and forty-version family counts.
+A real authenticated local browser import retained all forty versions of a
+15,525,879-byte synthetic project and opened its complete 370,521-character
+latest script without leaving Scripts. No paid model calls ran. Hosted validation
+of this revision is the next release check; the earlier hosted failure remains
+historical evidence, not a passing result.
+
 ### WD54 — Focused asset inspection and explicit version use
 
 First implementation increment from WD53: Assets opens on the collection with

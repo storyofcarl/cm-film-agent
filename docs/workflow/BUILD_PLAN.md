@@ -10,6 +10,11 @@ handoff, task-specific center work surfaces, consolidated review and clear
 approval consequences within the agreed strip/left-navigation/right-chat shell.
 Technical implementation milestones are not section-level UX acceptance.
 
+WD55 advances the intake-to-writing handoff: imported work respects the director's
+chosen section during loading and reports document families/version history with
+pending completeness review. The next design increment still needs a useful
+remaining-work inventory and a stronger writing/review surface.
+
 ## 1. Align on the production contract
 
 Prepare a stage-by-stage matrix for the complete deliverable batch. For each stage,

@@ -5,6 +5,7 @@ import { crewNextActions } from "../lib/crewActions";
 import ProposalReview from "./ProposalReview";
 import UploadInbox from "./UploadInbox";
 import SourceStudy from "./SourceStudy";
+import { suppliedDocumentGroups } from "../lib/intakeSummary";
 
 export function directorMessage(artifact) {
   return (
@@ -27,6 +28,7 @@ export default function CrewConversation({
 }) {
   const log = useRef(null);
   const [expanded, setExpanded] = useState(null);
+  const suppliedDocuments = suppliedDocumentGroups(project);
   const messages = project.artifacts.filter((artifact) =>
     directorMessage(artifact),
   );
@@ -147,26 +149,35 @@ export default function CrewConversation({
   return (
     <>
       <UploadInbox {...{ project, busy, command }} />
-      {project.artifacts.some((entry) => entry.origin === "imported") && (
+      {suppliedDocuments.length > 0 && (
         <details className="crew-uploads">
           <summary>
-            Supplied work ·{" "}
-            {
-              project.artifacts.filter((entry) => entry.origin === "imported")
-                .length
-            }{" "}
-            documents
+            Supplied work · {suppliedDocuments.length}{" "}
+            {suppliedDocuments.length === 1 ? "document" : "documents"} ·{" "}
+            {suppliedDocuments.reduce(
+              (sum, group) => sum + group.versions.length,
+              0,
+            )}{" "}
+            versions
           </summary>
-          {project.artifacts
-            .filter((entry) => entry.origin === "imported")
-            .map((entry) => (
-              <p key={entry.id}>
-                {entry.title} ·{" "}
+          {suppliedDocuments.map((group) => {
+            const entry = group.versions.at(-1);
+            return (
+              <p key={group.id}>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => openDocument(entry)}
+                >
+                  {entry.title} · V{entry.number || 1}
+                </button>{" "}
+                ·{" "}
                 {entry.review === "approved"
                   ? "Approved"
                   : "Needs completeness review"}
               </p>
-            ))}
+            );
+          })}
         </details>
       )}
       <div
